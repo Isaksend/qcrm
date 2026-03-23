@@ -62,6 +62,13 @@ export const useDealsStore = defineStore('deals', () => {
     deals.value.push({ ...data, id })
   }
 
+  function updateDealStage(id: string, stage: Deal['stage']) {
+    const deal = deals.value.find((d) => d.id === id)
+    if (deal) {
+      deal.stage = stage
+    }
+  }
+
   return {
     deals,
     sortField,
@@ -73,5 +80,6 @@ export const useDealsStore = defineStore('deals', () => {
     byStage,
     setSort,
     addDeal,
+    updateDealStage,
   }
 })

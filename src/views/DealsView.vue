@@ -2,11 +2,13 @@
 import { ref, computed } from 'vue'
 import { useDealsStore } from '../stores/deals'
 import DealsTable from '../components/deals/DealsTable.vue'
+import DealsKanban from '../components/deals/DealsKanban.vue'
 import DealForm from '../components/deals/DealForm.vue'
 import { monthlyRevenue } from '../data/mock'
 
 const dealsStore = useDealsStore()
 const showForm = ref(false)
+const viewMode = ref<'kanban' | 'table'>('kanban')
 
 function formatCurrency(val: number): string {
   if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
@@ -24,10 +26,28 @@ const maxMonthly = computed(() => Math.max(...monthlyRevenue.map((m) => m.value)
         <h1 class="text-2xl font-bold text-gray-900">Deals</h1>
         <p class="text-sm text-gray-500 mt-1">Overview of all your deals and revenue.</p>
       </div>
-      <button @click="showForm = true" class="btn-primary">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-        New Deal
-      </button>
+      <div class="flex items-center gap-3">
+        <div class="bg-gray-100 p-1 rounded-lg flex items-center">
+          <button 
+            @click="viewMode = 'kanban'"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            :class="viewMode === 'kanban' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+          >
+            Kanban
+          </button>
+          <button 
+            @click="viewMode = 'table'"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            :class="viewMode === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+          >
+            List
+          </button>
+        </div>
+        <button @click="showForm = true" class="btn-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+          New Deal
+        </button>
+      </div>
     </div>
 
     <!-- Summary Cards -->
@@ -69,7 +89,9 @@ const maxMonthly = computed(() => Math.max(...monthlyRevenue.map((m) => m.value)
       </div>
     </div>
 
-    <DealsTable />
+    <DealsKanban v-if="viewMode === 'kanban'" />
+    <DealsTable v-else />
+    
     <DealForm v-if="showForm" @close="showForm = false" />
   </div>
 </template>
