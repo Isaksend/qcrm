@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useDealsStore } from '../stores/deals'
 import DealsTable from '../components/deals/DealsTable.vue'
 import DealsKanban from '../components/deals/DealsKanban.vue'
@@ -17,6 +17,10 @@ function formatCurrency(val: number): string {
 }
 
 const maxMonthly = computed(() => Math.max(...monthlyRevenue.map((m) => m.value)))
+
+onMounted(() => {
+  dealsStore.fetchDeals()
+})
 </script>
 
 <template>
