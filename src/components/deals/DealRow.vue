@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Deal } from '../../types'
 import { useContactsStore } from '../../stores/contacts'
-import { useSellersStore } from '../../stores/sellers'
 import { computed } from 'vue'
 
 const props = defineProps<{
@@ -9,12 +8,12 @@ const props = defineProps<{
 }>()
 
 const contactsStore = useContactsStore()
-const sellersStore = useSellersStore()
 
 const contact = computed(() => contactsStore.getContact(props.deal.contactId))
-const seller = computed(() => sellersStore.getSeller(props.deal.sellerId))
 
 const stageClass: Record<string, string> = {
+  'New Request': 'badge-blue',
+  Qualified: 'badge-blue',
   Discovery: 'badge-blue',
   Proposal: 'badge-yellow',
   Negotiation: 'badge-yellow',
@@ -37,7 +36,6 @@ function formatCurrency(val: number): string {
     <td class="px-4 py-3">
       <span class="badge" :class="stageClass[deal.stage]">{{ deal.stage }}</span>
     </td>
-    <td class="px-4 py-3 text-sm text-gray-600">{{ seller?.name ?? '—' }}</td>
     <td class="px-4 py-3 text-sm text-gray-500">{{ deal.closedAt ?? 'Open' }}</td>
   </tr>
 </template>

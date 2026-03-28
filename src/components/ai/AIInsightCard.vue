@@ -17,7 +17,7 @@ const entityLabels: Record<string, string> = {
   contact: 'Contact',
   lead: 'Lead',
   deal: 'Deal',
-  seller: 'Seller',
+  user: 'User',
   general: 'General',
 }
 </script>

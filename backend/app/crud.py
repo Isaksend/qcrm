@@ -1,8 +1,13 @@
 from sqlalchemy.orm import Session
 from app import models, schemas
 
-def get_deals(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Deal).offset(skip).limit(limit).all()
+def get_deals(db: Session, skip: int = 0, limit: int = 100, company_id: str = None, user_id: str = None):
+    query = db.query(models.Deal)
+    if company_id:
+        query = query.filter(models.Deal.companyId == company_id)
+    if user_id:
+        query = query.filter(models.Deal.userId == user_id)
+    return query.offset(skip).limit(limit).all()
 
 def create_deal(db: Session, deal: schemas.DealCreate):
     db_deal = models.Deal(**deal.model_dump())
@@ -10,6 +15,11 @@ def create_deal(db: Session, deal: schemas.DealCreate):
     db.commit()
     db.refresh(db_deal)
     return db_deal
+
+    return db_deal
+
+def get_deal(db: Session, deal_id: str):
+    return db.query(models.Deal).filter(models.Deal.id == deal_id).first()
 
 def update_deal_stage(db: Session, deal_id: str, stage: str):
     db_deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
@@ -20,8 +30,11 @@ def update_deal_stage(db: Session, deal_id: str, stage: str):
     return db_deal
 
 # Contacts
-def get_contacts(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Contact).offset(skip).limit(limit).all()
+def get_contacts(db: Session, skip: int = 0, limit: int = 100, company_id: str = None):
+    query = db.query(models.Contact)
+    if company_id:
+        query = query.filter(models.Contact.companyId == company_id)
+    return query.offset(skip).limit(limit).all()
 
 def create_contact(db: Session, contact: schemas.ContactCreate):
     db_contact = models.Contact(**contact.model_dump())
@@ -30,20 +43,10 @@ def create_contact(db: Session, contact: schemas.ContactCreate):
     db.refresh(db_contact)
     return db_contact
 
-# Sellers
-def get_sellers(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Seller).offset(skip).limit(limit).all()
+def get_contact_by_phone(db: Session, phone: str):
+    return db.query(models.Contact).filter(models.Contact.phone == phone).first()
 
-def create_seller(db: Session, seller: schemas.SellerCreate):
-    db_seller = models.Seller(**seller.model_dump())
-    db.add(db_seller)
-    db.commit()
-    db.refresh(db_seller)
-    return db_seller
 
-# Activities
-def get_activities(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Activity).offset(skip).limit(limit).all()
 
 def create_activity(db: Session, activity: schemas.ActivityCreate):
     db_act = models.Activity(**activity.model_dump())
@@ -51,6 +54,17 @@ def create_activity(db: Session, activity: schemas.ActivityCreate):
     db.commit()
     db.refresh(db_act)
     return db_act
+
+# Notes
+def get_deal_notes(db: Session, deal_id: str):
+    return db.query(models.Note).filter(models.Note.dealId == deal_id).order_by(models.Note.createdAt.desc()).all()
+
+def create_note(db: Session, note: schemas.NoteCreate, user_id: str):
+    db_note = models.Note(**note.model_dump(), userId=user_id)
+    db.add(db_note)
+    db.commit()
+    db.refresh(db_note)
+    return db_note
 
 # AI Insights
 def get_ai_insights(db: Session, skip: int = 0, limit: int = 100):

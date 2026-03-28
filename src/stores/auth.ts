@@ -63,12 +63,15 @@ export const useAuthStore = defineStore('auth', () => {
       })
       if (response.ok) {
         user.value = await response.json()
-      } else {
+      } else if (response.status === 401) {
+        // Only logout if token is actually invalid
         logout()
+      } else {
+        console.warn('Server error, but keeping token to retry later.', response.status)
       }
     } catch (e) {
-      console.error(e)
-      logout()
+      console.error('Fetch user failed - likely network or crash', e)
+      // Do NOT call logout here to prevent redirect loops when backend crashes mid-session
     }
   }
 

@@ -33,34 +33,33 @@ export interface Deal {
   value: number
   stage: 'New Request' | 'Qualified' | 'Discovery' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost'
   closedAt: string | null
-  sellerId: string
+  userId: string
+  companyId: string | null
+  notes?: string
 }
 
-export interface Seller {
-  id: string
-  name: string
-  email: string
-  avatar: string
-  role: string
-  dealsWon: number
-  dealsClosed: number
-  revenue: number
-  conversionRate: number
-  activeLeads: number
-}
+
 
 export interface Activity {
   id: string
   type: 'call' | 'email' | 'meeting' | 'deal_won' | 'deal_lost' | 'lead_created' | 'note'
-  entityType: 'contact' | 'lead' | 'deal' | 'seller'
+  entityType: 'contact' | 'lead' | 'deal' | 'user'
   entityId: string
   description: string
   timestamp: string
 }
 
+export interface Note {
+  id: string
+  dealId: string
+  userId: string
+  content: string
+  createdAt: string
+}
+
 export interface AIInsight {
   id: string
-  entityType: 'contact' | 'lead' | 'deal' | 'seller' | 'general'
+  entityType: 'contact' | 'lead' | 'deal' | 'user' | 'general'
   entityId: string | null
   category: 'risk' | 'opportunity' | 'coaching' | 'prediction' | 'analysis'
   title: string

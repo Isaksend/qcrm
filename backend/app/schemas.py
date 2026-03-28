@@ -8,7 +8,9 @@ class DealBase(BaseModel):
     leadId: Optional[str] = None
     value: float = 0.0
     stage: str
-    sellerId: Optional[str] = None
+    userId: Optional[str] = None
+    companyId: Optional[str] = None
+    notes: Optional[str] = None
     closedAt: Optional[datetime] = None
 
 class DealCreate(DealBase):
@@ -28,14 +30,15 @@ class Deal(DealBase):
 class ContactBase(BaseModel):
     name: str
     email: str
-    phone: Optional[str] = ""
-    company: Optional[str] = ""
-    role: Optional[str] = ""
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    role: Optional[str] = None
     status: str = "Active"
-    avatar: Optional[str] = ""
+    avatar: Optional[str] = None
     revenue: float = 0.0
-    lastContact: str = ""
-    tags: List[str] = []
+    lastContact: Optional[str] = None
+    tags: Optional[List[str]] = None
+    companyId: Optional[str] = None
 
 class ContactCreate(ContactBase):
     pass
@@ -46,25 +49,7 @@ class Contact(ContactBase):
     class Config:
         from_attributes = True
 
-class SellerBase(BaseModel):
-    name: str
-    email: str
-    avatar: Optional[str] = ""
-    role: Optional[str] = ""
-    dealsWon: int = 0
-    dealsClosed: int = 0
-    revenue: float = 0.0
-    conversionRate: float = 0.0
-    activeLeads: int = 0
 
-class SellerCreate(SellerBase):
-    pass
-
-class Seller(SellerBase):
-    id: str
-
-    class Config:
-        from_attributes = True
 
 class ActivityBase(BaseModel):
     type: str
@@ -78,6 +63,21 @@ class ActivityCreate(ActivityBase):
 
 class Activity(ActivityBase):
     id: str
+
+    class Config:
+        from_attributes = True
+
+class NoteBase(BaseModel):
+    dealId: str
+    content: str
+
+class NoteCreate(NoteBase):
+    pass
+
+class Note(NoteBase):
+    id: str
+    userId: str
+    createdAt: datetime
 
     class Config:
         from_attributes = True

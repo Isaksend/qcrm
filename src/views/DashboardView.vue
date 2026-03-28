@@ -2,7 +2,6 @@
 import { computed, onMounted } from 'vue'
 import { useContactsStore } from '../stores/contacts'
 import { useDealsStore } from '../stores/deals'
-import { useSellersStore } from '../stores/sellers'
 import MetricCard from '../components/dashboard/MetricCard.vue'
 import RevenueChart from '../components/dashboard/RevenueChart.vue'
 import ActivityFeed from '../components/dashboard/ActivityFeed.vue'
@@ -10,7 +9,7 @@ import PipelineOverview from '../components/dashboard/PipelineOverview.vue'
 
 const contactsStore = useContactsStore()
 const dealsStore = useDealsStore()
-const sellersStore = useSellersStore()
+
 
 function formatCurrency(val: number): string {
   if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
@@ -18,10 +17,16 @@ function formatCurrency(val: number): string {
   return `$${val}`
 }
 
+const conversionRate = computed(() => {
+  const closed = dealsStore.deals.filter(d => d.stage === 'Closed Won' || d.stage === 'Closed Lost')
+  if (closed.length === 0) return 0
+  const won = closed.filter(d => d.stage === 'Closed Won').length
+  return Math.round((won / closed.length) * 100)
+})
+
 onMounted(() => {
   dealsStore.fetchDeals()
   contactsStore.fetchContacts()
-  sellersStore.fetchSellers()
 })
 
 const metrics = computed(() => [
@@ -48,9 +53,9 @@ const metrics = computed(() => [
   },
   {
     title: 'Conversion Rate',
-    value: `${sellersStore.avgConversionRate}%`,
-    trend: '+5%',
-    trendUp: true,
+    value: `${conversionRate.value}%`,
+    trend: 'Win/Loss',
+    trendUp: conversionRate.value > 50,
     icon: 'conversion',
   },
 ])

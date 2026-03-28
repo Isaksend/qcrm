@@ -1,9 +1,34 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
 import { useDealsStore } from '../../stores/deals'
+import { useContactsStore } from '../../stores/contacts'
 import type { Deal } from '../../types'
 
+const router = useRouter()
 const dealsStore = useDealsStore()
+const contactsStore = useContactsStore()
 const stages: Deal['stage'][] = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
+
+const users = ref<any[]>([])
+const userMap = computed(() => {
+  const map: Record<string, string> = {}
+  users.value.forEach(u => map[u.id] = u.name)
+  return map
+})
+
+async function fetchUsers() {
+  try {
+    const res = await fetch('http://127.0.0.1:8000/api/users', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    if (res.ok) users.value = await res.json()
+  } catch (e) { console.error(e) }
+}
+
+onMounted(() => {
+  fetchUsers()
+})
 
 function onDragStart(event: DragEvent, deal: Deal) {
   if (event.dataTransfer) {
@@ -56,11 +81,11 @@ function getStageColor(stage: string): string {
         <div class="flex items-center justify-between mb-1">
           <h3 class="font-semibold text-gray-800 text-sm">{{ stage }}</h3>
           <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="getStageColor(stage)">
-            {{ dealsStore.deals.filter(d => d.stage === stage).length }}
+            {{ dealsStore.deals.filter((d: Deal) => d.stage === stage).length }}
           </span>
         </div>
         <div class="text-xs text-gray-500 font-medium tracking-wide">
-          {{ formatCurrency(dealsStore.deals.filter(d => d.stage === stage).reduce((sum, d) => sum + d.value, 0)) }}
+          {{ formatCurrency(dealsStore.deals.filter((d: Deal) => d.stage === stage).reduce((sum: number, d: Deal) => sum + d.value, 0)) }}
         </div>
       </div>
 
@@ -68,24 +93,36 @@ function getStageColor(stage: string): string {
       <div class="flex-1 overflow-y-auto p-3 space-y-3">
         <!-- Draggable Card -->
         <div
-          v-for="deal in dealsStore.deals.filter(d => d.stage === stage)"
+          v-for="deal in dealsStore.deals.filter((d: Deal) => d.stage === stage)"
           :key="deal.id"
-          class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-move hover:shadow-md hover:border-indigo-300 transition-all active:cursor-grabbing active:scale-[0.98]"
+          class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-indigo-300 transition-all active:scale-[0.98] group relative"
           draggable="true"
           @dragstart="onDragStart($event, deal)"
         >
           <div class="flex justify-between items-start mb-2">
-            <div class="font-medium text-gray-900 text-sm leading-tight">{{ deal.title }}</div>
-            <div 
-              class="w-6 h-6 bg-indigo-50 rounded-full flex items-center justify-center shrink-0 border border-indigo-100 ml-2"
-              title="Seller ID"
+            <div class="font-medium text-gray-900 text-sm leading-tight pr-6">{{ deal.title }}</div>
+            <button 
+              @click="router.push(`/deals/${deal.id}`)"
+              class="absolute top-3 right-3 p-1 text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="View Details"
             >
-              <span class="text-[10px] font-bold text-indigo-700 uppercase">{{ deal.sellerId.charAt(0) }}</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            </button>
+            <div 
+               class="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 rounded-full border border-indigo-100 shrink-0 ml-2"
+               :title="'Assigned to: ' + (userMap[deal.userId] || 'Unknown')"
+            >
+              <div class="w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[8px] text-white font-bold">
+                {{ userMap[deal.userId] ? userMap[deal.userId].charAt(0) : 'U' }}
+              </div>
+              <span class="text-[10px] font-bold text-indigo-700 truncate max-w-[60px]">
+                {{ userMap[deal.userId] || '—' }}
+              </span>
             </div>
           </div>
-          <div class="text-xs text-gray-500 mb-3 flex items-center gap-1">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-            {{ deal.contactId }}
+          <div class="text-xs text-indigo-600 font-bold mb-3 flex items-center gap-1.5 bg-indigo-50/50 py-1 px-2 rounded-lg border border-dashed border-indigo-100 italic">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            {{ contactsStore.getContact(deal.contactId)?.name || 'Loading contact...' }}
           </div>
           <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
             <span class="font-bold text-emerald-600 text-sm">{{ formatCurrency(deal.value) }}</span>
@@ -94,7 +131,7 @@ function getStageColor(stage: string): string {
         </div>
 
         <!-- Empty state placeholder -->
-        <div v-if="dealsStore.deals.filter(d => d.stage === stage).length === 0" class="h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-xs justify-center text-gray-400 font-medium">
+        <div v-if="dealsStore.deals.filter((d: Deal) => d.stage === stage).length === 0" class="h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-xs justify-center text-gray-400 font-medium">
           Drop deals right here
         </div>
       </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useContactsStore } from '../stores/contacts'
 import { useDealsStore } from '../stores/deals'
 import DealsTable from '../components/deals/DealsTable.vue'
 import DealsKanban from '../components/deals/DealsKanban.vue'
@@ -7,6 +8,7 @@ import DealForm from '../components/deals/DealForm.vue'
 import { monthlyRevenue } from '../data/mock'
 
 const dealsStore = useDealsStore()
+const contactsStore = useContactsStore()
 const showForm = ref(false)
 const viewMode = ref<'kanban' | 'table'>('kanban')
 
@@ -20,6 +22,7 @@ const maxMonthly = computed(() => Math.max(...monthlyRevenue.map((m) => m.value)
 
 onMounted(() => {
   dealsStore.fetchDeals()
+  contactsStore.fetchContacts()
 })
 </script>
 

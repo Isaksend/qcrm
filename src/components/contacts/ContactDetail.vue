@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { useContactsStore } from '../../stores/contacts'
-import { useLeadsStore } from '../../stores/leads'
+import { useDealsStore } from '../../stores/deals'
 import { useAI } from '../../composables/useAI'
 import { computed } from 'vue'
 
 const contactsStore = useContactsStore()
-const leadsStore = useLeadsStore()
+const dealsStore = useDealsStore()
 const { analyze } = useAI()
 
 const contact = computed(() => contactsStore.selectedContact)
 
-const contactLeads = computed(() => {
+const contactDeals = computed(() => {
   if (!contact.value) return []
-  return leadsStore.leads.filter((l) => l.contactId === contact.value!.id)
+  return dealsStore.deals.filter((d) => d.contactId === contact.value!.id)
 })
 
 const statusClass: Record<string, string> = {
@@ -22,12 +22,13 @@ const statusClass: Record<string, string> = {
 }
 
 const stageClass: Record<string, string> = {
-  New: 'badge-blue',
-  Qualified: 'badge-indigo',
-  Proposal: 'badge-yellow',
-  Negotiation: 'badge-yellow',
-  Won: 'badge-green',
-  Lost: 'badge-red',
+  'New Request': 'badge-blue',
+  'Qualified': 'badge-indigo',
+  'Discovery': 'badge-blue',
+  'Proposal': 'badge-yellow',
+  'Negotiation': 'badge-yellow',
+  'Closed Won': 'badge-green',
+  'Closed Lost': 'badge-red',
 }
 
 function formatCurrency(val: number): string {
@@ -107,23 +108,23 @@ function handleAnalyze() {
           </div>
         </div>
 
-        <!-- Related Leads -->
+        <!-- Related Deals -->
         <div class="mb-6">
-          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Related Leads</h3>
-          <div v-if="contactLeads.length" class="space-y-2">
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Related Deals</h3>
+          <div v-if="contactDeals.length" class="space-y-2">
             <div
-              v-for="lead in contactLeads"
-              :key="lead.id"
+              v-for="deal in contactDeals"
+              :key="deal.id"
               class="flex items-center justify-between bg-gray-50 rounded-lg p-3"
             >
               <div>
-                <div class="text-sm font-medium text-gray-800">{{ lead.title }}</div>
-                <span class="badge mt-1" :class="stageClass[lead.stage]">{{ lead.stage }}</span>
+                <div class="text-sm font-medium text-gray-800">{{ deal.title }}</div>
+                <span class="badge mt-1" :class="stageClass[deal.stage]">{{ deal.stage }}</span>
               </div>
-              <div class="text-sm font-semibold text-gray-700">{{ formatCurrency(lead.value) }}</div>
+              <div class="text-sm font-semibold text-gray-700">{{ formatCurrency(deal.value) }}</div>
             </div>
           </div>
-          <p v-else class="text-sm text-gray-400">No related leads.</p>
+          <p v-else class="text-sm text-gray-400">No related deals.</p>
         </div>
 
         <!-- AI Button -->

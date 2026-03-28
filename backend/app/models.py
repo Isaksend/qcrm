@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Integer, Float, DateTime, JSON
 from app.database import Base
-from datetime import datetime
+import datetime
 import uuid
 
 def generate_uuid():
@@ -16,7 +16,9 @@ class Deal(Base):
     value = Column(Float, default=0.0)
     stage = Column(String, index=True) # Discovery, Proposal, Negotiation, Closed Won, Closed Lost
     closedAt = Column(DateTime, nullable=True)
-    sellerId = Column(String, nullable=True)
+    userId = Column(String, nullable=True)
+    companyId = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
 
 class Contact(Base):
     __tablename__ = "contacts"
@@ -32,20 +34,9 @@ class Contact(Base):
     revenue = Column(Float, default=0.0)
     lastContact = Column(String, nullable=True)
     tags = Column(JSON, default=[])
+    companyId = Column(String, nullable=True)
 
-class Seller(Base):
-    __tablename__ = "sellers"
 
-    id = Column(String, primary_key=True, default=generate_uuid, index=True)
-    name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
-    avatar = Column(String, nullable=True)
-    role = Column(String, nullable=True)
-    dealsWon = Column(Integer, default=0)
-    dealsClosed = Column(Integer, default=0)
-    revenue = Column(Float, default=0.0)
-    conversionRate = Column(Float, default=0.0)
-    activeLeads = Column(Integer, default=0)
 
 class Activity(Base):
     __tablename__ = "activities"
@@ -57,6 +48,14 @@ class Activity(Base):
     description = Column(String)
     timestamp = Column(String)
 
+class Note(Base):
+    __tablename__ = "notes"
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    dealId = Column(String, index=True)
+    userId = Column(String, index=True)
+    content = Column(String)
+    createdAt = Column(DateTime, default=datetime.datetime.utcnow)
+
 class AIInsight(Base):
     __tablename__ = "ai_insights"
 
@@ -65,7 +64,6 @@ class AIInsight(Base):
     entityId = Column(String, nullable=True)
     category = Column(String)
     title = Column(String)
-    content = Column(String)
     content = Column(String)
     confidence = Column(Integer)
     suggestions = Column(JSON, default=[])

@@ -1,26 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useLeadsStore } from '../../stores/leads'
+import { useDealsStore } from '../../stores/deals'
 
-const leadsStore = useLeadsStore()
+const dealsStore = useDealsStore()
 
 const funnelStages = computed(() => {
-  const stages = ['New', 'Qualified', 'Proposal', 'Negotiation', 'Won']
+  const stages = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won']
   return stages.map((stage) => {
-    const stageLeads = leadsStore.leadsByStage[stage] ?? []
-    const value = stageLeads.reduce((sum, l) => sum + l.value, 0)
-    return { stage, count: stageLeads.length, value }
+    const stageDeals = dealsStore.deals.filter(d => d.stage === stage)
+    const value = stageDeals.reduce((sum, d) => sum + d.value, 0)
+    return { stage, count: stageDeals.length, value }
   })
 })
 
 const maxCount = computed(() => Math.max(...funnelStages.value.map((s) => s.count), 1))
 
 const stageColors: Record<string, string> = {
-  New: 'bg-blue-400',
-  Qualified: 'bg-indigo-400',
-  Proposal: 'bg-purple-400',
-  Negotiation: 'bg-orange-400',
-  Won: 'bg-green-400',
+  'New Request': 'bg-cyan-400',
+  'Qualified': 'bg-teal-400',
+  'Discovery': 'bg-blue-400',
+  'Proposal': 'bg-purple-400',
+  'Negotiation': 'bg-orange-400',
+  'Closed Won': 'bg-green-400',
 }
 
 function formatValue(val: number): string {
@@ -41,7 +42,7 @@ function formatValue(val: number): string {
             :class="stageColors[s.stage]"
             :style="{ width: `${Math.max((s.count / maxCount) * 100, 8)}%` }"
           >
-            <span class="text-xs font-medium text-white whitespace-nowrap">{{ s.count }} leads</span>
+            <span class="text-xs font-medium text-white whitespace-nowrap">{{ s.count }} deals</span>
           </div>
         </div>
         <span class="text-xs font-medium text-gray-600 w-16 text-right shrink-0">{{ formatValue(s.value) }}</span>

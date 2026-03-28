@@ -27,38 +27,86 @@ def root():
     return {"message": "Welcome to Tiny CRM Backend!"}
 
 @app.get("/api/deals", response_model=List[schemas.Deal])
-def read_deals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    deals = crud.get_deals(db, skip=skip, limit=limit)
-    return deals
+def read_deals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    user_id = None
+    company_id = current_user.company_id
+    
+    if current_user.role == "user":
+        user_id = current_user.id
+    elif current_user.role == "super_admin":
+        company_id = None
+        
+    return crud.get_deals(db, skip=skip, limit=limit, company_id=company_id, user_id=user_id)
 
 @app.post("/api/deals", response_model=schemas.Deal)
-def create_deal(deal: schemas.DealCreate, db: Session = Depends(get_db)):
+def create_deal(deal: schemas.DealCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    if current_user.role == "user":
+        deal.userId = current_user.id
+    
+    deal.companyId = current_user.company_id
     return crud.create_deal(db=db, deal=deal)
 
-@app.patch("/api/deals/{deal_id}/stage", response_model=schemas.Deal)
-def update_stage(deal_id: str, stage: str, db: Session = Depends(get_db)):
-    deal = crud.update_deal_stage(db=db, deal_id=deal_id, stage=stage)
+    return deal
+
+@app.get("/api/deals/{deal_id}", response_model=schemas.Deal)
+def read_deal(deal_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    deal = crud.get_deal(db, deal_id=deal_id)
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
+        
+    if current_user.role == "user" and deal.userId != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this deal")
+        
+    if current_user.role == "admin" and deal.companyId != current_user.company_id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this deal")
+        
     return deal
+
+@app.patch("/api/deals/{deal_id}/stage", response_model=schemas.Deal)
+def update_stage(deal_id: str, stage: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    # Check access before updating
+    deal = crud.get_deal(db, deal_id=deal_id)
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    
+    if current_user.role == "user" and deal.userId != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this deal")
+    
+    if current_user.role == "admin" and deal.companyId != current_user.company_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this deal")
+
+    return crud.update_deal_stage(db=db, deal_id=deal_id, stage=stage)
+
+@app.get("/api/deals/{deal_id}/notes", response_model=List[schemas.Note])
+def read_deal_notes(deal_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    return crud.get_deal_notes(db, deal_id=deal_id)
+
+@app.post("/api/deals/{deal_id}/notes", response_model=schemas.Note)
+def create_deal_note(deal_id: str, note: schemas.NoteCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    if note.dealId != deal_id:
+        raise HTTPException(status_code=400, detail="Mismatched deal ID")
+    return crud.create_note(db, note=note, user_id=current_user.id)
 
 # -------- CONTACTS --------
 @app.get("/api/contacts", response_model=List[schemas.Contact])
-def read_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_contacts(db, skip=skip, limit=limit)
+def read_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    comp_id = current_user.company_id if current_user.role != "super_admin" else None
+    return crud.get_contacts(db, skip=skip, limit=limit, company_id=comp_id)
 
 @app.post("/api/contacts", response_model=schemas.Contact)
-def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)):
+def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    if current_user.role != "super_admin":
+        contact.companyId = current_user.company_id
     return crud.create_contact(db=db, contact=contact)
 
-# -------- SELLERS --------
-@app.get("/api/sellers", response_model=List[schemas.Seller])
-def read_sellers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_sellers(db, skip=skip, limit=limit)
+@app.get("/api/contacts/search", response_model=schemas.Contact)
+def search_contact(phone: str, db: Session = Depends(get_db)):
+    contact = crud.get_contact_by_phone(db, phone=phone)
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return contact
 
-@app.post("/api/sellers", response_model=schemas.Seller)
-def create_seller(seller: schemas.SellerCreate, db: Session = Depends(get_db)):
-    return crud.create_seller(db=db, seller=seller)
+
 
 # -------- ACTIVITIES --------
 @app.get("/api/activities", response_model=List[schemas.Activity])
@@ -104,7 +152,7 @@ def read_users_me(current_user: models.User = Depends(auth.get_current_active_us
 
 # -------- RBAC USERS MANAGEMENT --------
 @app.get("/api/users", response_model=List[schemas.UserResponse])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_admin)):
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
     # Admins see their company users. Super Admins see all.
     comp_id = current_user.company_id if current_user.role != "super_admin" else None
     return crud.get_users(db, skip=skip, limit=limit, company_id=comp_id)

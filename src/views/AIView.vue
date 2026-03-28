@@ -13,7 +13,7 @@ const filterOptions = [
   { value: 'all', label: 'All' },
   { value: 'contact', label: 'Contacts' },
   { value: 'lead', label: 'Leads' },
-  { value: 'seller', label: 'Sellers' },
+  { value: 'deal', label: 'Deals' },
   { value: 'general', label: 'General' },
 ]
 </script>

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useAuthStore } from './auth'
 import type { Deal } from '../types'
 
 const API_URL = 'http://127.0.0.1:8000/api'
@@ -10,6 +11,7 @@ export const useDealsStore = defineStore('deals', () => {
   const sortDirection = ref<'asc' | 'desc'>('desc')
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const authStore = useAuthStore()
 
   const sortedDeals = computed(() => {
     return [...deals.value].sort((a, b) => {
@@ -55,7 +57,9 @@ export const useDealsStore = defineStore('deals', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_URL}/deals`)
+      const response = await fetch(`${API_URL}/deals`, {
+        headers: { Authorization: `Bearer ${authStore.token}` }
+      })
       if (!response.ok) throw new Error('Failed to fetch deals')
       deals.value = await response.json()
     } catch (e: any) {
@@ -76,22 +80,20 @@ export const useDealsStore = defineStore('deals', () => {
   }
 
   async function addDeal(data: Omit<Deal, 'id'>) {
-    // set safe defaults for pydantic backend
-    const payload = {
-      title: data.title,
-      contactId: data.contactId || null,
-      leadId: data.leadId || null,
-      value: data.value || 0.0,
-      stage: data.stage || 'New Request',
-      sellerId: data.sellerId || "default_seller",
-      closedAt: data.closedAt || null
-    }
+
     
     try {
       const response = await fetch(`${API_URL}/deals`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authStore.token}`
+        },
+        body: JSON.stringify({
+          ...data,
+          companyId: authStore.user?.company_id || null,
+          userId: data.userId || authStore.user?.id || null 
+        })
       })
       if (!response.ok) throw new Error('Failed to create deal')
       const newDeal = await response.json()
@@ -109,7 +111,8 @@ export const useDealsStore = defineStore('deals', () => {
 
     try {
       const response = await fetch(`${API_URL}/deals/${id}/stage?stage=${encodeURIComponent(stage)}`, {
-        method: 'PATCH'
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${authStore.token}` }
       })
       if (!response.ok) {
         throw new Error('Failed to update stage on server')

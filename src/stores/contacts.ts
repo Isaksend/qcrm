@@ -52,24 +52,47 @@ export const useContactsStore = defineStore('contacts', () => {
     try {
       const response = await fetch(`${API_URL}/contacts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(payload)
       })
       if (response.ok) {
         const newContact = await response.json()
         contacts.value.push(newContact)
+        return newContact
       } else {
         console.error('Failed to save contact via API')
+        return null
       }
     } catch (e) {
       console.error(e)
+      return null
+    }
+  }
+
+  async function searchContactByPhone(phone: string) {
+    try {
+      const response = await fetch(`${API_URL}/contacts/search?phone=${encodeURIComponent(phone)}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      })
+      if (response.ok) {
+        return await response.json()
+      }
+      return null
+    } catch (e) {
+      console.error(e)
+      return null
     }
   }
 
   async function fetchContacts() {
     isLoading.value = true
     try {
-      const response = await fetch(`${API_URL}/contacts`)
+      const response = await fetch(`${API_URL}/contacts`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      })
       if (response.ok) {
         contacts.value = await response.json()
       }
@@ -92,6 +115,7 @@ export const useContactsStore = defineStore('contacts', () => {
     isLoading,
     getContact,
     addContact,
+    searchContactByPhone,
     fetchContacts,
   }
 })

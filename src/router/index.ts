@@ -13,21 +13,19 @@ const router = createRouter({
       name: 'contacts',
       component: () => import('../views/ContactsView.vue'),
     },
-    {
-      path: '/leads',
-      name: 'leads',
-      component: () => import('../views/LeadsView.vue'),
-    },
+
     {
       path: '/deals',
       name: 'deals',
       component: () => import('../views/DealsView.vue'),
     },
     {
-      path: '/sellers',
-      name: 'sellers',
-      component: () => import('../views/SellersView.vue'),
+      path: '/deals/:id',
+      name: 'deal-detail',
+      component: () => import('../views/DealDetailView.vue'),
+      meta: { requiresAuth: true }
     },
+
     {
       path: '/users',
       name: 'users',
