@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 
-from app import models, schemas, crud, auth
+from app import models, schemas, crud, auth, ai_analyzer
+from app.database import engine, get_db, SessionLocal
+from app.telegram_bot import start_polling, stop_polling, send_telegram_message, get_telegram_user_info, send_telegram_photo
 from app.database import engine, get_db, SessionLocal
 from app.telegram_bot import start_polling, stop_polling, send_telegram_message, get_telegram_user_info, send_telegram_photo
 
@@ -31,6 +33,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.post("/api/chat/{contact_id}/analyze", response_model=schemas.AIInsight)
+async def analyze_contact_chat(
+    contact_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    # Fetch recent messages (up to 50 for context)
+    msgs = crud.get_chat_messages(db, contact_id=contact_id, limit=50)
+    if not msgs:
+        raise HTTPException(status_code=400, detail="No messages to analyze")
+
+    # Format transcript
+    transcript = ""
+    for m in reversed(msgs):
+        sender = m.senderName
+        content = m.content if m.messageType == 'text' else "[Image]"
+        transcript += f"{sender}: {content}\n"
+
+    # Analyze with Gemini
+    insight_data = await ai_analyzer.analyze_chat_probability(transcript)
+    if not insight_data:
+        raise HTTPException(status_code=503, detail="AI Service unavailable")
+
+    # Save to AI Insights
+    saved = crud.create_ai_insight(
+        db,
+        insight=schemas.AIInsightCreate(
+            entityType="contact",
+            entityId=contact_id,
+            category="prediction",
+            title=insight_data["title"],
+            content=insight_data["content"],
+            confidence=insight_data["confidence"],
+            suggestions=insight_data["suggestions"],
+        )
+    )
+    return saved
 
 @app.get("/")
 def root():
