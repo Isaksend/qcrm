@@ -18,3 +18,94 @@ def update_deal_stage(db: Session, deal_id: str, stage: str):
         db.commit()
         db.refresh(db_deal)
     return db_deal
+
+# Contacts
+def get_contacts(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Contact).offset(skip).limit(limit).all()
+
+def create_contact(db: Session, contact: schemas.ContactCreate):
+    db_contact = models.Contact(**contact.model_dump())
+    db.add(db_contact)
+    db.commit()
+    db.refresh(db_contact)
+    return db_contact
+
+# Sellers
+def get_sellers(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Seller).offset(skip).limit(limit).all()
+
+def create_seller(db: Session, seller: schemas.SellerCreate):
+    db_seller = models.Seller(**seller.model_dump())
+    db.add(db_seller)
+    db.commit()
+    db.refresh(db_seller)
+    return db_seller
+
+# Activities
+def get_activities(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Activity).offset(skip).limit(limit).all()
+
+def create_activity(db: Session, activity: schemas.ActivityCreate):
+    db_act = models.Activity(**activity.model_dump())
+    db.add(db_act)
+    db.commit()
+    db.refresh(db_act)
+    return db_act
+
+# AI Insights
+def get_ai_insights(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.AIInsight).offset(skip).limit(limit).all()
+
+def create_ai_insight(db: Session, insight: schemas.AIInsightCreate):
+    db_insight = models.AIInsight(**insight.model_dump())
+    db.add(db_insight)
+    db.commit()
+    db.refresh(db_insight)
+    return db_insight
+
+# Users
+def get_user(db: Session, user_id: str):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
+
+def create_user(db: Session, user: schemas.UserCreate):
+    from app.auth import get_password_hash
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(
+        name=user.name,
+        email=user.email,
+        hashed_password=hashed_password,
+        role=user.role,
+        company_id=user.company_id
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def get_users(db: Session, skip: int = 0, limit: int = 100, company_id: str = None):
+    query = db.query(models.User)
+    if company_id:
+        query = query.filter(models.User.company_id == company_id)
+    return query.offset(skip).limit(limit).all()
+
+def delete_user(db: Session, user_id: str):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        db.delete(user)
+        db.commit()
+    return user
+
+# Companies
+def create_company(db: Session, company: schemas.CompanyCreate):
+    import datetime
+    db_company = models.Company(name=company.name, created_at=datetime.datetime.utcnow().isoformat())
+    db.add(db_company)
+    db.commit()
+    db.refresh(db_company)
+    return db_company
+
+def get_companies(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Company).offset(skip).limit(limit).all()

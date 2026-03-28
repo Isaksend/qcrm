@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Seller } from '../types'
-import { sellers as mockSellers } from '../data/mock'
+const API_URL = 'http://127.0.0.1:8000/api'
 
 export const useSellersStore = defineStore('sellers', () => {
-  const sellers = ref<Seller[]>(mockSellers)
+  const sellers = ref<Seller[]>([])
+  const isLoading = ref(false)
 
   const rankedSellers = computed(() =>
     [...sellers.value].sort((a, b) => b.revenue - a.revenue)
@@ -25,15 +26,45 @@ export const useSellersStore = defineStore('sellers', () => {
     return sellers.value.find((s) => s.id === id)
   }
 
-  function addSeller(data: Omit<Seller, 'id' | 'avatar'>) {
-    const id = `s${Date.now()}`
+  async function addSeller(data: Omit<Seller, 'id' | 'avatar'>) {
     const avatar = data.name
       .split(' ')
       .map((w) => w[0])
       .join('')
       .slice(0, 2)
       .toUpperCase()
-    sellers.value.push({ ...data, id, avatar })
+    
+    const payload = { ...data, avatar }
+
+    try {
+      const response = await fetch(`${API_URL}/sellers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (response.ok) {
+        const newSeller = await response.json()
+        sellers.value.push(newSeller)
+      } else {
+        console.error('Failed to save seller via API')
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  async function fetchSellers() {
+    isLoading.value = true
+    try {
+      const response = await fetch(`${API_URL}/sellers`)
+      if (response.ok) {
+        sellers.value = await response.json()
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      isLoading.value = false
+    }
   }
 
   return {
@@ -41,7 +72,9 @@ export const useSellersStore = defineStore('sellers', () => {
     rankedSellers,
     totalTeamRevenue,
     avgConversionRate,
+    isLoading,
     getSeller,
     addSeller,
+    fetchSellers,
   }
 })

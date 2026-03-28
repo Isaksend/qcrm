@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContactsStore } from '../../stores/contacts'
 import { useDealsStore } from '../../stores/deals'
-import { useLeadsStore } from '../../stores/leads'
 
 const props = defineProps<{
   modelValue: boolean
@@ -16,7 +15,6 @@ const emit = defineEmits<{
 const router = useRouter()
 const contactsStore = useContactsStore()
 const dealsStore = useDealsStore()
-const leadsStore = useLeadsStore()
 
 const query = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
@@ -43,13 +41,6 @@ const results = computed(() => {
   dealsStore.deals.forEach(d => {
     if (d.title.toLowerCase().includes(q)) {
       list.push({ id: d.id, type: 'Deal', title: d.title, subtitle: `${d.stage} • $${d.value}`, route: '/deals' })
-    }
-  })
-
-  // Leads
-  leadsStore.leads.forEach(l => {
-    if (l.title.toLowerCase().includes(q)) {
-      list.push({ id: l.id, type: 'Lead', title: l.title, subtitle: `${l.stage} • ${l.value}`, route: '/leads' })
     }
   })
 
@@ -102,9 +93,7 @@ onUnmounted(() => {
           ref="searchInput"
           v-model="query"
           type="text" 
-          class="flex-1 ml-3 bg-transparent outline-none placeholder-gray-400 text-gray-900 text-sm"
-          placeholder="Search contacts, deals, leads..."
-          autocomplete="off"
+          placeholder="Search contacts, deals..."
         />
         <div class="text-[10px] font-medium tracking-wide text-gray-400 uppercase bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
           ESC
@@ -137,7 +126,6 @@ onUnmounted(() => {
             >
               <svg v-if="result.type === 'Contact'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               <svg v-if="result.type === 'Deal'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              <svg v-if="result.type === 'Lead'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
             </div>
             
             <div class="flex-1 min-w-0">

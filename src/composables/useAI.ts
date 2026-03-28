@@ -27,7 +27,9 @@ export function useAI() {
           aiStore.apiKey
         )
       }
-      aiStore.setPanelInsight(insight)
+      
+      const savedInsight = await aiStore.saveInsight(insight)
+      aiStore.setPanelInsight(savedInsight)
     } catch (error) {
       aiStore.setPanelInsight({
         id: `ai-error-${Date.now()}`,

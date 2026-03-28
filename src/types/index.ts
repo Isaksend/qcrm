@@ -31,7 +31,7 @@ export interface Deal {
   contactId: string
   title: string
   value: number
-  stage: 'Discovery' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost'
+  stage: 'New Request' | 'Qualified' | 'Discovery' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost'
   closedAt: string | null
   sellerId: string
 }

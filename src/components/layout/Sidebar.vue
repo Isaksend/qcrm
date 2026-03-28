@@ -1,17 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
 
 const route = useRoute()
+const authStore = useAuthStore()
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: 'chart-bar' },
-  { to: '/contacts', label: 'Contacts', icon: 'users' },
-  { to: '/leads', label: 'Leads', icon: 'funnel' },
-  { to: '/deals', label: 'Deals', icon: 'currency' },
-  { to: '/sellers', label: 'Sellers', icon: 'briefcase' },
-  { to: '/ai', label: 'AI Insights', icon: 'sparkles' },
-]
+const navItems = computed(() => {
+  const items = [
+    { to: '/', label: 'Dashboard', icon: 'chart-bar' },
+    { to: '/contacts', label: 'Contacts', icon: 'users' },
+    { to: '/deals', label: 'Deals', icon: 'currency' },
+    { to: '/sellers', label: 'Sellers', icon: 'briefcase' },
+    { to: '/ai', label: 'AI Insights', icon: 'sparkles' },
+  ]
+  if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin') {
+    items.push({ to: '/users', label: 'Team', icon: 'shield-check' })
+  }
+  return items
+})
 
 function isActive(to: string) {
   if (to === '/') return route.path === '/'
@@ -46,10 +53,7 @@ function isActive(to: string) {
         <svg v-if="item.icon === 'users'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
         </svg>
-        <!-- Funnel -->
-        <svg v-if="item.icon === 'funnel'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-        </svg>
+
         <!-- Currency -->
         <svg v-if="item.icon === 'currency'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -61,6 +65,10 @@ function isActive(to: string) {
         <!-- Sparkles -->
         <svg v-if="item.icon === 'sparkles'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+        <!-- Shield Check -->
+        <svg v-if="item.icon === 'shield-check'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
         <span>{{ item.label }}</span>
       </router-link>

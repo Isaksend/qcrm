@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useSellersStore } from '../stores/sellers'
 import SellerGrid from '../components/sellers/SellerGrid.vue'
 import SellerForm from '../components/sellers/SellerForm.vue'
 
 const sellersStore = useSellersStore()
 const showForm = ref(false)
+
+onMounted(() => {
+  sellersStore.fetchSellers()
+})
 
 function formatCurrency(val: number): string {
   if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`

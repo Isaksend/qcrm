@@ -62,6 +62,44 @@ npm run dev
 
 The application will be available at `http://localhost:5173`.
 
+### Backend Setup (FastAPI + PostgreSQL)
+
+The project includes an integrated REST API backend powered by **FastAPI** and **SQLAlchemy**.
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. Create and activate a Python virtual environment:
+   ```bash
+   # On Windows
+   python -m venv venv
+   venv\Scripts\activate
+   
+   # On macOS/Linux
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install requirements:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Configure your Database:
+   Create a `.env` file in the `backend/` directory containing your PostgreSQL connection string (if omitted, it falls back to a local SQLite database for easy testing).
+   ```env
+   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/tinycrm
+   ```
+
+5. Start the backend development server:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+   
+The API will be available at `http://127.0.0.1:8000`, with interactive Swagger UI documentation at `http://127.0.0.1:8000/docs`.
+
 ### Building for Production
 
 To create an optimized production build:

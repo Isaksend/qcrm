@@ -40,7 +40,7 @@ export const useDealsStore = defineStore('deals', () => {
   )
 
   const byStage = computed(() => {
-    const stages = ['Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
+    const stages = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
     return stages.map((stage) => {
       const stageDeals = deals.value.filter((d) => d.stage === stage)
       return {
@@ -82,7 +82,7 @@ export const useDealsStore = defineStore('deals', () => {
       contactId: data.contactId || null,
       leadId: data.leadId || null,
       value: data.value || 0.0,
-      stage: data.stage || 'Discovery',
+      stage: data.stage || 'New Request',
       sellerId: data.sellerId || "default_seller",
       closedAt: data.closedAt || null
     }

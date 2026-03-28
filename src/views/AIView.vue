@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { useAIStore } from '../stores/ai'
 import AIInsightCard from '../components/ai/AIInsightCard.vue'
+import { onMounted } from 'vue'
 
 const aiStore = useAIStore()
+
+onMounted(() => {
+  aiStore.fetchInsights()
+})
 
 const filterOptions = [
   { value: 'all', label: 'All' },

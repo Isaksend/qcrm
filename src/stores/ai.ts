@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AIInsight, AIMode } from '../types'
-import { aiInsights } from '../data/mock'
+const API_URL = 'http://127.0.0.1:8000/api'
 
 export const useAIStore = defineStore('ai', () => {
   const mode = ref<AIMode>('demo')
@@ -11,7 +11,7 @@ export const useAIStore = defineStore('ai', () => {
   const panelEntityId = ref<string>('')
   const panelLoading = ref(false)
   const panelInsight = ref<AIInsight | null>(null)
-  const insights = ref<AIInsight[]>(aiInsights)
+  const insights = ref<AIInsight[]>([])
   const filterType = ref<string>('all')
   const showSettingsModal = ref(false)
 
@@ -43,6 +43,45 @@ export const useAIStore = defineStore('ai', () => {
     mode.value = mode.value === 'demo' ? 'live' : 'demo'
   }
 
+  async function fetchInsights() {
+    try {
+      const response = await fetch(`${API_URL}/insights`)
+      if (response.ok) {
+        insights.value = await response.json()
+      }
+    } catch (e) {
+      console.error('Failed to fetch AI insights:', e)
+    }
+  }
+
+  async function saveInsight(insight: AIInsight) {
+    try {
+      // Remove temporary ID to let backend generate one, though backend might ignore it if it doesn't match UUID
+      const payload = {
+        entityType: insight.entityType,
+        entityId: insight.entityId,
+        category: insight.category,
+        title: insight.title,
+        content: insight.content,
+        confidence: insight.confidence,
+        suggestions: insight.suggestions
+      }
+      const response = await fetch(`${API_URL}/insights`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (response.ok) {
+        const saved = await response.json()
+        insights.value.unshift(saved)
+        return saved
+      }
+    } catch (e) {
+      console.error('Failed to save AI insight:', e)
+    }
+    return insight
+  }
+
   return {
     mode,
     apiKey,
@@ -59,5 +98,7 @@ export const useAIStore = defineStore('ai', () => {
     closePanel,
     setPanelInsight,
     toggleMode,
+    fetchInsights,
+    saveInsight,
   }
 })

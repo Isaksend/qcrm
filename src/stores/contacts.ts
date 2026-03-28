@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Contact } from '../types'
-import { contacts as mockContacts } from '../data/mock'
+const API_URL = 'http://127.0.0.1:8000/api'
 
 export const useContactsStore = defineStore('contacts', () => {
-  const contacts = ref<Contact[]>(mockContacts)
+  const contacts = ref<Contact[]>([])
+  const isLoading = ref(false)
   const searchQuery = ref('')
   const statusFilter = ref<string>('All')
   const selectedContactId = ref<string | null>(null)
@@ -38,15 +39,45 @@ export const useContactsStore = defineStore('contacts', () => {
     return contacts.value.find((c) => c.id === id)
   }
 
-  function addContact(data: Omit<Contact, 'id' | 'avatar'>) {
-    const id = `c${Date.now()}`
+  async function addContact(data: Omit<Contact, 'id' | 'avatar'>) {
     const avatar = data.name
       .split(' ')
       .map((w) => w[0])
       .join('')
       .slice(0, 2)
       .toUpperCase()
-    contacts.value.push({ ...data, id, avatar })
+    
+    const payload = { ...data, avatar }
+
+    try {
+      const response = await fetch(`${API_URL}/contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (response.ok) {
+        const newContact = await response.json()
+        contacts.value.push(newContact)
+      } else {
+        console.error('Failed to save contact via API')
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  async function fetchContacts() {
+    isLoading.value = true
+    try {
+      const response = await fetch(`${API_URL}/contacts`)
+      if (response.ok) {
+        contacts.value = await response.json()
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      isLoading.value = false
+    }
   }
 
   return {
@@ -58,7 +89,9 @@ export const useContactsStore = defineStore('contacts', () => {
     selectedContact,
     totalRevenue,
     activeCount,
+    isLoading,
     getContact,
     addContact,
+    fetchContacts,
   }
 })

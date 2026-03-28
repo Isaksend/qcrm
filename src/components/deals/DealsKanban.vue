@@ -3,7 +3,7 @@ import { useDealsStore } from '../../stores/deals'
 import type { Deal } from '../../types'
 
 const dealsStore = useDealsStore()
-const stages: Deal['stage'][] = ['Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
+const stages: Deal['stage'][] = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
 
 function onDragStart(event: DragEvent, deal: Deal) {
   if (event.dataTransfer) {
@@ -28,6 +28,8 @@ function formatCurrency(val: number): string {
 
 function getStageColor(stage: string): string {
   switch (stage) {
+    case 'New Request': return 'bg-cyan-100 text-cyan-700'
+    case 'Qualified': return 'bg-teal-100 text-teal-700'
     case 'Discovery': return 'bg-blue-100 text-blue-700'
     case 'Proposal': return 'bg-purple-100 text-purple-700'
     case 'Negotiation': return 'bg-orange-100 text-orange-700'
@@ -87,7 +89,7 @@ function getStageColor(stage: string): string {
           </div>
           <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
             <span class="font-bold text-emerald-600 text-sm">{{ formatCurrency(deal.value) }}</span>
-            <span class="text-[10px] text-gray-400 font-medium">{{ new Date(deal.closedAt).toLocaleDateString() }}</span>
+            <span class="text-[10px] text-gray-400 font-medium">{{ deal.closedAt ? new Date(deal.closedAt).toLocaleDateString() : 'Active' }}</span>
           </div>
         </div>
 

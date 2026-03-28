@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useContactsStore } from '../stores/contacts'
 import ContactList from '../components/contacts/ContactList.vue'
 import ContactDetail from '../components/contacts/ContactDetail.vue'
 import ContactForm from '../components/contacts/ContactForm.vue'
 
+const contactsStore = useContactsStore()
 const showForm = ref(false)
+
+onMounted(() => {
+  contactsStore.fetchContacts()
+})
+
+onMounted(() => {
+  contactsStore.fetchContacts()
+})
 </script>
 
 <template>

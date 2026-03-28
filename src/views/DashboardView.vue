@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useContactsStore } from '../stores/contacts'
-import { useLeadsStore } from '../stores/leads'
 import { useDealsStore } from '../stores/deals'
 import { useSellersStore } from '../stores/sellers'
 import MetricCard from '../components/dashboard/MetricCard.vue'
@@ -10,7 +9,6 @@ import ActivityFeed from '../components/dashboard/ActivityFeed.vue'
 import PipelineOverview from '../components/dashboard/PipelineOverview.vue'
 
 const contactsStore = useContactsStore()
-const leadsStore = useLeadsStore()
 const dealsStore = useDealsStore()
 const sellersStore = useSellersStore()
 
@@ -19,6 +17,12 @@ function formatCurrency(val: number): string {
   if (val >= 1000) return `$${(val / 1000).toFixed(0)}K`
   return `$${val}`
 }
+
+onMounted(() => {
+  dealsStore.fetchDeals()
+  contactsStore.fetchContacts()
+  sellersStore.fetchSellers()
+})
 
 const metrics = computed(() => [
   {
@@ -29,9 +33,9 @@ const metrics = computed(() => [
     icon: 'revenue',
   },
   {
-    title: 'Active Leads',
-    value: String(leadsStore.activeLeads.length),
-    trend: '+3',
+    title: 'New Requests',
+    value: String(dealsStore.deals.filter(d => d.stage === 'New Request').length),
+    trend: 'Needs Action',
     trendUp: true,
     icon: 'leads',
   },
@@ -87,6 +91,8 @@ const metrics = computed(() => [
                 <div
                   class="h-full rounded-full"
                   :class="{
+                    'bg-cyan-400': stage.stage === 'New Request',
+                    'bg-teal-400': stage.stage === 'Qualified',
                     'bg-blue-400': stage.stage === 'Discovery',
                     'bg-purple-400': stage.stage === 'Proposal',
                     'bg-orange-400': stage.stage === 'Negotiation',

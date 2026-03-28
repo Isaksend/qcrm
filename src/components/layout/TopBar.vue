@@ -1,8 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import GlobalSearch from './GlobalSearch.vue'
+import { useAuthStore } from '../../stores/auth'
 
 const isSearchOpen = ref(false)
+const authStore = useAuthStore()
+
+const userInitial = computed(() => {
+  if (authStore.user?.name) {
+    return authStore.user.name.charAt(0).toUpperCase()
+  }
+  return 'U'
+})
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -44,9 +53,9 @@ onUnmounted(() => {
 
     <div class="flex items-center gap-4 ml-4">
       <!-- Avatar -->
-      <div class="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center cursor-pointer shadow-sm ring-2 ring-white hover:ring-indigo-100 transition-all">
-        <span class="text-white text-xs font-bold">U</span>
-      </div>
+      <router-link to="/profile" class="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center cursor-pointer shadow-sm ring-2 ring-white hover:ring-indigo-100 transition-all">
+        <span class="text-white text-xs font-bold">{{ userInitial }}</span>
+      </router-link>
     </div>
   </header>
 
