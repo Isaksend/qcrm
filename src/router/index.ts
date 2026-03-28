@@ -25,6 +25,12 @@ const router = createRouter({
       component: () => import('../views/DealDetailView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/messages',
+      name: 'messages',
+      component: () => import('../views/MessagesView.vue'),
+      meta: { requiresAuth: true }
+    },
 
     {
       path: '/users',

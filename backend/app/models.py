@@ -35,6 +35,7 @@ class Contact(Base):
     lastContact = Column(String, nullable=True)
     tags = Column(JSON, default=[])
     companyId = Column(String, nullable=True)
+    telegram_id = Column(String, nullable=True, unique=True)
 
 
 
@@ -55,6 +56,18 @@ class Note(Base):
     userId = Column(String, index=True)
     content = Column(String)
     createdAt = Column(DateTime, default=datetime.datetime.utcnow)
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    contactId = Column(String, index=True)        # which contact this chat belongs to
+    dealId = Column(String, nullable=True, index=True)  # optionally linked to a deal
+    senderRole = Column(String)                    # 'manager' or 'client'
+    senderId = Column(String, nullable=True)       # User.id for manager, telegram_id for client
+    senderName = Column(String)
+    content = Column(String)
+    messageType = Column(String, default="text")  # 'text' or 'image'
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
 class AIInsight(Base):
     __tablename__ = "ai_insights"

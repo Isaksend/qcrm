@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDealsStore } from '../stores/deals'
 import { useContactsStore } from '../stores/contacts'
+import ChatWindow from '../components/chat/ChatWindow.vue'
 import type { Deal, Note } from '../types'
 
 const route = useRoute()
@@ -265,6 +266,16 @@ function formatDate(dateStr: string) {
             <button @click="router.push('/contacts')" class="w-full mt-8 py-3 text-xs font-black text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-widest">
               CONTACT DOSSIER
             </button>
+          </div>
+
+          <!-- Telegram Chat Widget -->
+          <div v-if="contact" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <ChatWindow
+              :contact-id="contact.id"
+              :contact-name="contact.name"
+              :telegram-linked="!!contact.telegram_id"
+              :deal-id="dealId"
+            />
           </div>
         </div>
       </div>

@@ -5,7 +5,7 @@ import uuid
 sys.path.append(os.getcwd())
 
 from app.database import engine, Base, SessionLocal
-from app.models import Deal, Contact, Note, Company, User, AIInsight, Activity
+from app.models import Deal, Contact, Note, ChatMessage, Company, User, AIInsight, Activity
 from app.auth import get_password_hash
 
 def reset_database():
@@ -21,10 +21,9 @@ def reset_database():
         # 1. Create Company
         company = Company(id=str(uuid.uuid4()), name="Tiny Corp", created_at=datetime.datetime.utcnow().isoformat())
         db.add(company)
-        db.flush() # Get IDs
+        db.flush()
         
         # 2. Create Users
-        # Admin
         admin = User(
             id=str(uuid.uuid4()),
             name="Admin User",
@@ -33,7 +32,6 @@ def reset_database():
             role="admin",
             company_id=company.id
         )
-        # Sales Manager
         manager = User(
             id=str(uuid.uuid4()),
             name="Jane Sales",
@@ -42,7 +40,6 @@ def reset_database():
             role="user",
             company_id=company.id
         )
-        # Super Admin
         super_admin = User(
             id=str(uuid.uuid4()),
             name="Super Admin",
@@ -53,7 +50,7 @@ def reset_database():
         db.add_all([admin, manager, super_admin])
         db.flush()
 
-        # 3. Create Contacts
+        # 3. Create Contacts (telegram_id can be set later by the user)
         contacts = [
             Contact(id=str(uuid.uuid4()), name="Elon Musk", email="elon@tesla.com", phone="+1-999-888-7777", company="Tesla", role="CEO", status="Active", avatar="EM", revenue=150000, companyId=company.id),
             Contact(id=str(uuid.uuid4()), name="Tim Cook", email="tim@apple.com", phone="+1-555-444-3333", company="Apple", role="CEO", status="Active", avatar="TC", revenue=200000, companyId=company.id),
@@ -106,16 +103,25 @@ def reset_database():
         
         db.commit()
         print("Database reset and seeded successfully!")
-        print("-" * 30)
+        print("-" * 40)
         print("Login Info:")
-        print(f"Admin: {admin.email} / admin123")
-        print(f"Manager: {manager.email} / pass123")
-        print(f"Super: {super_admin.email} / super123")
-        print("-" * 30)
+        print(f"  Admin:   {admin.email} / admin123")
+        print(f"  Manager: {manager.email} / pass123")
+        print(f"  Super:   {super_admin.email} / super123")
+        print("-" * 40)
+        print()
+        print("TELEGRAM SETUP:")
+        print("  1. Ask your client to open your bot in Telegram")
+        print("  2. The client sends /start to get their Telegram ID")  
+        print("  3. Edit a Contact in the CRM and paste the Telegram ID")
+        print("  4. Now you can chat with the client from the Messages page!")
+        print("-" * 40)
 
     except Exception as e:
         db.rollback()
         print(f"Error seeding data: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         db.close()
 

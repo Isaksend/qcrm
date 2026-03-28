@@ -1,17 +1,27 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 # Force uvicorn to reload after installing passlib
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
 
 from app import models, schemas, crud, auth
-from app.database import engine, get_db
+from app.database import engine, get_db, SessionLocal
+from app.telegram_bot import start_polling, stop_polling, send_telegram_message, get_telegram_user_info, send_telegram_photo
+
+# Create uploads directory
+os.makedirs("uploads/chat", exist_ok=True)
 
 # Create DB Tables
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Tiny CRM API", version="1.0.0")
+
+# Serve uploaded files (images etc.)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Setup CORS to allow Vue frontend
 app.add_middleware(
@@ -25,6 +35,14 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Welcome to Tiny CRM Backend!"}
+
+@app.on_event("startup")
+async def startup_event():
+    start_polling()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    stop_polling()
 
 @app.get("/api/deals", response_model=List[schemas.Deal])
 def read_deals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
@@ -186,3 +204,160 @@ def create_company(company: schemas.CompanyCreate, db: Session = Depends(get_db)
 @app.get("/api/companies", response_model=List[schemas.CompanyResponse])
 def get_companies_list(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_super_admin)):
     return crud.get_companies(db, skip=skip, limit=limit)
+
+# -------- TELEGRAM CHAT --------
+@app.get("/api/chat/{contact_id}", response_model=List[schemas.ChatMessageOut])
+def get_chat_history(contact_id: str, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    return crud.get_chat_messages(db, contact_id=contact_id, limit=limit)
+
+@app.post("/api/chat/send", response_model=schemas.ChatMessageOut)
+async def send_message_to_client(
+    msg: schemas.ChatMessageSend,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    # Find the contact to get their telegram_id
+    contact = db.query(models.Contact).filter(models.Contact.id == msg.contactId).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail=f"Contact with ID {msg.contactId} not found")
+    if not contact.telegram_id:
+        raise HTTPException(status_code=400, detail="Contact has no Telegram ID linked. Ask the client to /start the bot and provide their ID.")
+
+    # Send via Telegram
+    success = await send_telegram_message(contact.telegram_id, msg.content)
+    if not success:
+        raise HTTPException(status_code=502, detail="Failed to deliver message to Telegram")
+
+    # Save to DB
+    saved = crud.create_chat_message(
+        db,
+        contact_id=msg.contactId,
+        deal_id=msg.dealId,
+        sender_role="manager",
+        sender_id=current_user.id,
+        sender_name=current_user.name,
+        content=msg.content,
+    )
+    return saved
+
+class StartChatRequest(BaseModel):
+    telegram_id: str
+    message: Optional[str] = None
+
+
+@app.post("/api/chat/start")
+async def start_chat_by_telegram_id(
+    req: StartChatRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    telegram_id = req.telegram_id.strip()
+    
+    # Simple validation: common mistake is entering @username
+    if telegram_id.startswith("@"):
+         raise HTTPException(status_code=400, detail="Please enter a numeric Telegram ID, not a username.")
+    
+    # Check if contact already exists with this telegram_id
+    contact = crud.get_contact_by_telegram_id(db, telegram_id)
+    
+    if not contact:
+        print(f">>> CRM: Starting chat with NEW telegram_id: {telegram_id}")
+        # Try to get user info from Telegram
+        tg_info = await get_telegram_user_info(telegram_id)
+        tg_name = "Unknown"
+        if tg_info:
+            first = tg_info.get("first_name", "")
+            last = tg_info.get("last_name", "")
+            tg_name = f"{first} {last}".strip() or "Unknown"
+        
+        avatar = "".join(w[0] for w in tg_name.split()[:2]).upper() if tg_name != "Unknown" else "?"
+        
+        # Get default company
+        default_company = db.query(models.Company).first()
+        company_id = default_company.id if default_company else None
+
+        # Create a draft contact
+        import uuid
+        contact = models.Contact(
+            id=str(uuid.uuid4()),
+            name=tg_name,
+            email=f"tg_{telegram_id}@placeholder.crm",
+            phone="",
+            company="",
+            role="Client",
+            status="Prospect",
+            avatar=avatar,
+            telegram_id=telegram_id,
+            companyId=company_id,
+        )
+        db.add(contact)
+        db.commit()
+        db.refresh(contact)
+    else:
+        print(f">>> CRM: Starting chat with EXISTING contact: {contact.name} (ID: {contact.id})")
+    
+    # Send greeting if message provided
+    delivered = False
+    if req.message:
+        print(f">>> CRM: Sending greeting to {telegram_id}...")
+        delivered = await send_telegram_message(telegram_id, req.message)
+        # Always save to DB so manager sees it in chat history
+        crud.create_chat_message(
+            db,
+            contact_id=contact.id,
+            deal_id=None,
+            sender_role="manager",
+            sender_id=current_user.id,
+            sender_name=current_user.name,
+            content=req.message,
+        )
+    
+    return {
+        "status": "ok",
+        "contactId": contact.id,
+        "contactName": contact.name,
+        "telegram_id": telegram_id,
+        "is_new": contact.status == "Prospect",
+        "delivered": delivered,
+    }
+
+@app.post("/api/chat/upload", response_model=schemas.ChatMessageOut)
+async def upload_image_to_client(
+    contactId: str = Form(...),
+    dealId: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    contact = db.query(models.Contact).filter(models.Contact.id == contactId).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail=f"Contact with ID {contactId} not found")
+    if not contact.telegram_id:
+        raise HTTPException(status_code=400, detail="Contact has no Telegram linked")
+
+    # Save uploaded file
+    import uuid
+    ext = os.path.splitext(file.filename or "img.jpg")[1] or ".jpg"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    save_path = os.path.join("uploads", "chat", filename)
+    content = await file.read()
+    with open(save_path, "wb") as f:
+        f.write(content)
+
+    image_url = f"/uploads/chat/{filename}"
+
+    # Send to Telegram
+    await send_telegram_photo(contact.telegram_id, save_path)
+
+    # Save to DB
+    saved = crud.create_chat_message(
+        db,
+        contact_id=contactId,
+        deal_id=dealId or None,
+        sender_role="manager",
+        sender_id=current_user.id,
+        sender_name=current_user.name,
+        content=image_url,
+        message_type="image",
+    )
+    return saved

@@ -10,6 +10,7 @@ export interface Contact {
   revenue: number
   lastContact: string
   tags: string[]
+  telegram_id?: string
 }
 
 export interface Lead {

@@ -39,6 +39,7 @@ class ContactBase(BaseModel):
     lastContact: Optional[str] = None
     tags: Optional[List[str]] = None
     companyId: Optional[str] = None
+    telegram_id: Optional[str] = None
 
 class ContactCreate(ContactBase):
     pass
@@ -81,6 +82,30 @@ class Note(NoteBase):
 
     class Config:
         from_attributes = True
+
+class ChatMessageBase(BaseModel):
+    contactId: str
+    dealId: Optional[str] = None
+    content: str
+
+class ChatMessageCreate(ChatMessageBase):
+    pass
+
+class ChatMessageOut(ChatMessageBase):
+    id: str
+    senderRole: str
+    senderId: Optional[str] = None
+    senderName: str
+    messageType: str = "text"
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+class ChatMessageSend(BaseModel):
+    contactId: str
+    dealId: Optional[str] = None
+    content: str
 
 class AIInsightBase(BaseModel):
     entityType: str

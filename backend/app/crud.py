@@ -46,6 +46,30 @@ def create_contact(db: Session, contact: schemas.ContactCreate):
 def get_contact_by_phone(db: Session, phone: str):
     return db.query(models.Contact).filter(models.Contact.phone == phone).first()
 
+def get_contact_by_telegram_id(db: Session, telegram_id: str):
+    return db.query(models.Contact).filter(models.Contact.telegram_id == telegram_id).first()
+
+# Chat Messages
+def get_chat_messages(db: Session, contact_id: str, limit: int = 100):
+    return db.query(models.ChatMessage).filter(
+        models.ChatMessage.contactId == contact_id
+    ).order_by(models.ChatMessage.timestamp.asc()).limit(limit).all()
+
+def create_chat_message(db: Session, contact_id: str, deal_id: str | None, sender_role: str, sender_id: str | None, sender_name: str, content: str, message_type: str = "text"):
+    msg = models.ChatMessage(
+        contactId=contact_id,
+        dealId=deal_id,
+        senderRole=sender_role,
+        senderId=sender_id,
+        senderName=sender_name,
+        content=content,
+        messageType=message_type,
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return msg
+
 
 
 def create_activity(db: Session, activity: schemas.ActivityCreate):
