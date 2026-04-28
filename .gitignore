@@ -15,3 +15,8 @@ backend/*.pyd
 backend/.pytest_cache/
 backend/.coverage
 backend/tinycrm.db
+
+# Manuscript
+
+*title.tex
+logos/
