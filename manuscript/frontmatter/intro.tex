@@ -1,10 +1,49 @@
 \chapter{Introduction}
 \label{chap:intro}
 %
-Customer relationship management is defined in academic literature as a strategic approach that integrates technology, processes, and people to manage and optimize interactions with both current and potential customers \cite{esmat2025study}. In the current digital landscape, these systems have evolved toward predictive models where machine learning and data processing are integrated into the core business architecture to improve commercial results \cite{saha2025crm}. Within this global context, the Republic of Kazakhstan has established a significant digital infrastructure, characterized by an internet penetration rate of 92.9 percent and high levels of online public service delivery \cite{kepios2025digital}.
+\section{Background of the Study}
 
-Despite these advancements, a significant dichotomy persists within the national economy. Micro, small, and medium enterprises (MSMEs) constitute 99.9 percent of registered businesses, yet their contribution to the gross domestic product remains markedly lower than in advanced economies \cite{kazstat2025indicators}. Research indicates that these entities frequently rely on manual tools such as spreadsheets, citing the complexity and high cost of existing enterprise solutions as primary barriers to adoption \cite{astanahub2024implementation}.
+The global customer relationship management (CRM) software market was
+valued at approximately USD~65.6~billion in 2023 and is projected to
+reach USD~163.8~billion by 2030, representing a compound annual growth
+rate (CAGR) of 13.9\% \citep{grandview2023}. This sustained growth
+reflects the increasing digitisation of commercial operations, the
+proliferation of customer interaction channels, and the rising
+organisational demand for data-driven sales and retention strategies.
 
-The TinyCRM project identifies a specific market gap. There is a lack of lightweight, localized tools for micro-teams of one to five members who are currently underserved by global providers. This segment views manual data entry as their most significant productivity bottleneck, with 86.7 percent of surveyed entrepreneurs highlighting it as a critical pain point. TinyCRM aims to fill this gap by providing a simplified interface for data management while leveraging machine learning for complex analysis. The system utilizes a monolithic architecture built with Python, using the FastAPI framework for request handling and SQLAlchemy for data management.
+Traditional CRM implementations, which range from contact databases and
+shared spreadsheets to legacy on-premise software suites, are not
+equipped to handle the volume, velocity, or variety of modern customer
+data. Nor can they surface the predictive intelligence that contemporary
+sales organisations require to prioritise prospects and proactively retain
+customers \citep{buttle2019}.
+
+In Kazakhstan, the national digital economy agenda, formalised through the
+Digital Kazakhstan state programme (2018--2022) and its successor Digital
+Kazakhstan~2.0, has accelerated enterprise digitisation at a measurable
+pace \citep{kazakhstan2024digital}. The number of registered
+digital-commerce entities grew by approximately 47\% between 2020 and
+2023, and more than 68\% of Kazakhstani SMEs reported using some form of
+digital sales tool by 2024. Nevertheless, the adoption of sophisticated,
+ML-augmented CRM platforms among domestic SMEs remains low. The majority
+of organisations either rely on globally dominant incumbents such as
+Salesforce or HubSpot, whose pricing structures are prohibitive in
+tenge-denominated revenue environments, or maintain rudimentary spreadsheet
+pipelines that preclude any form of predictive analysis.
+
+Machine learning integration within CRM systems represents the principal
+frontier of competitive differentiation in the sector. Predictive lead
+scoring, defined as the assignment of a conversion probability to each
+sales prospect, enables sales teams to concentrate effort on the
+highest-value opportunities, materially improving funnel conversion
+\citep{verbeke2012}. Customer churn analysis, that is, the identification
+of at-risk customers before lapse occurs, supports proactive retention
+interventions that the literature demonstrates can reduce churn rates by
+20--30\% \citep{verbeke2012}. These capabilities, once accessible
+exclusively to large enterprises with dedicated data science functions, are
+increasingly realisable through mature open-source frameworks such as
+scikit-learn \citep{chen2016xgboost} and interpretability toolkits such as
+SHAP \citep{lundberg2017shap}.
+
 
 
