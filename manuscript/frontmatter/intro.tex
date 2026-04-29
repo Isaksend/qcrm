@@ -88,3 +88,75 @@ The research problem addressed by this project is therefore:
 and prototyped that is technically feasible for a student development team,
 cost-effective for Kazakhstani SMEs, compliant with domestic data
 regulations, and deployable on Kazakhstani cloud infrastructure?}
+
+\section{Purpose of the Project}
+
+The purpose of this project is to design, develop, and evaluate a Minimum
+Viable Product (MVP) of a SaaS CRM platform, designated \textit{TinyCRM},
+that incorporates machine learning for predictive lead scoring and customer
+churn analysis. The platform targets Kazakhstani SMEs and is deployed
+exclusively on domestic cloud infrastructure. The project serves a dual
+function: an academic purpose (demonstrating systems engineering and ML
+integration competencies within a structured capstone framework) and a
+practical purpose (producing a functional prototype suitable for future
+commercial development).
+
+\section{Objectives}
+
+The project pursues the following specific objectives:
+
+\begin{enumerate}[label=\textbf{O\arabic*.}]
+  \item Conduct a systematic literature review of CRM architectures, SaaS
+  design patterns, lead scoring methodologies, and churn prediction
+  algorithms.
+
+  \item Analyse five representative existing CRM systems to identify
+  feature gaps relevant to the Kazakhstani SME context.
+
+  \item Design a FastAPI/SQLAlchemy monolithic backend with a clearly
+  specified RESTful API of 16 or more endpoints, supporting contact
+  management, pipeline tracking, and ML inference.
+
+  \item Develop and evaluate ML models for (a) lead scoring using Gradient
+  Boosting, targeting F1 $\geq$ 0.78, and (b) churn prediction using
+  Random Forest, targeting AUC-ROC $\geq$ 0.80.
+
+  \item Design a Vue.js~3 single-page application providing a CRM
+  dashboard, Kanban pipeline board, and ML insight panels.
+
+  \item Deploy the MVP on QazCloud infrastructure and evaluate system
+  performance under simulated concurrent load.
+
+  \item Evaluate the system against functional and non-functional
+  requirements and reflect critically on limitations and future work.
+\end{enumerate}
+
+\section{Scope and Limitations}
+
+\subsection{Scope}
+
+The project scope encompasses the following system boundaries:
+
+\begin{itemize}
+  \item \textbf{Backend:} A Python/FastAPI REST API with SQLAlchemy ORM,
+  serving authentication, contact, company, deal, activity, and ML
+  inference modules within a single deployable process.
+
+  \item \textbf{Frontend:} A Vue.js~3 SPA utilising Pinia for state
+  management and Vuetify~3 as the UI component library.
+
+  \item \textbf{ML pipeline:} Data preprocessing, feature engineering,
+  model training, serialisation via \texttt{joblib}, and REST-based
+  real-time inference for lead scoring and churn prediction.
+
+  \item \textbf{Database:} A PostgreSQL relational database with a
+  defined schema supporting all CRM domain entities.
+
+  \item \textbf{Deployment:} A Docker Compose single-server deployment on
+  QazCloud virtual machines located in the Almaty region.
+
+  \item \textbf{Testing:} Unit tests using \texttt{pytest}, API integration
+  tests via Postman/Newman.
+% , and manual user acceptance testing (UAT) sessions with three pilot SME participants.
+\end{itemize}
+
