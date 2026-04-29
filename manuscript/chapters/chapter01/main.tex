@@ -1,0 +1,157 @@
+\chapter{Literature Review}
+\label{chap:01}
+\setlength{\parskip}{1em}
+%
+\section{Customer Relationship Management}
+
+Customer Relationship Management as a formal discipline emerged from the
+intersection of relationship marketing theory and enterprise information
+systems in the early 1990s. The most widely cited academic definition is
+provided by \citet{payne2005}, who characterise CRM as a strategic approach
+concerned with creating improved shareholder value through the development
+of appropriate relationships with key customers and customer segments. From
+a systems perspective, CRM encompasses three functional dimensions:
+operational CRM (the automation of sales, marketing, and service
+processes), analytical CRM (the application of data warehousing and mining
+to understand customer behaviour), and collaborative CRM (the
+multi-channel coordination of customer interactions) \citep{buttle2019}.
+
+\citet{buttle2019} further position CRM software as the technological
+infrastructure that operationalises relationship marketing strategy,
+cautioning that CRM value derives not from the software platform itself but
+from the organisational processes and data discipline that accompany
+implementation. This observation is consistent with the persistently high
+CRM project failure rates reported in practitioner literature, where
+40--70\% of implementations are estimated to fall short of their stated
+objectives \citep{gartner2023crm}.
+
+For SMEs specifically, \citet{nguyen2013} identify a distinct set of CRM
+adoption success factors, finding that perceived ease of use,
+top-management support, and cost-effectiveness are the principal
+determinants of adoption in small business contexts, factors that are
+systematically underweighted in large-enterprise CRM research. These
+findings directly inform TinyCRM's design philosophy, which prioritises
+interface simplicity, low configuration overhead, and total cost of
+ownership optimisation.
+%
+\section{SaaS Architecture Patterns}
+
+Software-as-a-Service delivery has become the dominant CRM deployment
+model, with SaaS deployments comprising approximately 87\% of total CRM
+implementations as of 2023 \citep{gartner2023crm}. The SaaS model affords
+SMEs predictable subscription pricing, the elimination of on-premise
+infrastructure costs, automatic updates, and ubiquitous browser-based
+access.
+
+From an architectural standpoint, SaaS applications must address
+multi-tenancy, data isolation, horizontal scalability, and availability.
+\citet{bezemer2010} classify multi-tenancy approaches on a spectrum from
+simple hosting (shared nothing, one database per tenant) to true
+multi-tenancy (shared schema with a tenant discriminator column). For an
+MVP targeting a small initial user base, a single-tenant-per-deployment
+model substantially reduces architectural complexity while preserving the
+operational benefits of cloud hosting.
+
+\citet{richardson2018} argues that while microservices architectures offer
+scalability and team autonomy benefits, the operational complexity they
+introduce, including distributed tracing, service mesh management, and
+independent deployment pipelines, is disproportionate for early-stage
+applications. He explicitly recommends initiating development with a
+well-structured monolith and migrating to microservices only upon the
+identification of specific scaling bottlenecks. This recommendation is
+directly adopted in TinyCRM's architectural decision-making, as described
+in \cref{chap:design}.
+
+\citet{fowler2014microservices} articulate the ``monolith first'' pattern:
+construct a modular monolith whose internal boundaries correspond to future
+microservice candidates, enabling extraction without complete rewrite. This
+pattern is particularly appropriate for student development teams, where
+the cognitive and operational overhead of distributed systems would likely
+overwhelm functional delivery capacity.
+%
+\section{Machine Learning for Lead Scoring}
+
+Lead scoring, the prioritisation of sales prospects by estimated conversion
+probability, has evolved from rule-based demographic heuristics (the BANT
+framework: Budget, Authority, Need, Timeline) to ML-driven approaches
+capable of integrating hundreds of behavioural signals. The survey by
+\citet{baesens2002} demonstrates that ensemble methods, specifically
+Gradient Boosting and Random Forest classifiers, consistently outperform
+logistic regression and single decision trees across multiple industry
+datasets, a finding subsequently replicated by \citet{chen2016xgboost} in
+the context of the XGBoost algorithm.
+
+A critical insight from \citet{verbeke2012} is that raw predictive accuracy
+is an insufficient criterion for evaluating business ML models:
+interpretability (that is, understanding which features drive a specific
+lead score) is essential for sales team adoption and regulatory
+accountability. This observation motivates the integration of SHAP
+(SHapley Additive exPlanations) values \citep{lundberg2017shap} into
+TinyCRM's lead scoring API, providing feature-level explanations alongside
+probability outputs.
+
+Regarding feature importance, \citet{tsai2010} demonstrate that
+behavioural engagement features (email open rates, call frequency, time
+since last contact) have significantly higher predictive power than
+demographic features (company size, industry) when both sets are available.
+This finding is reflected in TinyCRM's feature engineering specification,
+which centres on interaction history derived from the activity log.
+%
+\section{Customer Churn Prediction}
+
+Customer churn represents one of the most economically consequential events
+in the customer lifecycle. The asymmetry between customer acquisition cost
+and retention cost, estimated at a ratio of 5:1 to 7:1 in favour of
+retention \citep{reichheld2001}, makes churn prediction a high-return
+machine learning application.
+
+The methodological benchmark study by \citet{verbeke2012}, conducted on
+telecommunications churn data, remains the standard reference in this
+domain. The study demonstrates that Random Forest and Gradient Boosting
+consistently achieve AUC-ROC values in the range 0.82--0.89 on standard
+benchmarks, outperforming both Logistic Regression and neural networks on
+most evaluation metrics. Logistic Regression nevertheless retains practical
+value as an interpretable baseline, particularly when feature engineering
+is thorough \citep{coussement2008}.
+
+Class imbalance is a critical methodological challenge in churn modelling,
+as churn events typically constitute only 5--25\% of the customer
+population within any given observation window. Standard mitigation
+strategies include SMOTE oversampling \citep{chawla2002}, cost-sensitive
+learning via class weighting, and decision threshold calibration.
+TinyCRM's training pipeline applies SMOTE exclusively within training
+folds during cross-validation to prevent data leakage, and evaluates models
+using AUC-ROC and precision-recall area under the curve (PR-AUC) in
+preference to raw accuracy.
+%
+
+% \begin{figure}[H]
+% {
+% \centering  
+% \begin{subfigure}{0.3 \textwidth}
+%     \centering
+%     {\includegraphics[width=\textwidth]{chapters/chapter02/fig02/2.5.png}
+%     \caption{}\label{Fig.2.1.a}}
+% \end{subfigure}
+% %
+% \begin{subfigure}{0.3 \textwidth}
+%     \centering
+%     {\includegraphics[width=\textwidth]{chapters/chapter02/fig02/2.5.png}
+%     \caption{}\label{Fig.2.1.b}}
+% \end{subfigure}
+% %
+% \begin{subfigure}{0.3 \textwidth}
+%     \centering
+%     {\includegraphics[width=\textwidth]{chapters/chapter02/fig02/2.5.png}
+%     \caption{}\label{Fig.2.1.c}}
+% \end{subfigure}
+
+% \caption{Description of this figure}
+% \label{Fig.2.1}
+% }
+% \end{figure}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
