@@ -5,95 +5,13 @@
 \chapter{Technology Comparison}
 \label{chap:06}
 \setlength{\parskip}{1em}
+%
+The selection of the technical stack was based on a comparison of performance, ecosystem support, and suitability for machine learning integration.
 
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter06/fig06/1.jpg}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Description of this figure}
-\label{Fig.2.1}
+\section{Backend Frameworks: FastAPI vs. Django and Node.js}
+While Django is a mature, full-stack framework, it often introduces heavy abstraction that can be slower for real-time API performance \cite{fastapi2024}. Node.js with Express is highly effective for I/O-intensive tasks but lacks the native integration with machine learning libraries available in the Python ecosystem \cite{saha2025crm}. FastAPI was selected for this project because it leverages asynchronous programming (ASGI) to provide response times that are significantly faster than traditional Python frameworks while maintaining full access to AI tools like TensorFlow and PyTorch \cite{fastapi2024}.
+
+\section{Data Management: SQLAlchemy vs. Raw SQL
 }
-\end{figure}
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter06/fig06/2.jpg}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Description of this figure}
-\label{Fig.2.1}
-}
-\end{figure}
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter06/fig06/3.jpg}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Description of this figure}
-\label{Fig.2.1}
-}
-\end{figure}
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter06/fig06/4.jpg}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Description of this figure}
-\label{Fig.2.1}
-}
-\end{figure}
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter06/fig06/5.jpg}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Description of this figure}
-\label{Fig.2.1}
-}
-\end{figure}
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter06/fig06/6.jpg}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Description of this figure}
-\label{Fig.2.1}
-}
-\end{figure}
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter06/fig06/7.jpg}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Description of this figure}
-\label{Fig.2.1}
-}
-\end{figure}
+
+Traditional raw SQL requires frequent context switching and increases the risk of security vulnerabilities like SQL injection. SQLAlchemy was selected as the Object-Relational Mapper because it bridges the Object-Relational Impedance Mismatch, allowing the team to work with database records as native Python objects \cite{keogh2025sqlalchemy}. This abstraction improves code maintainability and ensures transactional integrity, which is critical for complex operations such as lead conversion where multiple records must be created simultaneously.

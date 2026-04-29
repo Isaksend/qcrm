@@ -2,16 +2,61 @@
 % File: chap02.tex
 % Author: Tengxiang Li
 %
-\chapter{Technology Comparison}
-\label{chap:06}
+\chapter{Architecture and UML Modeling}
+\label{chap:05}
 \setlength{\parskip}{1em}
 %
-The selection of the technical stack was based on a comparison of performance, ecosystem support, and suitability for machine learning integration.
+The system uses a client-server architecture organized into distinct layers to separate presentation, business logic, and data storage.
 
-\section{Backend Frameworks: FastAPI vs. Django and Node.js}
-While Django is a mature, full-stack framework, it often introduces heavy abstraction that can be slower for real-time API performance \cite{fastapi2024}. Node.js with Express is highly effective for I/O-intensive tasks but lacks the native integration with machine learning libraries available in the Python ecosystem \cite{saha2025crm}. FastAPI was selected for this project because it leverages asynchronous programming (ASGI) to provide response times that are significantly faster than traditional Python frameworks while maintaining full access to AI tools like TensorFlow and PyTorch \cite{fastapi2024}.
 
-\section{Data Management: SQLAlchemy vs. Raw SQL
+\section{Structural Modeling: Component Diagram}
+The monolithic unit is structured into three main layers:
+\begin{itemize}
+    \item Presentation Layer: Handles the user interface and session validation using a mobile-first Vue.js application.
+    \item Business Logic Layer: Manages core services and the integration of analysis modules. In this layer, FastAPI acts as the engine for asynchronous request handling and task management.
+    \item Persistence Layer: Manages data storage using SQLAlchemy to map Python objects to the relational database, ensuring strict data integrity.
+\end{itemize}
+
+\section{Behavioral Modeling: Sequence Diagrams}
+
+\subsection{Diagram 1: Asynchronous Analysis}
+\begin{figure}[H]
+{
+\centering  
+\begin{subfigure}{0.7 \textwidth}
+    \centering
+    {\includegraphics[width=\textwidth]{chapters/chapter05/fig/3.png}
+    \caption{}\label{Fig.2.1.a}}
+\end{subfigure}
+%
+\caption{Lead scoring.}
+\label{Fig.2.1}
 }
+\end{figure}
+This sequence describes the workflow for generating deal recommendations while maintaining interface responsiveness. When a user requests an insight, the API returns a status code of 202 immediately. This prevents the user interface from freezing while a background task fetches the deal context, communicates with the machine learning provider, and updates the record with the resulting recommendation.
 
-Traditional raw SQL requires frequent context switching and increases the risk of security vulnerabilities like SQL injection. SQLAlchemy was selected as the Object-Relational Mapper because it bridges the Object-Relational Impedance Mismatch, allowing the team to work with database records as native Python objects \cite{keogh2025sqlalchemy}. This abstraction improves code maintainability and ensures transactional integrity, which is critical for complex operations such as lead conversion where multiple records must be created simultaneously.
+\subsection{Diagram 2: Atomic Lead Conversion}
+
+This process manages the transformation of a lead into associated account, contact, and opportunity records. The system utilizes atomic transactions to ensure that the lead is only marked as converted if all new records are successfully created \cite{keogh2025sqlalchemy}. If any part of the operation fails, the transaction is rolled back to prevent data corruption.
+\begin{figure}[H]
+{
+\centering  
+\begin{subfigure}{0.7 \textwidth}
+    \centering
+    {\includegraphics[width=\textwidth]{chapters/chapter05/fig/2.png}
+    \caption{}\label{Fig.2.1.a}}
+\end{subfigure}
+%
+\caption{Atomic lead Conversion }
+\label{Fig.2.1}
+}
+\end{figure}
+\section{Process Modeling: BPMN Diagrams}
+
+\subsection{Lead Scoring and Visualization}
+
+This process ranks leads based on their conversion probability. When a new lead is created, the system calculates an internal score based on historical patterns. If the score meets a specific threshold, the system triggers a request for advanced analysis to prioritize the lead within the funnel.
+
+\subsection{Churn Analysis}
+
+This is a proactive retention process triggered by a scheduled timer. The system scans customer activity to identify inactivity patterns that match historical churn data. If a risk is detected, an alert is generated for the manager to initiate a retention workflow.

@@ -66,9 +66,10 @@
 %
 \newcommand{\clearemptydoublepage}{\newpage{\thispagestyle{empty}\cleardoublepage}}
 %
-\usepackage[T2A]{fontenc}
+%\usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage[main=english, russian]{babel}
+%\usepackage[main=english, russian]{babel}
+\usepackage[main=english]{babel}
 %
 % Creates index for Table of Contents, List of Figures, List of Tables and Index
 \makeindex
@@ -88,7 +89,7 @@
 % Add other packages needed for chapters here. For example:
 \usepackage{amsfonts} 					%Calls Amer. Math. Soc. (AMS) fonts
 \usepackage{amsmath}			%Writes maths centred down
-\usepackage{stmaryrd}					%New AMS symbols
+%\usepackage{stmaryrd}					%New AMS symbols
 \usepackage{amssymb}					%Calls AMS symbols
 \usepackage{amsthm}					%Calls AMS theorem environment
 \usepackage{newlfont}					%Helpful package for fonts and symbols
@@ -233,8 +234,6 @@
 %
 \import{chapters/chapter02/}{main.tex}
 %
-\import{chapters/chapter02.1/}{main.tex}
-%
 \import{chapters/chapter03/}{main.tex}
 %
 \import{chapters/chapter04/}{main.tex}
@@ -242,6 +241,8 @@
 \import{chapters/chapter05/}{main.tex}
 %
 \import{chapters/chapter06/}{main.tex}
+%
+\import{chapters/chapter07/}{main.tex}
 %
 %\import{chapters/chapter_last/}{conclusion.tex}
 %

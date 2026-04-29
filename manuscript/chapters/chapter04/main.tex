@@ -2,61 +2,14 @@
 % File: chap02.tex
 % Author: Tengxiang Li
 %
-\chapter{Architecture and UML Modeling}
-\label{chap:05}
+\chapter{Methodology of the Work}
+\label{chap:04}
 \setlength{\parskip}{1em}
 %
-The system uses a client-server architecture organized into distinct layers to separate presentation, business logic, and data storage.
+The research and development of TinyCRM followed a scientific approach to entrepreneurship, utilizing the Lean Startup methodology to minimize market risk and maximize validated learning \cite{ries2011lean}, \cite{felin2024scientific}.
 
+\section{Hypothesis Formulation and Testing}
+The project began by identifying two core hypotheses. The value hypothesis assumed that micro-businesses in Kazakhstan would derive significant utility from an AI-driven tool that reduces manual data entry. The growth hypothesis assumed that a lightweight, mobile-first interface would drive adoption among solo entrepreneurs who work on the go. These were tested through customer development interviews and a quantitative survey of 15 target users.
 
-\section{Structural Modeling: Component Diagram}
-The monolithic unit is structured into three main layers:
-\begin{itemize}
-    \item Presentation Layer: Handles the user interface and session validation using a mobile-first Vue.js application.
-    \item Business Logic Layer: Manages core services and the integration of analysis modules. In this layer, FastAPI acts as the engine for asynchronous request handling and task management.
-    \item Persistence Layer: Manages data storage using SQLAlchemy to map Python objects to the relational database, ensuring strict data integrity.
-\end{itemize}
-
-\section{Behavioral Modeling: Sequence Diagrams}
-
-\subsection{Diagram 1: Asynchronous Analysis}
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter04/fig/3.png}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Lead scoring.}
-\label{Fig.2.1}
-}
-\end{figure}
-This sequence describes the workflow for generating deal recommendations while maintaining interface responsiveness. When a user requests an insight, the API returns a status code of 202 immediately. This prevents the user interface from freezing while a background task fetches the deal context, communicates with the machine learning provider, and updates the record with the resulting recommendation.
-
-\subsection{Diagram 2: Atomic Lead Conversion}
-
-This process manages the transformation of a lead into associated account, contact, and opportunity records. The system utilizes atomic transactions to ensure that the lead is only marked as converted if all new records are successfully created \cite{keogh2025sqlalchemy}. If any part of the operation fails, the transaction is rolled back to prevent data corruption.
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter04/fig/2.png}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Atomic lead Conversion }
-\label{Fig.2.1}
-}
-\end{figure}
-\section{Process Modeling: BPMN Diagrams}
-
-\subsection{Lead Scoring and Visualization}
-
-This process ranks leads based on their conversion probability. When a new lead is created, the system calculates an internal score based on historical patterns. If the score meets a specific threshold, the system triggers a request for advanced analysis to prioritize the lead within the funnel.
-
-\subsection{Churn Analysis}
-
-This is a proactive retention process triggered by a scheduled timer. The system scans customer activity to identify inactivity patterns that match historical churn data. If a risk is detected, an alert is generated for the manager to initiate a retention workflow.
+\section{Quantitative Data Analysis}
+The development utilized the Build-Measure-Learn feedback loop to iterate on product features \cite{ries2011lean}. A structured survey of 15 respondents provided empirical evidence for a strategic pivot. The survey results indicated that 86.7 percent of participants viewed manual data entry as a major bottleneck (rating 4 or 5 on a 5-point scale). Furthermore, 53.3 percent of users identified unexplained AI decisions as a deal-breaker, while 40 percent confirmed that their organizations prohibit the use of global generative AI for client data. These findings forced a shift from a fully autonomous system to a suggest and approve model, where the system provides recommendations along with explanations for the user to confirm.

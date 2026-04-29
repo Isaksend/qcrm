@@ -2,14 +2,13 @@
 % File: chap02.tex
 % Author: Tengxiang Li
 %
-\chapter{Methodology of the Work}
-\label{chap:04}
+\chapter{SaaS Infrastructure and Regulatory Compliance}
+\label{chap:03}
 \setlength{\parskip}{1em}
 %
-The research and development of TinyCRM followed a scientific approach to entrepreneurship, utilizing the Lean Startup methodology to minimize market risk and maximize validated learning \cite{ries2011lean}, \cite{felin2024scientific}.
+The adoption of a software as a service model requires careful consideration of the cloud infrastructure and the regulatory environment.
+\section{Data Residency and Law No. 94-V}
+Law No. 94-V on personal data and their protection mandates that the storage and processing of personal data of Kazakhstani citizens must occur on servers physically located within the territory of Kazakhstan \cite{kazakhlaw2013personal}. This regulatory requirement restricts the use of global cloud solutions that do not have local data centers, supporting the project decision to utilize a controlled deployment within the country \cite{mordor2026ict}.
+\section{Analysis of Local Cloud Providers}
+The Kazakhstan ICT market has seen a 69 percent revenue increase in cloud migration in recent years \cite{mordor2026ict}. Major local providers include Kazakhtelecom, which maintains a 52 percent share of the data center market and offers virtual computing resources \cite{telecom2023report}. Other specialists include QazCloud, which focuses on disaster recovery, and 24saas.kz, which provides virtual data centers specifically tailored for SaaS applications in Kazakhstan \cite{twentyfoursaas2025about}. These local options allow SaaS products to comply with national privacy laws while maintaining low latency for regional users \cite{gcore2025locations}.
 
-\section{Hypothesis Formulation and Testing}
-The project began by identifying two core hypotheses. The value hypothesis assumed that micro-businesses in Kazakhstan would derive significant utility from an AI-driven tool that reduces manual data entry. The growth hypothesis assumed that a lightweight, mobile-first interface would drive adoption among solo entrepreneurs who work on the go. These were tested through customer development interviews and a quantitative survey of 15 target users.
-
-\section{Quantitative Data Analysis}
-The development utilized the Build-Measure-Learn feedback loop to iterate on product features \cite{ries2011lean}. A structured survey of 15 respondents provided empirical evidence for a strategic pivot. The survey results indicated that 86.7 percent of participants viewed manual data entry as a major bottleneck (rating 4 or 5 on a 5-point scale). Furthermore, 53.3 percent of users identified unexplained AI decisions as a deal-breaker, while 40 percent confirmed that their organizations prohibit the use of global generative AI for client data. These findings forced a shift from a fully autonomous system to a suggest and approve model, where the system provides recommendations along with explanations for the user to confirm.

@@ -21,3 +21,10 @@ backend/tinycrm.db
 *title.tex
 logos/
 /manuscript/*.log
+/manuscript/*.lot
+/manuscript/*.out
+/manuscript/*.pdf
+/manuscript/*.toc
+/manuscript/*.aux
+/manuscript/*.idx
+/manuscript/*.lof
