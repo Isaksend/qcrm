@@ -49,7 +49,7 @@
 %
 \frenchspacing
 %
-\OnehalfSpacing 
+%\OnehalfSpacing 
 %
 % Sets numbering division level
 \setsecnumdepth{subsection} 
@@ -108,10 +108,40 @@
 \usepackage{enumerate}					%For enumeration counter
 \usepackage{footnote}					%For footnotes
 \usepackage{microtype}					%Makes pdf look better.
-\usepackage[version=0.96]{pgf}			%PGF/TikZ is a tandem of languages for producing vector graphics from a 
 
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, shapes.multipart, arrows.meta, positioning,
+                fit, backgrounds, shadows, calc, decorations.pathreplacing,
+                matrix}
+\usepackage{setspace}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcommand{\thead}[1]{\cellcolor{tableheadbg}\textcolor{white}{\textbf{#1}}}
 
-
+\usepackage{colortbl}
+\definecolor{primaryblue}{RGB}{31,56,100}
+\definecolor{accentblue}{RGB}{46,80,144}
+\definecolor{lightgray}{RGB}{245,245,245}
+\definecolor{codelightbg}{RGB}{248,248,252}
+\definecolor{tableheadbg}{RGB}{31,56,100}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+\definecolor{codepurple}{rgb}{0.4,0.0,0.6}
+\definecolor{codeblue}{rgb}{0.0,0.0,0.7}
 
 \usepackage{listings}
 
@@ -229,6 +259,8 @@
 
 \mainmatter
 %
+%\import{frontmatter/intro.tex} 
+%
 \import{chapters/chapter01/}{main.tex}
 %
 \import{chapters/chapter02/}{main.tex}
@@ -256,7 +288,7 @@
 \backmatter
 \bibliographystyle{ieeetr}
 \refstepcounter{chapter}
-\bibliography{thesisbiblio}
+\bibliography{thesisbiblio.bib}
 
 \appendix
 \import{chapters/appendices/}{app0A.tex}
