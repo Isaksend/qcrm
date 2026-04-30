@@ -28,3 +28,10 @@ logos/
 /manuscript/*.aux
 /manuscript/*.idx
 /manuscript/*.lof
+/manuscript/*blx.bib
+/manuscript/*.bbl
+/manuscript/*.bcf
+/manuscript/*.blg
+/manuscript/*.run.xml
+
+

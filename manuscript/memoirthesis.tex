@@ -98,8 +98,8 @@
 \usepackage[utf8]{inputenc}			%Needed to encode non-english characters 
 									%directly for mac
 \usepackage{float}						%Helps to place figures, tables, etc. 
-\usepackage[square,numbers,
-		     sort&compress]{natbib}		%Calls bibliography commands 
+\usepackage[backend=biber, style=ieee, natbib=true]{biblatex}
+\addbibresource{references.bib}
 \usepackage{url}						%Supports url commands
 \usepackage[colorlinks=true,
 		     allcolors=black]{hyperref}              %Creates hyperlinks in cross references
@@ -286,10 +286,9 @@
 % Apparently the guidelines don't say anything about citations or
 % bibliography styles so I guess we can use anything.
 \backmatter
-\bibliographystyle{ieeetr}
 \refstepcounter{chapter}
-\bibliography{thesisbiblio.bib}
-
+%\bibliography{references}
+\printbibliography
 \appendix
 \import{chapters/appendices/}{app0A.tex}
 
