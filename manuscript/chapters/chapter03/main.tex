@@ -2,13 +2,147 @@
 % File: chap02.tex
 % Author: Tengxiang Li
 %
-\chapter{SaaS Infrastructure and Regulatory Compliance}
+\chapter{Methodology}
 \label{chap:03}
 \setlength{\parskip}{1em}
 %
-The adoption of a software as a service model requires careful consideration of the cloud infrastructure and the regulatory environment.
-\section{Data Residency and Law No. 94-V}
-Law No. 94-V on personal data and their protection mandates that the storage and processing of personal data of Kazakhstani citizens must occur on servers physically located within the territory of Kazakhstan \cite{kazakhlaw2013personal}. This regulatory requirement restricts the use of global cloud solutions that do not have local data centers, supporting the project decision to utilize a controlled deployment within the country \cite{mordor2026ict}.
-\section{Analysis of Local Cloud Providers}
-The Kazakhstan ICT market has seen a 69 percent revenue increase in cloud migration in recent years \cite{mordor2026ict}. Major local providers include Kazakhtelecom, which maintains a 52 percent share of the data center market and offers virtual computing resources \cite{telecom2023report}. Other specialists include QazCloud, which focuses on disaster recovery, and 24saas.kz, which provides virtual data centers specifically tailored for SaaS applications in Kazakhstan \cite{twentyfoursaas2025about}. These local options allow SaaS products to comply with national privacy laws while maintaining low latency for regional users \cite{gcore2025locations}.
+\section{Research Framework}
 
+This project adopts the Design Science Research (DSR) methodology as
+formalised by \citet{hevner2004}, which is the established epistemological
+framework for applied information systems research that produces a software
+artefact as its primary output. DSR comprises three interlocking research
+cycles:
+
+\begin{itemize}
+  \item \textbf{Relevance cycle:} The project is grounded in an
+  identifiable real-world problem (Section~1.2) and evaluated against
+  practical requirements derived from that problem context.
+
+  \item \textbf{Design cycle:} The artefact is constructed and refined
+  through a structured phased development plan, with each phase evaluation
+  informing subsequent design decisions.
+
+  \item \textbf{Rigor cycle:} Design decisions are grounded in
+  peer-reviewed knowledge bases documented in Chapter~2.
+\end{itemize}
+%
+\section{Software Development Methodology}
+
+A structured phased development model was adopted across a 20-week project
+timeline. The model organises work into five sequential phases, each with
+clearly defined inputs, outputs, and completion criteria. This approach was
+chosen for its simplicity and traceability: each phase must be substantially
+complete before the next commences, making it well-suited to a fixed-scope
+student project with a single delivery deadline. Literature review concludes with documents on
+the phase plan and delivery status.
+
+\begin{table}[H]
+  \centering
+  \caption{Project phase plan and delivery status}
+  \label{tab:phases}
+%  \setstretch{1.1}
+  \begin{tabularx}{\textwidth}{@{}L{3.0cm} C{1.6cm} X C{1.8cm}@{}}
+    \toprule
+    \thead{Phase} & \thead{Weeks} & \thead{Primary Deliverables} &
+    \thead{Status} \\
+    \midrule
+    Phase 1: Requirements \& Design &
+      1--4 &
+      Requirements specification, technology selection, database schema,
+      UML diagrams (use case, class, sequence) &
+      Complete \\
+    Phase 2: Backend Development &
+      5--8 &
+      FastAPI/SQLAlchemy project scaffold; authentication, contact, deal,
+      and activity API modules; OpenAPI documentation &
+      Complete \\
+%    Phase 3: ML Pipeline &
+%      9--12 &
+%      Data preprocessing pipeline, lead scoring model training and
+%      evaluation, churn prediction model training and evaluation,
+%      ML inference API endpoints with SHAP explanations &
+%      \\
+%    Phase 4: Frontend \& Integration &
+%      13--16 &
+%      Vue.js~3 SPA, pipeline board, ML insight dashboard panels,
+%      end-to-end API integration, Docker packaging,
+%      QazCloud deployment &
+%      \\
+%    Phase 5: Testing \& Documentation &
+%      17--20 &
+%      Unit and integration testing, load testing, user acceptance testing,
+%      technical documentation, paper writing &
+%      \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Requirements Engineering}
+
+Requirements were elicited through two methods: analysis of publicly
+available feature lists, user reviews, and published documentation for the
+five CRM systems examined in literature review; and review of
+the existing literature on SME CRM adoption factors \citep{nguyen2013}.
+Requirements were prioritised using the MoSCoW method.
+
+\subsection{Functional Requirements (Must Have)}
+
+\begin{itemize}
+  \item[\textbf{FR-1}] The system shall support user registration, login,
+  and role-based access control (Admin, Manager, Sales Representative).
+
+  \item[\textbf{FR-2}] The system shall provide CRUD operations on
+  Contacts, Companies, and Deals.
+
+  \item[\textbf{FR-3}] The system shall implement a visual Kanban pipeline
+  board for deal stage management.
+
+  \item[\textbf{FR-4}] The system shall record Activities (calls, emails,
+  meetings, notes) linked to Contacts and Deals.
+
+  \item[\textbf{FR-5}] The system shall expose a lead scoring API endpoint
+  returning a conversion probability and SHAP-based feature explanation
+  for a specified contact.
+
+  \item[\textbf{FR-6}] The system shall expose a churn prediction API
+  endpoint returning a churn probability and risk tier for a specified
+  contact.
+
+  \item[\textbf{FR-7}] The system shall provide a dashboard displaying key
+  sales metrics including pipeline value, stage conversion rates, and churn
+  risk distribution.
+
+  \item[\textbf{FR-8}] The system shall authenticate all API requests using
+  JSON Web Tokens (JWT).
+\end{itemize}
+
+\subsection{Non-Functional Requirements}
+
+\begin{itemize}
+  \item[\textbf{NFR-1}] \textbf{Performance:} API response time less than
+  500\,ms at the 95th percentile for standard CRUD operations under 100
+  concurrent users.
+
+  \item[\textbf{NFR-2}] \textbf{Availability:} 99.5\% uptime target on
+  production infrastructure (approximately 44~hours downtime per annum).
+
+  \item[\textbf{NFR-3}] \textbf{Security:} Passwords hashed using bcrypt
+  at a minimum cost factor of 12; HTTPS enforced on all endpoints; JWT
+  tokens expire after 24~hours.
+
+  \item[\textbf{NFR-4}] \textbf{Data Residency:} All customer personal
+  data stored exclusively on QazCloud infrastructure within Kazakhstan.
+
+  \item[\textbf{NFR-5}] \textbf{Scalability:} Architecture supports
+  horizontal replication of the web tier via Docker containers.
+
+  \item[\textbf{NFR-6}] \textbf{Maintainability:} Backend code coverage
+  greater than or equal to 70\%; API documented via OpenAPI~3.0.
+\end{itemize}
+
+\section{Data Collection and Preparation}
+
+Two publicly available datasets were used for ML model training and
+evaluation, chosen in the absence of proprietary Kazakhstani SME CRM data
+at the prototype stage.
