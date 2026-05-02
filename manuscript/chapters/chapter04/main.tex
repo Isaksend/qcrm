@@ -1,15 +1,52 @@
-%
-% File: chap02.tex
-% Author: Tengxiang Li
-%
-\chapter{Methodology of the Work}
-\label{chap:04}
+\chapter{System Design}
+\label{chap:design}
 \setlength{\parskip}{1em}
-%
-The research and development of TinyCRM followed a scientific approach to entrepreneurship, utilizing the Lean Startup methodology to minimize market risk and maximize validated learning \cite{ries2011lean}, \cite{felin2024scientific}.
 
-\section{Hypothesis Formulation and Testing}
-The project began by identifying two core hypotheses. The value hypothesis assumed that micro-businesses in Kazakhstan would derive significant utility from an AI-driven tool that reduces manual data entry. The growth hypothesis assumed that a lightweight, mobile-first interface would drive adoption among solo entrepreneurs who work on the go. These were tested through customer development interviews and a quantitative survey of 15 target users.
+\section{Technology Stack Selection}
 
-\section{Quantitative Data Analysis}
-The development utilized the Build-Measure-Learn feedback loop to iterate on product features \cite{ries2011lean}. A structured survey of 15 respondents provided empirical evidence for a strategic pivot. The survey results indicated that 86.7 percent of participants viewed manual data entry as a major bottleneck (rating 4 or 5 on a 5-point scale). Furthermore, 53.3 percent of users identified unexplained AI decisions as a deal-breaker, while 40 percent confirmed that their organizations prohibit the use of global generative AI for client data. These findings forced a shift from a fully autonomous system to a suggest and approve model, where the system provides recommendations along with explanations for the user to confirm.
+Technology selection was governed by four criteria: team competency,
+documentation quality, open-source licence compatibility, and architectural
+fit with the monolithic pattern. The table below presents the selected
+stack with rationale.
+
+%\Cref{tab:techstack}
+
+\begin{table}[H]
+  \centering
+  \caption{TinyCRM technology stack}
+  \label{tab:techstack}
+%  \setstretch{1.1}
+  \begin{tabularx}{\textwidth}{@{}L{2.6cm} L{2.4cm} C{1.3cm} X@{}}
+    \toprule
+    \thead{Layer} & \thead{Technology} & \thead{Version} &
+    \thead{Rationale} \\
+    \midrule
+    Backend framework & FastAPI & 0.111 &
+      ASGI-native, async support, automatic OpenAPI schema generation,
+      high performance \\
+    ORM & SQLAlchemy & 2.0 &
+      Mature, expressive, supports async sessions via \texttt{asyncpg} \\
+    ML library & scikit-learn + XGBoost + SHAP & 1.4 / 2.0 / 0.44 &
+      Mature pipelines, SHAP for explainability \\
+    Frontend & Vue.js~3 & 3.4 &
+      Composition API, progressive framework, large ecosystem \\
+    UI components & Vuetify~3 & 3.5 &
+      Material Design, comprehensive data-table and chart support \\
+    State management & Pinia & 2.1 &
+      Lightweight, TypeScript-friendly successor to Vuex \\
+    Database & PostgreSQL & 15 &
+      ACID compliance, JSONB support, QazCloud managed service \\
+    Background tasks & FastAPI \texttt{BackgroundTasks} & built-in &
+      In-process async task dispatch for batch ML inference and deferred
+      email; avoids additional broker infrastructure \\
+    Containerisation & Docker + Compose & 24.0 / 2.24 &
+      Reproducible deployments, QazCloud container support \\
+    Web server & Nginx + Uvicorn & 1.25 / 0.29 &
+      Production-grade ASGI serving \\
+    CI/CD & GitHub Actions & -- &
+      Free tier, YAML pipeline, Docker Hub integration \\
+    API documentation & FastAPI built-in (OpenAPI 3.0) & -- &
+      Automatic schema from type annotations \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
