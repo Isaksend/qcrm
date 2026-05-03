@@ -114,6 +114,32 @@ You can then preview the production build locally:
 npm run preview
 ```
 
+## Produce manuscript from source
+
+### Linux(apt)
+
+Install texlive and its packages
+
+```bash
+sudo apt update && \
+sudo apt install texlive texlive-base texlive-bibtex-extra texlive-latex-extra texlive-publishers biber
+```
+
+Run `pdflatex` to generate `.bcf` file, run `biber` to build source database, rerun `pdflatex` another two times to complete the process.
+
+```bash
+cd manuscript
+pdflatex draft.tex && \
+biber draft && \
+pdflatex draft.tex && \
+pdflatex draft.tex
+```
+
+If the `pdflatex` prompts for input, press enter until it finishes.
+
+### Not linux?
+bad luck
+
 ## 📂 Project Structure
 
 ```text
