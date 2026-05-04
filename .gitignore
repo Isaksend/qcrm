@@ -33,5 +33,6 @@ logos/
 /manuscript/*.bcf
 /manuscript/*.blg
 /manuscript/*.run.xml
+/manuscript/*.swp
 
 
