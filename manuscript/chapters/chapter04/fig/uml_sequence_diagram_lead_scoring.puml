@@ -1,0 +1,30 @@
+@startuml uml_sequence_diagram_lead_scoring
+!theme blueprint
+actor "Sales Rep" as SR
+participant "Vue.js SPA" as VUE
+participant "Nginx" as NGX
+participant "FastAPI\n(/ml router)" as API
+participant "LeadScoringService" as SVC
+participant "PostgreSQL" as DB
+participant "Redis Cache" as CACHE
+SR -> VUE : Clicks "Score Lead" button
+VUE -> NGX : POST /api/v1/ml/lead-score/{contact_id}\nAuthorization: Bearer <JWT>
+NGX -> API : Forward request
+API -> API : Validate JWT signature + expiry
+API -> CACHE : GET lead_score:{contact_id}
+CACHE --> API : Cache miss (TTL expired)
+API -> DB : SELECT Contact + Activities\nWHERE id = {contact_id}
+DB --> API : Contact record + activity rows
+API -> SVC : score(contact, activities)
+SVC -> SVC : build_feature_vector(contact, activities)
+SVC -> SVC : preprocessor.transform(features)
+SVC -> SVC : model.predict_proba(X) -> score
+SVC -> SVC : explainer.shap_values(X) -> shap
+SVC --> API : MLPrediction(score=0.78,\nshap={...}, tier="hot")
+API -> DB : INSERT INTO ml_prediction (...)
+API -> DB : UPDATE contact SET lead_score=0.78
+API -> CACHE : SET lead_score:{contact_id} EX 3600
+API --> NGX : 200 OK\n{score, tier, top_features}
+NGX --> VUE : Response
+VUE --> SR : Display score badge\n+ SHAP explanation panel
+@enduml

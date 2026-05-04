@@ -1,0 +1,33 @@
+@startuml activity_diagram_deal_lifecycle
+!theme blueprint
+start
+:Sales Rep creates new Deal;
+:Deal initialised in "Lead" stage;
+:System triggers asynchronous\nlead scoring (Celery);
+if (lead_score >= 0.60?) then (yes)
+:Advance to "Qualified" stage;
+:Notify Manager via dashboard alert;
+else (no)
+:Remain in "Lead" stage;
+:Schedule follow-up Activity;
+endif
+:Sales Rep prepares Proposal;
+:Deal advanced to "Proposal" stage;
+if (Client responds within SLA?) then (yes)
+:Advance to "Negotiation" stage;
+if (Agreement reached?) then (yes)
+:Mark Deal as WON;
+:Update Contact churn_risk score;
+:Create onboarding Activity;
+else (no)
+:Mark Deal as LOST;
+:Record lost reason;
+:Re-run churn prediction;
+endif
+else (no)
+:Log overdue follow-up Activity;
+:Re-score lead;
+:Return to negotiation loop;
+endif
+stop
+@enduml

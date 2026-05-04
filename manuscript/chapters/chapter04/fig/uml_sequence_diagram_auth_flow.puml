@@ -1,0 +1,23 @@
+@startuml uml_sequence_diagram_auth_flow
+!theme blueprint
+actor "User" as U
+participant "Vue.js SPA" as VUE
+participant "FastAPI\n(/auth router)" as API
+participant "PostgreSQL" as DB
+participant "Redis" as REDIS
+U -> VUE : Submit login form (email, password)
+VUE -> API : POST /api/v1/auth/login\n{email, password}
+API -> DB : SELECT User WHERE email = ?
+DB --> API : User row (password_hash, role)
+API -> API : bcrypt.checkpw(password, hash)
+alt Credentials valid
+API -> API : create_access_token(sub=user_id,\nrole=role, exp=+24h)
+API -> REDIS : SET session:{user_id} TTL=86400
+API --> VUE : 200 OK\n{access_token, refresh_token}
+VUE -> VUE : Store tokens in Pinia store
+VUE --> U : Redirect to /dashboard
+else Credentials invalid
+API --> VUE : 401 Unauthorized\n{detail: "Invalid credentials"}
+VUE --> U : Display error message
+end
+@enduml

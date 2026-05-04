@@ -1,0 +1,78 @@
+@startuml entity_relationship_diagram
+!theme blueprint
+entity User {
+* id : UUID <<PK>>
+--
+email : VARCHAR(255) UNIQUE NOT NULL
+password_hash : VARCHAR(255) NOT NULL
+role : ENUM(admin,manager,sales_rep)
+full_name : VARCHAR(200)
+is_active : BOOLEAN DEFAULT TRUE
+created_at : TIMESTAMPTZ
+}
+entity Company {
+* id : UUID <<PK>>
+--
+name : VARCHAR(200) NOT NULL
+industry : VARCHAR(100)
+size : ENUM(1-10,11-50,51-200,200+)
+country : VARCHAR(100)
+website : VARCHAR(255)
+created_at : TIMESTAMPTZ
+}
+entity Contact {
+* id : UUID <<PK>>
+--
+first_name : VARCHAR(100)
+last_name : VARCHAR(100)
+email : VARCHAR(255) UNIQUE
+phone : VARCHAR(50)
+company_id : UUID <<FK>>
+owner_id : UUID <<FK>>
+lead_score : FLOAT
+churn_risk : FLOAT
+created_at : TIMESTAMPTZ
+}
+entity Deal {
+* id : UUID <<PK>>
+--
+title : VARCHAR(255)
+value : NUMERIC(15,2)
+currency : CHAR(3) DEFAULT ’KZT’
+stage : ENUM(lead,qualified,proposal,
+negotiation,won,lost)
+contact_id : UUID <<FK>>
+owner_id : UUID <<FK>>
+close_date : DATE
+created_at : TIMESTAMPTZ
+}
+entity Activity {
+* id : UUID <<PK>>
+--
+type : ENUM(call,email,meeting,note)
+subject : VARCHAR(255)
+description : TEXT
+contact_id : UUID <<FK>>
+deal_id : UUID <<FK>>
+performed_by : UUID <<FK>>
+performed_at : TIMESTAMPTZ
+}
+entity MLPrediction {
+* id : UUID <<PK>>
+--
+contact_id : UUID <<FK>>
+model_type : ENUM(lead_score,churn)
+score : FLOAT NOT NULL
+shap_values : JSONB
+risk_tier : VARCHAR(10)
+model_version : VARCHAR(50)
+predicted_at : TIMESTAMPTZ
+}
+Company ||--o{ Contact : "employs"
+User ||--o{ Contact : "owns"
+User ||--o{ Deal : "owns"
+Contact ||--o{ Deal : "has"
+Contact ||--o{ Activity : "has"
+Deal ||--o{ Activity : "has"
+Contact ||--o{ MLPrediction : "has"
+@enduml
