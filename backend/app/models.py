@@ -98,3 +98,14 @@ class User(Base):
     role = Column(String, default="user") # super_admin, admin, user
     company_id = Column(String, nullable=True) # string without explicit FK for now to avoid DB lock issues on live dev
     is_active = Column(Integer, default=1)
+
+class MLprediction(Base):
+    __tablename__ = "ml_predictions"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    contactId = Column(String, index=True)
+    modelType = Column(String)
+    score = Column(Float, default=0.0)
+    riskTier = Column(String)
+    predictedAt = Column(DateTime, default=datetime.datetime.utcnow)
+    userId = Column(String, index=True)

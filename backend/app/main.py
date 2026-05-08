@@ -400,3 +400,10 @@ async def upload_image_to_client(
         message_type="image",
     )
     return saved
+
+@app.post("/api/ml/lead-score/{contact_id}")
+async def create_lead_score(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    pass

@@ -64,6 +64,13 @@ class MLPredictionBase(BaseModel):
     riskTier: str
     predictedAt: datetime = Field(default_factory=datetime.now)
 
+class MLPrediction(MLPredictionBase):
+    id: str
+    userId: str
+
+    class Config:
+        from_attributes = True
+
 class ActivityBase(BaseModel):
     type: str
     entityType: str
