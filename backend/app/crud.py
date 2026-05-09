@@ -147,3 +147,17 @@ def create_company(db: Session, company: schemas.CompanyCreate):
 
 def get_companies(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Company).offset(skip).limit(limit).all()
+
+# ML predictions
+def create_mlprediction(db: Session, mlp: schemas.MLPredictionCreate):
+	db_mlp = models.MLPrediction(
+		contactId=mlp.contactId,
+		modelType=mlp.modelType,
+		score=mlp.score,
+		riskTier=mlp.riskTier,
+		predictedAt=mlp.predictedAt
+	)
+	db.add(db_mlp)
+	db.commit()
+	db.refresh(db_mlp)
+	return db_mlp

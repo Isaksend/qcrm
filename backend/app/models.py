@@ -99,7 +99,7 @@ class User(Base):
     company_id = Column(String, nullable=True) # string without explicit FK for now to avoid DB lock issues on live dev
     is_active = Column(Integer, default=1)
 
-class MLprediction(Base):
+class MLPrediction(Base):
     __tablename__ = "ml_predictions"
 
     id = Column(String, primary_key=True, default=generate_uuid, index=True)
