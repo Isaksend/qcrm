@@ -2,6 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+import logging
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+
 # Force uvicorn to reload after installing passlib
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -14,13 +19,48 @@ from app.telegram_bot import start_polling, stop_polling, send_telegram_message,
 from app.database import engine, get_db, SessionLocal
 from app.telegram_bot import start_polling, stop_polling, send_telegram_message, get_telegram_user_info, send_telegram_photo
 
+# Configure Sentry
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            FastApiIntegration(),
+            StarletteIntegration(),
+        ],
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
+
+# Configure Audit Logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("audit.log"),
+        logging.StreamHandler()
+    ]
+)
+audit_logger = logging.getLogger("audit")
+
 # Create uploads directory
 os.makedirs("uploads/chat", exist_ok=True)
 
-# Create DB Tables
-models.Base.metadata.create_all(bind=engine)
+# Create DB Tables - Handled by Alembic in production
+# models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Tiny CRM API", version="1.0.0")
+
+# Audit Middleware to log requests
+@app.middleware("http")
+async def audit_middleware(request, call_next):
+    response = await call_next(request)
+    if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
+        # In a real app, we would get the user from the token here
+        # but middleware runs before auth dependencies usually.
+        # We can log basic info for now.
+        audit_logger.info(f"Action: {request.method} {request.url.path} - Status: {response.status_code}")
+    return response
 
 # Serve uploaded files (images etc.)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -102,7 +142,9 @@ def create_deal(deal: schemas.DealCreate, db: Session = Depends(get_db), current
         deal.userId = current_user.id
     
     deal.companyId = current_user.company_id
-    return crud.create_deal(db=db, deal=deal)
+    new_deal = crud.create_deal(db=db, deal=deal)
+    audit_logger.info(f"User {current_user.email} created deal: {new_deal.title} (ID: {new_deal.id})")
+    return new_deal
 
     return deal
 

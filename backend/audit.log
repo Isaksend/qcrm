@@ -1,0 +1,5 @@
+2026-05-10 17:09:51,462 - audit - INFO - Triggering a test error for Sentry...
+2026-05-10 17:10:14,615 - httpx - INFO - HTTP Request: GET https://api.telegram.org/bot8570976485:AAFDVc14KCNnQytqdyLYzU70rALni1dMXak/getUpdates?offset=1&timeout=30 "HTTP/1.1 200 OK"
+2026-05-10 17:10:44,712 - httpx - INFO - HTTP Request: GET https://api.telegram.org/bot8570976485:AAFDVc14KCNnQytqdyLYzU70rALni1dMXak/getUpdates?offset=1&timeout=30 "HTTP/1.1 200 OK"
+2026-05-10 17:11:14,813 - httpx - INFO - HTTP Request: GET https://api.telegram.org/bot8570976485:AAFDVc14KCNnQytqdyLYzU70rALni1dMXak/getUpdates?offset=1&timeout=30 "HTTP/1.1 200 OK"
+2026-05-10 17:11:44,913 - httpx - INFO - HTTP Request: GET https://api.telegram.org/bot8570976485:AAFDVc14KCNnQytqdyLYzU70rALni1dMXak/getUpdates?offset=1&timeout=30 "HTTP/1.1 200 OK"
