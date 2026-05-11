@@ -145,9 +145,57 @@ at the prototype stage.
 
 \subsection{Lead Scoring Dataset}
 
+A synthetic lead conversion dataset was derived from HubSpot's public
+developer sandbox and sample API data \citep{hubspot_leads}, comprising
+7,432 lead records with 18~features including: lead source, industry,
+company size, number of website visits, email open rate, number of calls
+made, days since first contact, and a binary conversion label. The dataset
+exhibits a 23.4\% positive-class (converted) rate, necessitating class
+balancing during training.
+
 \subsection{Churn Prediction Dataset}
+
+The IBM Telco Customer Churn dataset \citep{ibmtelco}, publicly available
+via Kaggle
+(\url{https://www.kaggle.com/datasets/blastchar/telco-customer-churn}),
+was employed for churn modelling. The dataset comprises 7,043 records with
+21~features including tenure, monthly charges, contract type, payment
+method, and service subscription indicators, with a churn rate of 26.5\%.
+Although the dataset originates from a telecommunications domain, the
+underlying customer lifecycle dynamics (recency, monetary value, service
+engagement) are structurally analogous to SME customer relationship data.
 
 \subsection{Preprocessing Pipeline}
 
+A unified preprocessing pipeline was implemented using scikit-learn's
+\texttt{Pipeline} and \texttt{ColumnTransformer} abstractions:
+
+\begin{itemize}
+  \item \textbf{Missing value imputation:} Median imputation for 
+  continuous features; a designated \texttt{Unknown} category for
+  nominal features.
+
+  \item \textbf{Categorical encoding:} One-hot encoding for nominal
+  features with ten or fewer categories; ordinal encoding for ordered
+  features.
+
+  \item \textbf{Numerical scaling:} \texttt{StandardScaler} applied for
+  Logistic Regression; tree-based models required no scaling.
+
+  \item \textbf{Class balancing:} SMOTE \citep{chawla2002} applied
+  exclusively within training folds of cross-validation to prevent data
+  leakage into the validation set.
+\end{itemize}
+
 \section{Model Development and Evaluation}
+
+Both ML tasks were framed as binary classification problems. A systematic
+model comparison was conducted using stratified 5-fold cross-validation on
+the training partition (80\% of the full dataset), with a held-out 20\%
+test set reserved for final one-time evaluation only. Hyperparameter
+optimisation used \texttt{GridSearchCV} within the training folds.
+Evaluation metrics included Accuracy, Precision, Recall, F1-Score,
+AUC-ROC, and PR-AUC. SHAP TreeExplainer values were computed for the
+selected production model in each task using the \texttt{shap} library
+\citep{lundberg2017shap}.
 
