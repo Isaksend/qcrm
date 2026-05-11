@@ -1,17 +1,87 @@
-%
-% File: chap02.tex
-% Author: Tengxiang Li
-%
-\chapter{Technology Comparison}
+\chapter{Discussion}
 \label{chap:06}
 \setlength{\parskip}{1em}
-%
-The selection of the technical stack was based on a comparison of performance, ecosystem support, and suitability for machine learning integration.
 
-\section{Backend Frameworks: FastAPI vs. Django and Node.js}
-While Django is a mature, full-stack framework, it often introduces heavy abstraction that can be slower for real-time API performance \cite{fastapi2024}. Node.js with Express is highly effective for I/O-intensive tasks but lacks the native integration with machine learning libraries available in the Python ecosystem \cite{saha2025crm}. FastAPI was selected for this project because it leverages asynchronous programming (ASGI) to provide response times that are significantly faster than traditional Python frameworks while maintaining full access to AI tools like TensorFlow and PyTorch \cite{fastapi2024}.
+\section{Interpretation of Machine Learning Results}
 
-\section{Data Management: SQLAlchemy vs. Raw SQL
-}
+The Gradient Boosting model's F1-score of 0.829 for lead scoring is
+consistent with, and at the higher end of, the range reported in
+comparable literature. \citet{verbeke2012} report F1 values of 0.79--0.88
+for ensemble methods on analogous binary classification datasets, and the
+TinyCRM result falls within this interval. The elevated recall (0.863)
+relative to precision (0.798) indicates that the model preferentially
+minimises missed true positives (genuine conversion opportunities) at the
+cost of some false positives (over-scored leads). In a sales context where
+the cost of missing a convertible lead substantially exceeds the cost of
+investigating a non-converting one, this bias is operationally appropriate.
 
-Traditional raw SQL requires frequent context switching and increases the risk of security vulnerabilities like SQL injection. SQLAlchemy was selected as the Object-Relational Mapper because it bridges the Object-Relational Impedance Mismatch, allowing the team to work with database records as native Python objects \cite{keogh2025sqlalchemy}. This abstraction improves code maintainability and ensures transactional integrity, which is critical for complex operations such as lead conversion where multiple records must be created simultaneously.
+The Random Forest churn model's AUC-ROC of 0.872 is consistent with
+\citeauthor{verbeke2012}'s benchmark range of 0.82--0.89 for Random Forest
+on telecommunications churn data. The PR-AUC of 0.768, while lower, more
+accurately reflects model utility under class imbalance and indicates
+reasonable precision at recall thresholds relevant to operational churn
+intervention (that is, at recall values of 0.6--0.8 where proactive
+outreach is feasible).
+
+A critical qualification of both results is the use of non-Kazakhstani
+training data. Transfer to real Kazakhstani CRM data may yield performance
+degradation if local customer behaviour patterns, such as shorter sales
+cycles, seasonal purchasing patterns aligned with Kazakhstani fiscal
+calendars, or WhatsApp-mediated engagement patterns not captured in the
+activity schema, differ systematically from the training distribution.
+This risk is the primary motivation for implementing an active learning
+pipeline in the post-MVP roadmap.
+
+\section{Architectural Reflections}
+
+The FastAPI/SQLAlchemy monolithic architecture proved highly appropriate
+for the MVP development context. FastAPI's automatic OpenAPI schema
+generation from Pydantic type annotations eliminated significant API
+documentation overhead. SQLAlchemy~2.0's async session interface
+(\texttt{AsyncSession} with \texttt{asyncpg}) enabled genuinely
+non-blocking database queries, resulting in measurably lower latency under
+concurrent load compared to synchronous ORM patterns. The combination of
+FastAPI and SQLAlchemy is demonstrably well-suited to an ML-serving
+application where database queries and model inference must be interleaved
+without blocking the event loop.
+
+\section{Kazakhstan-Specific Considerations}
+
+Data residency compliance was achieved through exclusive use of QazCloud
+infrastructure. All PostgreSQL data, Redis cache entries, and ML model
+artefacts are stored within Kazakhstan's territorial boundaries, satisfying
+the requirements of Law~No.~94-V \citep{kazakhstanlaw94v}. This
+represents a structural differentiator relative to all five incumbent CRM
+systems analysed in \cref{sec:existing_systems}.
+
+The pricing analysis indicates that TinyCRM's target subscription price
+of approximately KZT~3,000--7,000 per user per month (USD~6.50--15) is
+financially viable at 50-user scale, given QazCloud infrastructure costs
+of approximately USD~80--120 per month for the production virtual machine
+and managed database services. This compares favourably with Salesforce's
+minimum tier of USD~25 per user per month, validating the project's
+cost-effectiveness rationale for the target market segment.
+
+\section{Limitations and Threats to Validity}
+
+Several limitations constrain the conclusions drawn from this project:
+
+\begin{itemize}
+  \item \textbf{External validity (ML):} Models trained on publicly
+  available, non-Kazakhstani datasets may not generalise to local CRM
+  data without domain adaptation or retraining.
+
+  \item \textbf{Internal validity (UAT):} The UAT sample of three
+  participants is insufficient for statistically generalisable usability
+  conclusions; results are indicative.
+
+  \item \textbf{Construct validity:} SUS scores measure perceived
+  usability but not objective task performance or error rates. A full
+  usability study with think-aloud protocols and task completion time
+  measurements would strengthen the evaluation.
+
+  \item \textbf{Security:} No independent penetration testing was
+  conducted. SQL injection, XSS, and CSRF protections are implemented via
+  FastAPI and SQLAlchemy defaults but have not been audited.
+
+\end{itemize}
