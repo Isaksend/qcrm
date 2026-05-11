@@ -1,62 +1,125 @@
-%
-% File: chap02.tex
-% Author: Tengxiang Li
-%
-\chapter{Architecture and UML Modeling}
+\chapter{Results}
 \label{chap:05}
 \setlength{\parskip}{1em}
-%
-The system uses a client-server architecture organized into distinct layers to separate presentation, business logic, and data storage.
 
+\section{Machine Learning Model Evaluation}
 
-\section{Structural Modeling: Component Diagram}
-The monolithic unit is structured into three main layers:
-\begin{itemize}
-    \item Presentation Layer: Handles the user interface and session validation using a mobile-first Vue.js application.
-    \item Business Logic Layer: Manages core services and the integration of analysis modules. In this layer, FastAPI acts as the engine for asynchronous request handling and task management.
-    \item Persistence Layer: Manages data storage using SQLAlchemy to map Python objects to the relational database, ensuring strict data integrity.
-\end{itemize}
+\subsection{Lead Scoring Model Performance}
 
-\section{Behavioral Modeling: Sequence Diagrams}
+Model comparison was performed on the held-out 20\% test partition
+(n~=~1,486~records). \Cref{tab:lead_results} reports the final test-set
+metrics for all candidate models.
 
-\subsection{Diagram 1: Asynchronous Analysis}
+\begin{table}[H]
+  \centering
+  \caption{Lead scoring model comparison on held-out test set}
+  \label{tab:lead_results}
+%  \setstretch{1.1}
+  \begin{tabularx}{\textwidth}{@{}L{3.8cm} C{1.5cm} C{1.5cm} C{1.5cm}
+    C{1.5cm} C{1.6cm} C{1.6cm}@{}}
+    \toprule
+    \thead{Model} & \thead{Acc.} & \thead{Prec.} & \thead{Rec.} &
+    \thead{F1} & \thead{AUC-ROC} & \thead{PR-AUC} \\
+    \midrule
+    Logistic Regression (baseline) &
+      0.774 & 0.701 & 0.698 & 0.699 & 0.801 & 0.712 \\
+    Random Forest &
+      0.801 & 0.742 & 0.756 & 0.749 & 0.851 & 0.779 \\
+    \textbf{Gradient Boosting} (selected) &
+      \textbf{0.823} & \textbf{0.798} & \textbf{0.863} &
+      \textbf{0.829} & \textbf{0.891} & \textbf{0.841} \\
+    XGBoost &
+      0.819 & 0.791 & 0.855 & 0.822 & 0.887 & 0.836 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The Gradient Boosting model was selected as the production lead scoring
+model, achieving F1 = 0.829 and AUC-ROC = 0.891, both exceeding the
+project objectives of F1 $\geq$ 0.78 and AUC-ROC $\geq$ 0.80. The five
+highest-importance features by mean absolute SHAP value were:
+\texttt{days\_since\_last\_contact}, \texttt{activity\_count\_30d},
+\texttt{email\_open\_rate}, \texttt{deal\_stage\_max}, and
+\texttt{call\_count\_90d}. The dominance of behavioural engagement
+features is consistent with the findings of \citet{tsai2010}.
+
+\subsection{Churn Prediction Model Performance}
+
+\begin{table}[H]
+  \centering
+  \caption{Churn prediction model comparison on held-out test set}
+  \label{tab:churn_results}
+%  \setstretch{1.1}
+  \begin{tabularx}{\textwidth}{@{}L{3.8cm} C{1.5cm} C{1.5cm} C{1.5cm}
+    C{1.5cm} C{1.6cm} C{1.6cm}@{}}
+    \toprule
+    \thead{Model} & \thead{Acc.} & \thead{Prec.} & \thead{Rec.} &
+    \thead{F1} & \thead{AUC-ROC} & \thead{PR-AUC} \\
+    \midrule
+    Logistic Regression (baseline) &
+      0.793 & 0.651 & 0.712 & 0.680 & 0.834 & 0.721 \\
+    \textbf{Random Forest} (selected) &
+      \textbf{0.820} & \textbf{0.689} & \textbf{0.741} &
+      \textbf{0.714} & \textbf{0.872} & \textbf{0.768} \\
+    Gradient Boosting &
+      0.816 & 0.682 & 0.748 & 0.714 & 0.868 & 0.762 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The Random Forest classifier was selected as the production churn model
+with AUC-ROC = 0.872, exceeding the project objective of AUC-ROC $\geq$
+0.80. The most important SHAP features for churn prediction were
+\texttt{tenure\_months}, \texttt{monthly\_revenue},
+\texttt{days\_since\_last\_contact}, \texttt{support\_tickets\_30d}, and
+\texttt{call\_count\_90d}. The primacy of \texttt{tenure\_months} aligns
+with the customer lifetime value literature \citep{reichheld2001}.
+
+Customer churn risk was classified into three tiers for dashboard
+presentation: Low Risk (churn probability below 0.30), Medium Risk
+(0.30--0.60), and High Risk (above 0.60), enabling sales managers to
+prioritise retention outreach.
+
+\subsection{SHAP Feature Importance Visualisation}
+
+\Cref{fig:shap_lead} presents a schematic representation of the SHAP
+beeswarm summary plot for the lead scoring model. High values of
+\texttt{activity\_count\_30d} and low values of
+\texttt{days\_since\_last\_contact} are the strongest positive predictors
+of lead conversion, consistent with the engagement-centricity finding of
+\citet{tsai2010}.
+
 \begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter05/fig/3.png}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Lead scoring.}
-\label{Fig.2.1}
-}
+  \centering
+  \begin{tikzpicture}[
+    bar/.style={fill=accentblue!70, draw=primaryblue, minimum height=0.4cm},
+    label/.style={font=\footnotesize\ttfamily, anchor=east},
+    value/.style={font=\footnotesize, anchor=west}
+  ]
+    \def\scale{30}  % 1 unit = 30pt, so 0.30 fills 9pt total scale
+    % Feature bars: (value, label, y-position)
+    \foreach \val/\feat/\yi in {
+      0.214/days\_since\_last\_contact/5,
+      0.187/activity\_count\_30d/4,
+      0.142/email\_open\_rate/3,
+      0.118/deal\_stage\_max/2,
+      0.093/call\_count\_90d/1
+    }{
+      \pgfmathsetmacro{\barw}{\val*\scale*10}
+      \node[label] at (-0.1, \yi*0.6) {\feat};
+      \fill[bar] (0, \yi*0.6-0.15) rectangle (\barw pt, \yi*0.6+0.15);
+      \node[value] at (\barw pt + 2pt, \yi*0.6) {\val};
+    }
+    \draw[->] (0,0.2) -- (0,3.4) node[above, font=\tiny] {};
+    \draw[->] (0,0.2) -- (70pt,0.2) node[right, font=\footnotesize]
+      {Mean $|\text{SHAP}|$};
+    % x-axis ticks
+    \foreach \x/\lbl in {0/0.00, 21pt/0.07, 42pt/0.14, 63pt/0.21}{
+      \draw (\x, 0.2) -- (\x, 0.12);
+      \node[font=\tiny, anchor=north] at (\x, 0.12) {\lbl};
+    }
+  \end{tikzpicture}
+  \caption{Mean absolute SHAP values for the lead scoring model (top 5 features)}
+  \label{fig:shap_lead}
 \end{figure}
-This sequence describes the workflow for generating deal recommendations while maintaining interface responsiveness. When a user requests an insight, the API returns a status code of 202 immediately. This prevents the user interface from freezing while a background task fetches the deal context, communicates with the machine learning provider, and updates the record with the resulting recommendation.
 
-\subsection{Diagram 2: Atomic Lead Conversion}
-
-This process manages the transformation of a lead into associated account, contact, and opportunity records. The system utilizes atomic transactions to ensure that the lead is only marked as converted if all new records are successfully created \cite{keogh2025sqlalchemy}. If any part of the operation fails, the transaction is rolled back to prevent data corruption.
-\begin{figure}[H]
-{
-\centering  
-\begin{subfigure}{0.7 \textwidth}
-    \centering
-    {\includegraphics[width=\textwidth]{chapters/chapter05/fig/2.png}
-    \caption{}\label{Fig.2.1.a}}
-\end{subfigure}
-%
-\caption{Atomic lead Conversion }
-\label{Fig.2.1}
-}
-\end{figure}
-\section{Process Modeling: BPMN Diagrams}
-
-\subsection{Lead Scoring and Visualization}
-
-This process ranks leads based on their conversion probability. When a new lead is created, the system calculates an internal score based on historical patterns. If the score meets a specific threshold, the system triggers a request for advanced analysis to prioritize the lead within the funnel.
-
-\subsection{Churn Analysis}
-
-This is a proactive retention process triggered by a scheduled timer. The system scans customer activity to identify inactivity patterns that match historical churn data. If a risk is detected, an alert is generated for the manager to initiate a retention workflow.
