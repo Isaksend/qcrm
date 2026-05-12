@@ -13,7 +13,6 @@ google-api-core==2.30.3
 google-api-python-client==2.196.0
 google-auth==2.51.0
 google-auth-httplib2==0.4.0
-google-generativeai==0.8.6
 googleapis-common-protos==1.75.0
 greenlet==3.5.0
 grpcio==1.80.0
@@ -45,8 +44,8 @@ typing_extensions==4.15.0
 uritemplate==4.2.0
 urllib3==2.7.0
 uvicorn==0.46.0
-google-generativeai
 alembic==1.13.1
 sentry-sdk[fastapi]==1.45.0
 ruff==0.3.5
 pytest==8.1.1
+google-generativeai
