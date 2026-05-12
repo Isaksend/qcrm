@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useChatStore } from '../../stores/chat'
 import { useDealsStore } from '../../stores/deals'
+import type { Deal } from '../../types'
 
 const props = defineProps<{
   contactId: string
@@ -23,11 +24,17 @@ const isUploading = ref(false)
 // New Deal Modal State
 const showNewDealModal = ref(false)
 const isCreatingDeal = ref(false)
-const newDeal = ref({
+const newDeal = ref<Deal>({
   title: '',
   value: 0,
   stage: 'New Request',
-  notes: ''
+  notes: '',
+  id: '',
+  leadId: '',
+  contactId: '',
+  closedAt: null,
+  userId: '',
+  companyId: null
 })
 
 // AI Analysis State
@@ -120,10 +127,23 @@ async function handleCreateDeal() {
       ...newDeal.value,
       contactId: props.contactId,
       userId: '', // handled by store/backend
-      companyId: '' // handled by store/backend
+      companyId: '', // handled by store/backend
+      closedAt: '', // handled by store/backend
+      leadId: '' // handled by store/backend
     })
     showNewDealModal.value = false
-    newDeal.value = { title: '', value: 0, stage: 'New Request', notes: '' }
+    newDeal.value = {
+      title: '',
+      value: 0,
+      stage: 'New Request',
+      notes: '',
+      id: '',
+      leadId: '',
+      contactId: '',
+      closedAt: null,
+      userId: '',
+      companyId: null
+    }
   } catch (e) {
     console.error(e)
   } finally {
