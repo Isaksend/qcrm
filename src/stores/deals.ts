@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import type { Deal } from '../types'
 
-const API_URL = 'http://127.0.0.1:8000/api'
+const API_URL = '/api'
 
 export const useDealsStore = defineStore('deals', () => {
   const deals = ref<Deal[]>([])

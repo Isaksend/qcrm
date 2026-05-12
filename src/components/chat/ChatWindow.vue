@@ -42,7 +42,7 @@ const showAIModal = ref(false)
 const isAnalyzing = ref(false)
 const aiResult = ref<any>(null)
 
-const API_URL = 'http://127.0.0.1:8000'
+const API_URL = ''
 
 function scrollToBottom() {
   nextTick(() => {

@@ -31,7 +31,7 @@ const form = reactive({
 async function fetchTeamMembers() {
   if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin') {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/users', {
+      const res = await fetch('/api/users', {
         headers: { Authorization: `Bearer ${authStore.token}` }
       })
       if (res.ok) teamMembers.value = await res.json()

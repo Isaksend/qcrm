@@ -45,7 +45,7 @@ audit_logger = logging.getLogger("audit")
 os.makedirs("uploads/chat", exist_ok=True)
 
 # Create DB Tables - Handled by Alembic in production
-# models.Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Tiny CRM API", version="1.0.0")
 

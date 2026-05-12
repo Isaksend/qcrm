@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useContactsStore } from '../stores/contacts'
 import ChatWindow from '../components/chat/ChatWindow.vue'
 
-const API_URL = 'http://127.0.0.1:8000/api'
+const API_URL = '/api'
 const contactsStore = useContactsStore()
 const selectedContactId = ref<string | null>(null)
 const showNewChatModal = ref(false)

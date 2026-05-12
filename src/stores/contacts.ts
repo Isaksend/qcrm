@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Contact } from '../types'
-const API_URL = 'http://127.0.0.1:8000/api'
+const API_URL = '/api'
 
 export const useContactsStore = defineStore('contacts', () => {
   const contacts = ref<Contact[]>([])

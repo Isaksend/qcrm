@@ -13,7 +13,7 @@ const role = ref('user')
 
 async function fetchUsers() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/users', {
+    const res = await fetch('/api/users', {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     if (res.ok) users.value = await res.json()
@@ -24,7 +24,7 @@ async function fetchUsers() {
 
 async function createUser() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/users', {
+    const res = await fetch('/api/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ async function createUser() {
 async function deleteUser(id: string) {
   if (!confirm('Are you sure you want to delete this user?')) return
   try {
-    const res = await fetch(`http://127.0.0.1:8000/api/users/${id}`, {
+    const res = await fetch(`/api/users/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
