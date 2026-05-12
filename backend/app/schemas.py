@@ -71,6 +71,9 @@ class MLPrediction(MLPredictionBase):
     class Config:
         from_attributes = True
 
+class MLPredictionCreate(MLPredictionBase):
+	pass
+
 class ActivityBase(BaseModel):
     type: str
     entityType: str
