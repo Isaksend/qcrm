@@ -1,8 +1,9 @@
 \chapter{Literature Review}
 \label{chap:01}
 \setlength{\parskip}{1em}
-%
-\section{Customer Relationship Management}
+
+  GNU nano 8.4                                          tinycrm.tex                                             I      
+\section{Customer Relationship Management: Theoretical Foundations}
 
 Customer Relationship Management as a formal discipline emerged from the
 intersection of relationship marketing theory and enterprise information
@@ -18,8 +19,8 @@ multi-channel coordination of customer interactions) \citep{buttle2019}.
 
 \citet{buttle2019} further position CRM software as the technological
 infrastructure that operationalises relationship marketing strategy,
-cautioning that CRM value derives not from the software platform itself but
-from the organisational processes and data discipline that accompany
+cautioning that CRM value derives not from the software platform itself
+but from the organisational processes and data discipline that accompany
 implementation. This observation is consistent with the persistently high
 CRM project failure rates reported in practitioner literature, where
 40--70\% of implementations are estimated to fall short of their stated
@@ -28,12 +29,11 @@ objectives \citep{gartner2023crm}.
 For SMEs specifically, \citet{nguyen2013} identify a distinct set of CRM
 adoption success factors, finding that perceived ease of use,
 top-management support, and cost-effectiveness are the principal
-determinants of adoption in small business contexts, factors that are
-systematically underweighted in large-enterprise CRM research. These
-findings directly inform TinyCRM's design philosophy, which prioritises
-interface simplicity, low configuration overhead, and total cost of
-ownership optimisation.
-%
+determinants of adoption in small business contexts. These findings
+directly inform TinyCRM's design philosophy, which prioritises interface
+simplicity, low configuration overhead, and total cost of ownership
+optimisation.
+
 \section{SaaS Architecture Patterns}
 
 Software-as-a-Service delivery has become the dominant CRM deployment
@@ -54,104 +54,74 @@ operational benefits of cloud hosting.
 
 \citet{richardson2018} argues that while microservices architectures offer
 scalability and team autonomy benefits, the operational complexity they
-introduce, including distributed tracing, service mesh management, and
-independent deployment pipelines, is disproportionate for early-stage
-applications. He explicitly recommends initiating development with a
-well-structured monolith and migrating to microservices only upon the
-identification of specific scaling bottlenecks. This recommendation is
-directly adopted in TinyCRM's architectural decision-making, as described
-in \cref{chap:design}.
+introduce is disproportionate for early-stage applications, and explicitly
+recommends initiating development with a well-structured monolith. This
+recommendation is directly adopted in TinyCRM's architectural
+decision-making, as described in \cref{chap:design}.
 
 \citet{fowler2014microservices} articulate the ``monolith first'' pattern:
 construct a modular monolith whose internal boundaries correspond to future
-microservice candidates, enabling extraction without complete rewrite. This
-pattern is particularly appropriate for student development teams, where
-the cognitive and operational overhead of distributed systems would likely
-overwhelm functional delivery capacity.
-%
+microservice candidates, enabling extraction without complete rewrite.
+
+\section{Platform-as-a-Service and Managed Deployment}
+
+Modern PaaS providers substantially reduce the operational burden of
+deploying web applications by abstracting server provisioning, TLS
+certificate management, runtime detection, and continuous deployment
+pipelines. \citet{serverspacedocs2025} confirm that Serverspace.io supports
+deployment of FastAPI applications directly via docker simple control panel 
+that allows a VPS to be created and accessible via SSH within 60~seconds. 
+A vStack instance with 4~vCPU and 4~GB~RAM costs approximately USD~20 per 
+month \citep{serverspacedocs2025}, which is accessible for student projects 
+and early-stage SME deployments while providing dedicated resources rather 
+than the shared-CPU environments typical of entry-level PaaS tiers. Critically 
+for the Kazakhstani deployment context, the Almaty data centre is certified 
+to ISO~9001 and PCI~DSS standards and satisfies Law~No.~94-V data residency 
+requirements.
+
 \section{Machine Learning for Lead Scoring}
 
 Lead scoring, the prioritisation of sales prospects by estimated conversion
-probability, has evolved from rule-based demographic heuristics (the BANT
-framework: Budget, Authority, Need, Timeline) to ML-driven approaches
-capable of integrating hundreds of behavioural signals. The survey by
+probability, has evolved from rule-based demographic heuristics to
+ML-driven approaches capable of integrating behavioural signals.
 \citet{baesens2002} demonstrates that ensemble methods, specifically
 Gradient Boosting and Random Forest classifiers, consistently outperform
 logistic regression and single decision trees across multiple industry
-datasets, a finding subsequently replicated by \citet{chen2016xgboost} in
-the context of the XGBoost algorithm.
+datasets, a finding subsequently replicated by \citet{chen2016xgboost}.
 
 A critical insight from \citet{verbeke2012} is that raw predictive accuracy
 is an insufficient criterion for evaluating business ML models:
-interpretability (that is, understanding which features drive a specific
-lead score) is essential for sales team adoption and regulatory
-accountability. This observation motivates the integration of SHAP
-(SHapley Additive exPlanations) values \citep{lundberg2017shap} into
-TinyCRM's lead scoring API, providing feature-level explanations alongside
-probability outputs.
+interpretability is essential for sales team adoption and regulatory
+accountability. This observation motivates the integration of SHAP values
+\citep{lundberg2017shap} into TinyCRM's lead scoring API, providing
+feature-level explanations alongside probability outputs.
 
 Regarding feature importance, \citet{tsai2010} demonstrate that
 behavioural engagement features (email open rates, call frequency, time
 since last contact) have significantly higher predictive power than
-demographic features (company size, industry) when both sets are available.
-This finding is reflected in TinyCRM's feature engineering specification,
-which centres on interaction history derived from the activity log.
-%
+demographic features when both sets are available. This finding is
+reflected in TinyCRM's feature engineering specification, which centres
+on interaction history derived from the activity log.
+
 \section{Customer Churn Prediction}
 
-Customer churn represents one of the most economically consequential events
-in the customer lifecycle. The asymmetry between customer acquisition cost
-and retention cost, estimated at a ratio of 5:1 to 7:1 in favour of
-retention \citep{reichheld2001}, makes churn prediction a high-return
-machine learning application.
+Customer churn represents one of the most economically consequential
+events in the customer lifecycle. The asymmetry between customer
+acquisition cost and retention cost, estimated at a ratio of 5:1 to 7:1
+in favour of retention \citep{reichheld2001}, makes churn prediction a
+high-return machine learning application.
 
-The methodological benchmark study by \citet{verbeke2012}, conducted on
-telecommunications churn data, remains the standard reference in this
-domain. The study demonstrates that Random Forest and Gradient Boosting
-consistently achieve AUC-ROC values in the range 0.82--0.89 on standard
-benchmarks, outperforming both Logistic Regression and neural networks on
-most evaluation metrics. Logistic Regression nevertheless retains practical
-value as an interpretable baseline, particularly when feature engineering
-is thorough \citep{coussement2008}.
+The methodological benchmark study by \citet{verbeke2012} demonstrates
+that Random Forest and Gradient Boosting consistently achieve AUC-ROC
+values in the range 0.82--0.89 on telecommunications churn benchmarks.
+Logistic Regression retains practical value as an interpretable baseline,
+particularly when feature engineering is thorough \citep{coussement2008}.
 
-Class imbalance is a critical methodological challenge in churn modelling,
-as churn events typically constitute only 5--25\% of the customer
-population within any given observation window. Standard mitigation
-strategies include SMOTE oversampling \citep{chawla2002}, cost-sensitive
-learning via class weighting, and decision threshold calibration.
-TinyCRM's training pipeline applies SMOTE exclusively within training
-folds during cross-validation to prevent data leakage, and evaluates models
-using AUC-ROC and precision-recall area under the curve (PR-AUC) in
-preference to raw accuracy.
-%
-
-% \begin{figure}[H]
-% {
-% \centering  
-% \begin{subfigure}{0.3 \textwidth}
-%     \centering
-%     {\includegraphics[width=\textwidth]{chapters/chapter02/fig02/2.5.png}
-%     \caption{}\label{Fig.2.1.a}}
-% \end{subfigure}
-% %
-% \begin{subfigure}{0.3 \textwidth}
-%     \centering
-%     {\includegraphics[width=\textwidth]{chapters/chapter02/fig02/2.5.png}
-%     \caption{}\label{Fig.2.1.b}}
-% \end{subfigure}
-% %
-% \begin{subfigure}{0.3 \textwidth}
-%     \centering
-%     {\includegraphics[width=\textwidth]{chapters/chapter02/fig02/2.5.png}
-%     \caption{}\label{Fig.2.1.c}}
-% \end{subfigure}
-
-% \caption{Description of this figure}
-% \label{Fig.2.1}
-% }
-% \end{figure}
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Class imbalance is a critical methodological challenge in churn modelling.
+Standard mitigation strategies include SMOTE oversampling \citep{chawla2002},
+cost-sensitive learning via class weighting, and decision threshold
+calibration. TinyCRM's training pipeline applies SMOTE exclusively within
+training folds during cross-validation to prevent data leakage.
 
 \section{Analysis of Existing Systems}
 \label{sec:existing_systems}
@@ -198,49 +168,8 @@ ML intelligence dimensions specific to this project's context.
 
 The analysis reveals that no existing system simultaneously satisfies all
 four Kazakhstani SME requirements: affordable pricing, personal data
-localisation within Kazakhstan, native ML-driven predictive intelligence,
-and Kazakh-language support. TinyCRM is explicitly positioned to address
-this gap.
-
-Bitrix24 and AmoCRM represent the closest competitive alternatives in the
-CIS market; however, neither offers ML-driven scoring as a native feature,
-and their data residency on European or Russian servers generates
-compliance risk under Law~No.~94-V \citep{kazakhstanlaw94v}. SuiteCRM's
-open-source self-hosted model provides the greatest data control but
-requires DevOps expertise beyond the typical Kazakhstani SME's operational
-capacity, and it provides no predictive ML capabilities.
-
-\section{Cloud Infrastructure in Kazakhstan}
-
-The Kazakhstani cloud market has matured considerably since the
-commencement of the Digital Kazakhstan programme. The primary domestic
-providers relevant to this project are:
-
-\begin{itemize}
-  \item \textbf{QazCloud (qazcloud.kz):} A state-affiliated cloud platform
-  operating under the supervision of the Ministry of Digital Development,
-  providing IaaS (virtual machines, block and object storage) and PaaS
-  (managed Kubernetes, managed PostgreSQL). Data centres are located in
-  Almaty and Nur-Sultan and are certified for personal data processing
-  under Kazakhstani law.
-
-  \item \textbf{KazHosting (kazhosting.kz):} A commercial VPS and
-  dedicated hosting provider with data centres in Almaty, offering
-  lower-cost virtual servers from approximately KZT~3,000 per month
-  (USD~6.50), suitable for development and small-scale staging workloads.
-
-  \item \textbf{DataLine Kazakhstan:} A subsidiary of the DataLine group
-  operating as a Kazakhstani legal entity with a local data centre,
-  providing premium colocation and managed cloud services.
-\end{itemize}
-
-International providers, including AWS, Google Cloud Platform, and
-Microsoft Azure, are accessible from Kazakhstan but route traffic through
-non-Kazakhstani regions (typically Frankfurt or Singapore), creating
-personal data residency compliance risk. AWS Local Zones had not been
-deployed within Kazakhstan as of the time of writing. TinyCRM's
-deployment architecture targets QazCloud's Almaty region for production
-and KazHosting VPS for development and staging.
+localisation, native ML-driven predictive intelligence, and Kazakh-language
+support. TinyCRM is explicitly positioned to address this gap.
 
 \section{Summary and Research Gap}
 
@@ -254,26 +183,6 @@ the state-of-the-art approaches for lead scoring and churn prediction
 respectively \citep{verbeke2012, chen2016xgboost}. Fourth, model
 interpretability via SHAP is a necessary complement to raw predictive
 performance for business ML applications \citep{lundberg2017shap}. Fifth,
-no existing CRM system simultaneously satisfies Kazakhstani SME
-requirements for affordability, data residency, ML intelligence, and
-localisation. The gap thus identified motivates the TinyCRM development
-described in the remainder of this paper.
-
-% \begin{center}
-%     \begin{table}[h]
-%     \captionsetup{belowskip=-25pt}  % define the vertical distance between the table and text
-%     \small
-%         \centering
-%         \begin{tabular}{|cccc|}
-%              Term AA & Term BB & Term CC & Term DD  \\
-%              \hline
-%                 0.893 & -0.308 & -0.0498 & -0.0498 \\
-%                 0.248 & -0.099 & -0.0414 & -0.0488 \\
-%         \end{tabular}
-%         \caption{Describe your table}
-%         \label{tab:1}
-%     \end{table}
-% \end{center}
-%
-
-
+Serverspace.io (vStack, Almaty) provides a straightforward VPS deployment
+path that satisfies both technical requirements and Kazakhstani data
+residency obligations \citep{serverspacedocs2025,kazakhstanlaw94v}.
