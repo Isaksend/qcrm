@@ -6,7 +6,7 @@
 The global customer relationship management (CRM) software market was
 valued at approximately USD~65.6~billion in 2023 and is projected to
 reach USD~163.8~billion by 2030, representing a compound annual growth
-rate (CAGR) of 13.9\% \cite{grandview2023}. This sustained growth
+rate (CAGR) of 13.9\% \citep{grandview2023}. This sustained growth
 reflects the increasing digitisation of commercial operations, the
 proliferation of customer interaction channels, and the rising
 organisational demand for data-driven sales and retention strategies.
@@ -16,34 +16,30 @@ shared spreadsheets to legacy on-premise software suites, are not
 equipped to handle the volume, velocity, or variety of modern customer
 data. Nor can they surface the predictive intelligence that contemporary
 sales organisations require to prioritise prospects and proactively retain
-customers \cite{buttle2019}.
+customers \citep{buttle2019}.
 
 In Kazakhstan, the national digital economy agenda, formalised through the
 Digital Kazakhstan state programme (2018--2022) and its successor Digital
 Kazakhstan~2.0, has accelerated enterprise digitisation at a measurable
-pace \cite{kazakhstan2024digital}. The number of registered
+pace \citep{kazakhstan2024digital}. The number of registered
 digital-commerce entities grew by approximately 47\% between 2020 and
 2023, and more than 68\% of Kazakhstani SMEs reported using some form of
 digital sales tool by 2024. Nevertheless, the adoption of sophisticated,
 ML-augmented CRM platforms among domestic SMEs remains low. The majority
 of organisations either rely on globally dominant incumbents such as
 Salesforce or HubSpot, whose pricing structures are prohibitive in
-tenge-denominated revenue environments, or maintain rudimentary spreadsheet
-pipelines that preclude any form of predictive analysis.
+tenge-denominated revenue environments, or maintain rudimentary
+spreadsheet pipelines that preclude any form of predictive analysis.
 
 Machine learning integration within CRM systems represents the principal
 frontier of competitive differentiation in the sector. Predictive lead
-scoring, defined as the assignment of a conversion probability to each
-sales prospect, enables sales teams to concentrate effort on the
-highest-value opportunities, materially improving funnel conversion
-\cite{verbeke2012}. Customer churn analysis, that is, the identification
-of at-risk customers before lapse occurs, supports proactive retention
-interventions that the literature demonstrates can reduce churn rates by
-20--30\% \cite{verbeke2012}. These capabilities, once accessible
-exclusively to large enterprises with dedicated data science functions, are
-increasingly realisable through mature open-source frameworks such as
-scikit-learn \cite{chen2016xgboost} and interpretability toolkits such as
-SHAP \cite{lundberg2017shap}.
+scoring enables sales teams to concentrate effort on the highest-value
+opportunities, materially improving funnel conversion \citep{verbeke2012}.
+Customer churn analysis supports proactive retention interventions that the
+literature demonstrates can reduce churn rates by 20--30\% \citep{verbeke2012}.
+These capabilities are increasingly realisable through mature open-source
+frameworks such as scikit-learn \citep{chen2016xgboost} and interpretability
+toolkits such as SHAP \citep{lundberg2017shap}.
 
 \section{Problem Statement}
 
@@ -51,7 +47,7 @@ Despite the availability of globally recognised CRM platforms, Kazakhstani
 SMEs face a compound set of structural barriers to adoption:
 
 \begin{enumerate}
-
+ 
   \item \textbf{Cost barriers.} Salesforce CRM begins at USD~25 per user
   per month at the Essentials tier, while HubSpot's Sales Hub Professional
   is priced at USD~90 per user per month. These figures are prohibitive for
@@ -63,7 +59,7 @@ SMEs face a compound set of structural barriers to adoption:
   compliance risk under the Law on Personal Data and its Protection
   (Law~No.~94-V, 2013, as amended 2022), which requires that personal data
   of Kazakhstani citizens be processed on servers physically situated
-  within the Republic \cite{kazakhstanlaw94v}.
+  within the Republic \citep{kazakhstanlaw94v}.
 
   \item \textbf{Absence of native ML intelligence.} Affordable CRM tools
   prevalent in the CIS market, such as AmoCRM and Bitrix24, provide basic
@@ -73,11 +69,11 @@ SMEs face a compound set of structural barriers to adoption:
 
   \item \textbf{Localisation gaps.} The majority of global CRM platforms
   provide limited or no Kazakh-language support and are not optimised for
-  locally dominant communication channels, such as WhatsApp, or for
-  Kazakhstani payment gateway integration.
+  locally dominant communication channels or Kazakhstani payment gateway
+  integration.
 
-  \item \textbf{DevOps complexity.} Open-source self-hosted alternatives
-  such as SuiteCRM and EspoCRM require significant infrastructure
+  \item \textbf{Infrastructure complexity.} Open-source self-hosted
+  alternatives such as SuiteCRM require significant infrastructure
   management expertise that exceeds the operational capacity of most SMEs
   in the market.
 
@@ -87,46 +83,37 @@ The research problem addressed by this project is therefore:
 \textit{How can a lightweight, ML-augmented CRM SaaS platform be designed
 and prototyped that is technically feasible for a student development team,
 cost-effective for Kazakhstani SMEs, compliant with domestic data
-regulations, and deployable on Kazakhstani cloud infrastructure?}
+regulations, and deployable without infrastructure management overhead?}
 
 \section{Purpose of the Project}
 
 The purpose of this project is to design, develop, and evaluate a Minimum
 Viable Product (MVP) of a SaaS CRM platform, designated \textit{TinyCRM},
 that incorporates machine learning for predictive lead scoring and customer
-churn analysis. The platform targets Kazakhstani SMEs and is deployed
-exclusively on domestic cloud infrastructure. The project serves a dual
-function: an academic purpose (demonstrating systems engineering and ML
-integration competencies within a structured capstone framework) and a
-practical purpose (producing a functional prototype suitable for future
-commercial development).
+churn analysis. The platform targets Kazakhstani SMEs and is deployed on
+Serverspace.io (vStack, Almaty, Kazakhstan), a domestic VPS provider whose
+Almaty data centre satisfies Law~No.~94-V data residency requirements
+\citep{serverspacedocs2025,kazakhstanlaw94v}.
 
 \section{Objectives}
 
-The project pursues the following specific objectives:
-
 \begin{enumerate}[label=\textbf{O\arabic*.}]
   \item Conduct a systematic literature review of CRM architectures, SaaS
-  design patterns, lead scoring methodologies, and churn prediction
-  algorithms.
-
-  \item Analyse five representative existing CRM systems to identify
-  feature gaps relevant to the Kazakhstani SME context.
-
+  design patterns, lead scoring methodologies, and churn prediction algorithms.
+  \item Analyse five representative existing CRM systems to identify feature
+  gaps relevant to the Kazakhstani SME context.
   \item Design a FastAPI/SQLAlchemy monolithic backend with a clearly
   specified RESTful API of 16 or more endpoints, supporting contact
   management, pipeline tracking, and ML inference.
-
   \item Develop and evaluate ML models for (a) lead scoring using Gradient
   Boosting, targeting F1 $\geq$ 0.78, and (b) churn prediction using
   Random Forest, targeting AUC-ROC $\geq$ 0.80.
-
   \item Design a Vue.js~3 single-page application providing a CRM
   dashboard, Kanban pipeline board, and ML insight panels.
-
-  \item Deploy the MVP on QazCloud infrastructure and evaluate system
-  performance under simulated concurrent load.
-
+  \item Produce complete UML documentation expressed as PlantUML source:
+  Use Case, Class, Sequence, Activity, Component, and Deployment diagrams.
+  \item Deploy the MVP on Serverspace.io and evaluate system performance under
+  simulated concurrent load.
   \item Evaluate the system against functional and non-functional
   requirements and reflect critically on limitations and future work.
 \end{enumerate}
@@ -141,22 +128,36 @@ The project scope encompasses the following system boundaries:
   \item \textbf{Backend:} A Python/FastAPI REST API with SQLAlchemy ORM,
   serving authentication, contact, company, deal, activity, and ML
   inference modules within a single deployable process.
-
   \item \textbf{Frontend:} A Vue.js~3 SPA utilising Pinia for state
   management and Vuetify~3 as the UI component library.
-
   \item \textbf{ML pipeline:} Data preprocessing, feature engineering,
   model training, serialisation via \texttt{joblib}, and REST-based
   real-time inference for lead scoring and churn prediction.
-
-  \item \textbf{Database:} A PostgreSQL relational database with a
-  defined schema supporting all CRM domain entities.
-
-  \item \textbf{Deployment:} A Docker Compose single-server deployment on
-  QazCloud virtual machines located in the Almaty region.
-
+  \item \textbf{Database:} A PostgreSQL~16 relational database 
+  \item \textbf{Deployment:} Serverspace.io web service backed by a
+  Docker Compose containers deployment. 
   \item \textbf{Testing:} Unit tests using \texttt{pytest}, API integration
-  tests via Postman/Newman.
-% , and manual user acceptance testing (UAT) sessions with three pilot SME participants.
+  tests via Postman/Newman, and load testing via Locust.
+\end{itemize}
+
+\subsection{Limitations}
+
+\begin{itemize}
+  \item ML models are trained on publicly available datasets (the IBM Telco
+  Customer Churn dataset \citep{ibmtelco} and a HubSpot developer sandbox
+  lead dataset \citep{hubspot_leads}) in the absence of real Kazakhstani
+  CRM data; production performance on local data may differ.
+  \item The monolithic architecture is appropriate for MVP scale but will
+  require migration to a modular or microservices pattern for production
+  scalability; this migration is explicitly out of scope.
+  \item Kazakh-language UI localisation is partially implemented; NLP
+  features for Kazakh-language activity notes are deferred to future work.
+  \item Email and telephony integrations are mocked within the MVP.
+  \item Serverspace.io Almaty data centre is located within Kazakhstan, satisfying data residency requirements; future
+  within Kazakhstan would require migration to a local provider to satisfy
+  Law~No.~94-V data residency requirements in a production context.
+  \item Security hardening beyond HTTPS enforcement, bcrypt password
+  hashing, and JWT expiry has not been subjected to independent
+  penetration testing.
 \end{itemize}
 
