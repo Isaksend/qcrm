@@ -1,54 +1,55 @@
 @startuml component_diagram
 !theme blueprint
 skinparam componentStyle rectangle
+
 package "Client Tier" {
-[Vue.js 3 SPA] as VUE
-[Vuetify 3 UI] as UI
-VUE -- UI
+  [Vue.js 3 SPA] as VUE
+  [Vuetify 3 UI] as UI
+  VUE -- UI
 }
+
 package "Application Tier (FastAPI Monolith)" {
-[Nginx 1.25\n(Reverse Proxy + TLS)] as NGINX
-[Uvicorn (ASGI)] as UVICORN
-package "FastAPI Routers" {
-[/auth] as AUTH
-[/contacts] as CONTACTS
-[/companies] as COMPANIES
-[/deals] as DEALS
-[/activities] as ACTIVITIES
-[/ml] as ML
-[/reports] as REPORTS
+  [Nginx 1.25\n(Reverse Proxy + TLS)] as NGINX
+  [Uvicorn (ASGI)] as UVICORN
+  package "FastAPI Routers" {
+    [/auth]       as AUTH
+    [/contacts]   as CONTACTS
+    [/companies]  as COMPANIES
+    [/deals]      as DEALS
+    [/activities] as ACTIVITIES
+    [/ml]         as ML
+    [/reports]    as REPORTS
+  }
+  [SQLAlchemy 2.0\n(Async ORM)] as ORM
+  [Pydantic v2\n(Schemas)]      as SCHEMAS
+  NGINX   --> UVICORN
+  UVICORN --> AUTH
+  UVICORN --> CONTACTS
+  UVICORN --> DEALS
+  UVICORN --> ACTIVITIES
+  UVICORN --> ML
+  UVICORN --> REPORTS
+  AUTH       --> ORM
+  CONTACTS   --> ORM
+  DEALS      --> ORM
+  ACTIVITIES --> ORM
+  ML         --> ORM
+  REPORTS    --> ORM
 }
-[SQLAlchemy 2.0\n(Async ORM)] as ORM
-[Pydantic v2\n(Schemas)] as SCHEMAS
-[Celery Worker\n(Batch Inference)] as CELERY
-NGINX --> UVICORN
-UVICORN --> AUTH
-UVICORN --> CONTACTS
-UVICORN --> DEALS
-UVICORN --> ACTIVITIES
-UVICORN --> ML
-UVICORN --> REPORTS
-AUTH --> ORM
-CONTACTS --> ORM
-DEALS --> ORM
-ACTIVITIES --> ORM
-ML --> ORM
-REPORTS --> ORM
-CELERY --> ML : async batch scoring
-}
+
 package "ML Artefacts (disk)" {
-[lead_scorer_v2.pkl] as LS
-[churn_model_v1.pkl] as CM
-[preprocessor.pkl] as PP
+  [lead_scorer_v2.pkl]  as LS
+  [churn_model_v1.pkl]  as CM
+  [preprocessor.pkl]    as PP
 }
+
 package "Data Tier" {
-database "PostgreSQL 15\n(QazCloud Managed)" as PG
-database "Redis 7\n(QazCloud Managed)" as REDIS
+  database "PostgreSQL 15\n(Serverspace.io Managed)" as PG
 }
-VUE --> NGINX : HTTPS/REST JSON
-ORM --> PG
-CELERY --> REDIS : task queue
-ML --> LS
-ML --> CM
-ML --> PP
+
+VUE  --> NGINX : HTTPS/REST JSON
+ORM  --> PG
+ML   --> LS
+ML   --> CM
+ML   --> PP
 @enduml

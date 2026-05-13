@@ -32,17 +32,16 @@ stack with rationale.
       Material Design, comprehensive data-table and chart support \\
     State management & Pinia & 2.1 &
       Lightweight, TypeScript-friendly successor to Vuex \\
-    Database & PostgreSQL & 18 &
-      ACID compliance, JSONB support, QazCloud managed service \\
+    Database & PostgreSQL & 16 &
+      ACID compliance, JSONB support \\
     Background tasks & FastAPI \texttt{BackgroundTasks} & built-in &
       In-process async task dispatch for batch ML inference and deferred
       email; avoids additional broker infrastructure \\
     Containerisation & Docker + Compose & 29.4.2 / 2.40 &
-      Reproducible deployments, QazCloud container support \\
+      Reproducible builds; the \texttt{Dockerfile} is detected and built automatically
+      automatically \\
     Web server & Nginx + Uvicorn & 1.30 / 0.46 &
       Production-grade ASGI serving \\
-    CI/CD & GitHub Actions & -- &
-      Free tier, YAML pipeline, Docker Hub integration \\
     API documentation & FastAPI built-in (OpenAPI 3.0) & -- &
       Automatic schema from type annotations \\
     \bottomrule
