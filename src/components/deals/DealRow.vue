@@ -2,12 +2,20 @@
 import type { Deal } from '../../types'
 import { useContactsStore } from '../../stores/contacts'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { dealStageLabel } from '../../i18n/stages'
 
 const props = defineProps<{
   deal: Deal
 }>()
 
+const { t, locale } = useI18n()
 const contactsStore = useContactsStore()
+
+const stageLabel = computed(() => {
+  locale.value
+  return dealStageLabel(t, props.deal.stage)
+})
 
 const contact = computed(() => contactsStore.getContact(props.deal.contactId))
 
@@ -34,7 +42,7 @@ function formatCurrency(val: number): string {
     <td class="px-4 py-3 text-sm text-gray-600">{{ contact?.company ?? '—' }}</td>
     <td class="px-4 py-3 text-sm font-medium text-gray-700">{{ formatCurrency(deal.value) }}</td>
     <td class="px-4 py-3">
-      <span class="badge" :class="stageClass[deal.stage]">{{ deal.stage }}</span>
+      <span class="badge" :class="stageClass[deal.stage]">{{ stageLabel }}</span>
     </td>
     <td class="px-4 py-3 text-sm text-gray-500">{{ deal.closedAt ?? 'Open' }}</td>
   </tr>

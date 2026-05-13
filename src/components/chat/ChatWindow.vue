@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useChatStore } from '../../stores/chat'
 import { useDealsStore } from '../../stores/deals'
+import { apiUrl, getBackendOrigin } from '../../lib/api'
+import type { Deal } from '../../types'
 
 const props = defineProps<{
   contactId: string
@@ -26,7 +28,7 @@ const isCreatingDeal = ref(false)
 const newDeal = ref({
   title: '',
   value: 0,
-  stage: 'New Request',
+  stage: 'New Request' as Deal['stage'],
   notes: ''
 })
 
@@ -35,7 +37,12 @@ const showAIModal = ref(false)
 const isAnalyzing = ref(false)
 const aiResult = ref<any>(null)
 
-const API_URL = 'http://127.0.0.1:8000'
+const origin = getBackendOrigin()
+
+function mediaUrl(path: string) {
+  if (path.startsWith('http')) return path
+  return origin ? `${origin}${path}` : path
+}
 
 function scrollToBottom() {
   nextTick(() => {
@@ -91,7 +98,7 @@ async function handleFileUpload(event: Event) {
     formData.append('contactId', props.contactId)
     if (props.dealId) formData.append('dealId', props.dealId)
 
-    const res = await fetch(`${API_URL}/api/chat/upload`, {
+    const res = await fetch(apiUrl('/api/chat/upload'), {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       body: formData,
@@ -117,10 +124,12 @@ async function handleCreateDeal() {
   isCreatingDeal.value = true
   try {
     await dealsStore.addDeal({
+      leadId: '',
+      closedAt: null,
       ...newDeal.value,
       contactId: props.contactId,
       userId: '', // handled by store/backend
-      companyId: '' // handled by store/backend
+      companyId: null as string | null, // handled by store/backend
     })
     showNewDealModal.value = false
     newDeal.value = { title: '', value: 0, stage: 'New Request', notes: '' }
@@ -137,7 +146,7 @@ async function runAIAnalysis() {
   aiResult.value = null
   showAIModal.value = true
   try {
-    const res = await fetch(`${API_URL}/api/chat/${props.contactId}/analyze`, {
+    const res = await fetch(apiUrl(`/api/chat/${props.contactId}/analyze`), {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
     })
@@ -156,7 +165,7 @@ async function runAIAnalysis() {
 
 function getImageUrl(content: string) {
   if (content.startsWith('http')) return content
-  return `${API_URL}${content}`
+  return mediaUrl(content)
 }
 
 function formatTime(ts: string) {

@@ -2,22 +2,24 @@ from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+from contextlib import asynccontextmanager
 import logging
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
-# Force uvicorn to reload after installing passlib
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional
 from pydantic import BaseModel
 
-from app import models, schemas, crud, auth, ai_analyzer
-from app.database import engine, get_db, SessionLocal
+from app import models, schemas, crud, auth, ai_analyzer, tenant_access
+from app.database import get_db
 from app.telegram_bot import start_polling, stop_polling, send_telegram_message, get_telegram_user_info, send_telegram_photo
-from app.database import engine, get_db, SessionLocal
-from app.telegram_bot import start_polling, stop_polling, send_telegram_message, get_telegram_user_info, send_telegram_photo
+from app.services.ai_service import ai_service
+from app.routers import ai_router, analytics_router
+from app.config import get_settings
 
 # Configure Sentry
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -33,11 +35,14 @@ if SENTRY_DSN:
     )
 
 # Configure Audit Logger
+_settings = get_settings()
+_audit_path = _settings.AUDIT_LOG_PATH
+os.makedirs(os.path.dirname(_audit_path) or ".", exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("audit.log"),
+        logging.FileHandler(_audit_path),
         logging.StreamHandler()
     ]
 )
@@ -49,9 +54,35 @@ os.makedirs("uploads/chat", exist_ok=True)
 # Create DB Tables - Handled by Alembic in production
 # models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Tiny CRM API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Starting up...")
+    try:
+        ai_service.load_artifacts(get_settings().ML_MODELS_PATH)
+    except Exception as exc:
+        logging.getLogger("uvicorn.error").warning("AI model load skipped or failed: %s", exc)
+    try:
+        start_polling()
+    except Exception as exc:
+        logging.getLogger("uvicorn.error").warning("Telegram polling start issue: %s", exc)
+    yield
+    print("Shutting down...")
+    stop_polling()
 
-# Audit Middleware to log requests
+app = FastAPI(title="Tiny CRM API", version="1.0.0", lifespan=lifespan)
+
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
+@app.get("/readyz")
+def readyz(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
+    return {"status": "ready", "database": "ok"}
+
+
 @app.middleware("http")
 async def audit_middleware(request, call_next):
     response = await call_next(request)
@@ -65,14 +96,19 @@ async def audit_middleware(request, call_next):
 # Serve uploaded files (images etc.)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Setup CORS to allow Vue frontend
+# Setup CORS
+_settings_cors = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_settings_cors.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include AI Router
+app.include_router(ai_router.router)
+app.include_router(analytics_router.router)
 
 @app.post("/api/chat/{contact_id}/analyze", response_model=schemas.AIInsight)
 async def analyze_contact_chat(
@@ -80,6 +116,7 @@ async def analyze_contact_chat(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_active_user),
 ):
+    tenant_access.ensure_contact_access(db, current_user, contact_id)
     # Fetch recent messages (up to 50 for context)
     msgs = crud.get_chat_messages(db, contact_id=contact_id, limit=50)
     if not msgs:
@@ -116,13 +153,7 @@ async def analyze_contact_chat(
 def root():
     return {"message": "Welcome to Tiny CRM Backend!"}
 
-@app.on_event("startup")
-async def startup_event():
-    start_polling()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    stop_polling()
+# Note: lifespan handles startup/shutdown now
 
 @app.get("/api/deals", response_model=List[schemas.Deal])
 def read_deals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
@@ -145,8 +176,6 @@ def create_deal(deal: schemas.DealCreate, db: Session = Depends(get_db), current
     new_deal = crud.create_deal(db=db, deal=deal)
     audit_logger.info(f"User {current_user.email} created deal: {new_deal.title} (ID: {new_deal.id})")
     return new_deal
-
-    return deal
 
 @app.get("/api/deals/{deal_id}", response_model=schemas.Deal)
 def read_deal(deal_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
@@ -175,14 +204,16 @@ def update_stage(deal_id: str, stage: str, db: Session = Depends(get_db), curren
     if current_user.role == "admin" and deal.companyId != current_user.company_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this deal")
 
-    return crud.update_deal_stage(db=db, deal_id=deal_id, stage=stage)
+    return crud.update_deal_stage(db=db, deal_id=deal_id, stage=stage, user_id=current_user.id)
 
 @app.get("/api/deals/{deal_id}/notes", response_model=List[schemas.Note])
 def read_deal_notes(deal_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    tenant_access.ensure_deal_access(db, current_user, deal_id)
     return crud.get_deal_notes(db, deal_id=deal_id)
 
 @app.post("/api/deals/{deal_id}/notes", response_model=schemas.Note)
 def create_deal_note(deal_id: str, note: schemas.NoteCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    tenant_access.ensure_deal_access(db, current_user, deal_id)
     if note.dealId != deal_id:
         raise HTTPException(status_code=400, detail="Mismatched deal ID")
     return crud.create_note(db, note=note, user_id=current_user.id)
@@ -200,30 +231,51 @@ def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)
     return crud.create_contact(db=db, contact=contact)
 
 @app.get("/api/contacts/search", response_model=schemas.Contact)
-def search_contact(phone: str, db: Session = Depends(get_db)):
-    contact = crud.get_contact_by_phone(db, phone=phone)
-    if not contact:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    return contact
+def search_contact(
+    phone: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return tenant_access.ensure_contact_by_phone(db, current_user, phone)
 
 
 
 # -------- ACTIVITIES --------
 @app.get("/api/activities", response_model=List[schemas.Activity])
-def read_activities(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_activities(db, skip=skip, limit=limit)
+def read_activities(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return crud.get_activities_for_user(db, current_user, skip=skip, limit=limit)
 
 @app.post("/api/activities", response_model=schemas.Activity)
-def create_activity(activity: schemas.ActivityCreate, db: Session = Depends(get_db)):
+def create_activity(
+    activity: schemas.ActivityCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.validate_activity_target(db, current_user, activity)
     return crud.create_activity(db=db, activity=activity)
 
 # -------- AI INSIGHTS --------
 @app.get("/api/insights", response_model=List[schemas.AIInsight])
-def read_ai_insights(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_ai_insights(db, skip=skip, limit=limit)
+def read_ai_insights(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return crud.get_ai_insights_for_user(db, current_user, skip=skip, limit=limit)
 
 @app.post("/api/insights", response_model=schemas.AIInsight)
-def create_ai_insight(insight: schemas.AIInsightCreate, db: Session = Depends(get_db)):
+def create_ai_insight(
+    insight: schemas.AIInsightCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.validate_ai_insight_target(db, current_user, insight)
     return crud.create_ai_insight(db=db, insight=insight)
 
 # -------- AUTH --------
@@ -240,7 +292,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
-    access_token_expires = auth.timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = auth.access_token_expires_delta()
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
@@ -290,6 +342,7 @@ def get_companies_list(skip: int = 0, limit: int = 100, db: Session = Depends(ge
 # -------- TELEGRAM CHAT --------
 @app.get("/api/chat/{contact_id}", response_model=List[schemas.ChatMessageOut])
 def get_chat_history(contact_id: str, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    tenant_access.ensure_contact_access(db, current_user, contact_id)
     return crud.get_chat_messages(db, contact_id=contact_id, limit=limit)
 
 @app.post("/api/chat/send", response_model=schemas.ChatMessageOut)
@@ -302,6 +355,7 @@ async def send_message_to_client(
     contact = db.query(models.Contact).filter(models.Contact.id == msg.contactId).first()
     if not contact:
         raise HTTPException(status_code=404, detail=f"Contact with ID {msg.contactId} not found")
+    tenant_access.ensure_contact_access(db, current_user, contact.id)
     if not contact.telegram_id:
         raise HTTPException(status_code=400, detail="Contact has no Telegram ID linked. Ask the client to /start the bot and provide their ID.")
 
@@ -353,10 +407,11 @@ async def start_chat_by_telegram_id(
             tg_name = f"{first} {last}".strip() or "Unknown"
         
         avatar = "".join(w[0] for w in tg_name.split()[:2]).upper() if tg_name != "Unknown" else "?"
-        
-        # Get default company
-        default_company = db.query(models.Company).first()
-        company_id = default_company.id if default_company else None
+
+        company_id = current_user.company_id
+        if not company_id and current_user.role == "super_admin":
+            default_company = db.query(models.Company).first()
+            company_id = default_company.id if default_company else None
 
         # Create a draft contact
         import uuid
@@ -377,7 +432,8 @@ async def start_chat_by_telegram_id(
         db.refresh(contact)
     else:
         print(f">>> CRM: Starting chat with EXISTING contact: {contact.name} (ID: {contact.id})")
-    
+        tenant_access.ensure_contact_access(db, current_user, contact.id)
+
     # Send greeting if message provided
     delivered = False
     if req.message:
@@ -411,9 +467,7 @@ async def upload_image_to_client(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_active_user),
 ):
-    contact = db.query(models.Contact).filter(models.Contact.id == contactId).first()
-    if not contact:
-        raise HTTPException(status_code=404, detail=f"Contact with ID {contactId} not found")
+    contact = tenant_access.ensure_contact_access(db, current_user, contactId)
     if not contact.telegram_id:
         raise HTTPException(status_code=400, detail="Contact has no Telegram linked")
 

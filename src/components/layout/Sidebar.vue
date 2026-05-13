@@ -2,20 +2,24 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const navItems = computed(() => {
   const items = [
-    { to: '/', label: 'Dashboard', icon: 'chart-bar' },
-    { to: '/contacts', label: 'Contacts', icon: 'users' },
-    { to: '/deals', label: 'Deals', icon: 'currency' },
-    { to: '/messages', label: 'Messages', icon: 'chat' },
-    { to: '/ai', label: 'AI Insights', icon: 'sparkles' },
+    { to: '/', key: 'nav.dashboard', icon: 'chart-bar' },
+    { to: '/contacts', key: 'nav.contacts', icon: 'users' },
+    { to: '/deals', key: 'nav.deals', icon: 'currency' },
+    { to: '/analytics', key: 'nav.analytics', icon: 'chart-bar' },
+    { to: '/messages', key: 'nav.messages', icon: 'chat' },
+    { to: '/ai', key: 'nav.aiInsights', icon: 'sparkles' },
+    { to: '/ai-lab', key: 'nav.aiLab', icon: 'sparkles' },
   ]
   if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin') {
-    items.push({ to: '/users', label: 'Team', icon: 'shield-check' })
+    items.push({ to: '/users', key: 'nav.team', icon: 'shield-check' })
   }
   return items
 })
@@ -71,12 +75,12 @@ function isActive(to: string) {
         <svg v-if="item.icon === 'chat'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
-        <span>{{ item.label }}</span>
+        <span>{{ t(item.key) }}</span>
       </router-link>
     </nav>
 
     <div class="px-4 py-4 border-t border-white/10">
-      <div class="text-xs text-gray-500">Tiny CRM v1.0</div>
+      <div class="text-xs text-gray-500">{{ t('common.version') }}</div>
     </div>
   </aside>
 </template>

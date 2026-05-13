@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AIInsight, AIMode } from '../types'
-const API_URL = 'http://127.0.0.1:8000/api'
+import { apiUrl } from '../lib/api'
 
 export const useAIStore = defineStore('ai', () => {
   const mode = ref<AIMode>('demo')
@@ -45,7 +45,7 @@ export const useAIStore = defineStore('ai', () => {
 
   async function fetchInsights() {
     try {
-      const response = await fetch(`${API_URL}/insights`)
+      const response = await fetch(apiUrl('/api/insights'))
       if (response.ok) {
         insights.value = await response.json()
       }
@@ -66,7 +66,7 @@ export const useAIStore = defineStore('ai', () => {
         confidence: insight.confidence,
         suggestions: insight.suggestions
       }
-      const response = await fetch(`${API_URL}/insights`, {
+      const response = await fetch(apiUrl('/api/insights'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

@@ -11,6 +11,9 @@ export interface Contact {
   lastContact: string
   tags: string[]
   telegram_id?: string
+  /** ISO 3166-1 alpha-2 */
+  country_iso2?: string | null
+  city?: string | null
 }
 
 export interface Lead {

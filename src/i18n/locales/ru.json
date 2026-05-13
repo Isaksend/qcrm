@@ -1,0 +1,323 @@
+{
+  "nav": {
+    "dashboard": "Панель",
+    "contacts": "Контакты",
+    "deals": "Сделки",
+    "analytics": "Аналитика BI",
+    "messages": "Сообщения",
+    "aiInsights": "ИИ-инсайты",
+    "aiLab": "ИИ-лаборатория",
+    "team": "Команда"
+  },
+  "common": {
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "close": "Закрыть",
+    "create": "Создать",
+    "search": "Поиск",
+    "loading": "Загрузка…",
+    "optional": "необязательно",
+    "active": "Активен",
+    "version": "Tiny CRM v1.0"
+  },
+  "topbar": {
+    "searchPlaceholder": "Поиск в CRM…",
+    "searchShort": "Поиск…",
+    "brand": "Tiny CRM"
+  },
+  "auth": {
+    "signInTitle": "Вход в Tiny CRM",
+    "email": "Email",
+    "password": "Пароль",
+    "signIn": "Войти",
+    "signingIn": "Вход…",
+    "noAccount": "Нет аккаунта?",
+    "createOne": "Создать",
+    "registerTitle": "Регистрация",
+    "fullName": "Полное имя",
+    "register": "Зарегистрироваться",
+    "creatingAccount": "Создание аккаунта…",
+    "haveAccount": "Уже есть аккаунт?",
+    "signInLink": "Войти",
+    "errors": {
+      "fillAll": "Заполните все поля",
+      "invalidCredentials": "Неверный email или пароль",
+      "registrationFailed": "Регистрация не удалась. Возможно, email уже занят."
+    }
+  },
+  "profile": {
+    "title": "Профиль",
+    "subtitle": "Настройки аккаунта.",
+    "email": "Email",
+    "status": "Статус",
+    "logout": "Выйти",
+    "loading": "Загрузка профиля…"
+  },
+  "dashboard": {
+    "title": "Панель",
+    "subtitle": "Сводка по вашей CRM.",
+    "metrics": {
+      "totalRevenue": "Выручка",
+      "newRequests": "Новые заявки",
+      "needsAction": "Требуют действия",
+      "contacts": "Контакты",
+      "conversionRate": "Конверсия",
+      "winLoss": "Победы / поражения"
+    },
+    "dealBreakdown": "Сделки по стадиям"
+  },
+  "contacts": {
+    "title": "Контакты",
+    "subtitle": "Управление контактами и отношениями с клиентами.",
+    "newContact": "Новый контакт",
+    "searchPlaceholder": "Поиск контактов…",
+    "emptyTable": "Нет контактов по фильтру.",
+    "table": {
+      "contact": "Контакт",
+      "company": "Компания",
+      "role": "Роль",
+      "status": "Статус",
+      "revenue": "Выручка",
+      "lastContact": "Последний контакт",
+      "ai": "ИИ"
+    }
+  },
+  "contactStatus": {
+    "all": "Все",
+    "active": "Активный",
+    "inactive": "Неактивный",
+    "prospect": "Лид"
+  },
+  "contactForm": {
+    "title": "Новый контакт",
+    "fullName": "ФИО *",
+    "email": "Email *",
+    "phoneRegion": "Телефон и регион",
+    "company": "Компания *",
+    "role": "Роль",
+    "status": "Статус",
+    "revenue": "Выручка ($)",
+    "tags": "Теги",
+    "tagsHint": "Через запятую",
+    "create": "Создать контакт",
+    "phoneIncomplete": "Укажите полный номер (страна + номер)"
+  },
+  "countryPhone": {
+    "country": "Страна",
+    "nationalNumber": "Номер (без кода страны) *",
+    "fullNumber": "Полный номер:",
+    "digits": "цифр",
+    "city": "Город",
+    "cityPlaceholder": "Алматы, Москва…"
+  },
+  "contactDetail": {
+    "at": "в",
+    "roleCompanyLine": "{role} в {company}",
+    "totalRevenue": "Выручка",
+    "lastContact": "Последний контакт",
+    "tags": "Теги",
+    "relatedDeals": "Связанные сделки",
+    "noDeals": "Нет связанных сделок.",
+    "analyzeAi": "Анализ с ИИ"
+  },
+  "deals": {
+    "title": "Сделки",
+    "subtitle": "Обзор сделок и выручки.",
+    "kanban": "Канбан",
+    "list": "Список",
+    "newDeal": "Новая сделка",
+    "totalPipeline": "Весь пайплайн",
+    "wonRevenue": "Выиграно",
+    "lostRevenue": "Проиграно",
+    "dealsCount": "{n} сделок",
+    "monthlyRevenue": "Выручка по месяцам"
+  },
+  "dealForm": {
+    "title": "Новая сделка и контакт",
+    "dealInfo": "Сделка",
+    "dealTitle": "Название сделки *",
+    "value": "Сумма ($)",
+    "assignedTo": "Ответственный",
+    "meDefault": "Я (по умолчанию)",
+    "notes": "Заметки / описание",
+    "notesPlaceholder": "Детали по сделке…",
+    "contactLink": "Контакт",
+    "contactHelp": "Выберите страну и введите номер без кода. По полному номеру ищем контакт; если нет — создаём с указанной страной и городом (без дубля по номеру).",
+    "contactFound": "Контакт найден — будет привязана существующая запись",
+    "name": "Имя *",
+    "email": "Email",
+    "company": "Компания",
+    "createDeal": "Создать сделку",
+    "errors": {
+      "phone": "Введите полный номер (код страны + номер, не меньше 10 цифр всего)",
+      "name": "Укажите имя контакта",
+      "contactFailed": "Не удалось связать контакт"
+    }
+  },
+  "dealStages": {
+    "newRequest": "Новая заявка",
+    "qualified": "Квалификация",
+    "discovery": "Выявление потребностей",
+    "proposal": "Предложение",
+    "negotiation": "Переговоры",
+    "closedWon": "Успешно закрыта",
+    "closedLost": "Проиграна"
+  },
+  "analytics": {
+    "title": "Аналитика",
+    "subtitle": "Воронка, коммуникации и география контактов.",
+    "salesVelocity": "Скорость сделки",
+    "avgDaysBadge": "Сред. дней на стадии",
+    "velocityHint": "Среднее время в стадиях сделки по вашей компании.",
+    "communication": "Коммуникации",
+    "last45": "45 дней",
+    "commHint": "Распределение типов коммуникаций.",
+    "byCountry": "Контакты по странам",
+    "crmBadge": "CRM",
+    "byCountryHint": "По полю страны при создании/редактировании контакта.",
+    "topCities": "Топ городов",
+    "topLimit": "до 25",
+    "citiesHint": "Только контакты с заполненным городом.",
+    "notSpecified": "Не указано",
+    "noData": "Нет данных",
+    "datasets": {
+      "contacts": "Контакты",
+      "avgDays": "Сред. дней на стадии"
+    },
+    "efficiency": "Эффективность",
+    "efficiencySub": "По скорости воронки",
+    "totalInteractions": "Взаимодействий",
+    "interactionsPeriod": "За период",
+    "stagesInReport": "Стадий в отчёте",
+    "velocityFoot": "Скорость сделки"
+  },
+  "commTypes": {
+    "call": "Звонок",
+    "email": "Почта",
+    "telegram": "Telegram",
+    "meeting": "Встреча",
+    "other": "Другое"
+  },
+  "messages": {
+    "title": "Сообщения",
+    "subtitle": "Telegram: переписка с клиентами из CRM.",
+    "startChat": "Начать чат",
+    "contacts": "Контакты",
+    "telegramLinked": "Telegram подключён ({n})",
+    "noTelegram": "Без Telegram ({n})",
+    "noContacts": "Нет контактов",
+    "emptyStateTitle": "Telegram",
+    "emptyStateHint": "Выберите контакт или нажмите «Начать чат»",
+    "newChatCta": "+ Новый чат",
+    "modalTitle": "Начать чат",
+    "modalHint": "Введите Telegram ID клиента. Если контакта нет — он будет создан автоматически.",
+    "telegramId": "Telegram ID *",
+    "telegramIdPh": "Например: 123456789",
+    "firstMessage": "Первое сообщение (необязательно)",
+    "firstMessagePh": "Здравствуйте! Чем могу помочь?",
+    "connecting": "Подключение…",
+    "error": "Ошибка",
+    "networkError": "Ошибка сети",
+    "alertBot": "Контакт «{name}» создан, но клиент ещё не запустил бота (/start). Сообщение сохранено в CRM."
+  },
+  "users": {
+    "title": "Команда",
+    "subtitle": "Пользователи, менеджеры и администраторы компании.",
+    "newUser": "Новый пользователь",
+    "noAccess": "Нет доступа к настройкам команды.",
+    "contactAdmin": "Обратитесь к администратору компании.",
+    "table": {
+      "name": "Имя",
+      "email": "Email",
+      "role": "Роль",
+      "status": "Статус",
+      "actions": "Действия"
+    },
+    "active": "Активен",
+    "remove": "Удалить",
+    "empty": "В компании нет пользователей.",
+    "modalTitle": "Новый участник команды",
+    "modalHint": "Создать аккаунт в пространстве компании.",
+    "emailAddress": "Email",
+    "tempPassword": "Временный пароль",
+    "rolePermissions": "Роль",
+    "roleUser": "Пользователь (сделки)",
+    "roleAdmin": "Админ (команда и настройки)",
+    "roleSuper": "Суперадмин (вся система)",
+    "createAccount": "Создать",
+    "confirmDelete": "Удалить этого пользователя?",
+    "errorPrefix": "Ошибка:"
+  },
+  "ai": {
+    "title": "ИИ-инсайты",
+    "subtitle": "Анализ и рекомендации по CRM.",
+    "insightsCount": "Инсайтов: {n}",
+    "filters": {
+      "all": "Все",
+      "contact": "Контакты",
+      "lead": "Лиды",
+      "deal": "Сделки",
+      "general": "Общее"
+    },
+    "empty": "Нет инсайтов для выбранного фильтра."
+  },
+  "aiLab": {
+    "title": "ИИ-лаборатория",
+    "subtitle": "Скоринг лидов и отток: ручной ввод или данные из CRM.",
+    "automatedTitle": "Автоанализ",
+    "automatedHint": "Введите ID контакта для загрузки данных из CRM.",
+    "fetchAnalyze": "Загрузить и анализировать",
+    "manualTitle": "Ручной ввод",
+    "activities": "Активности (30 дней)",
+    "daysSince": "Дней с последнего контакта",
+    "dealValue": "Сумма сделки ($)",
+    "interactionScore": "Оценка взаимодействия (0–1)",
+    "analyzing": "Анализ…",
+    "runAnalysis": "Запустить ИИ",
+    "contactIdRequired": "Введите ID контакта",
+    "errors": {
+      "aiService": "Не удалось подключиться к ИИ.",
+      "contactAi": "Контакт не найден или ошибка ИИ."
+    },
+    "leadCard": "Конверсия лида",
+    "churnCard": "Риск оттока"
+  },
+  "globalSearch": {
+    "title": "Поиск",
+    "placeholder": "Контакты и сделки…",
+    "empty": "Введите запрос…",
+    "noResults": "Нет результатов для",
+    "types": {
+      "contact": "Контакт",
+      "deal": "Сделка"
+    }
+  },
+  "pipeline": {
+    "title": "Воронка"
+  },
+  "revenueChart": {
+    "title": "Динамика выручки",
+    "subtitle": "6 месяцев"
+  },
+  "activity": {
+    "title": "Активность",
+    "justNow": "Только что",
+    "hoursAgo": "{n} ч назад",
+    "daysAgo": "{n} дн назад"
+  },
+  "activityTypes": {
+    "call": "Звонок",
+    "email": "Почта",
+    "meeting": "Встреча",
+    "deal_won": "Сделка выиграна",
+    "deal_lost": "Сделка проиграна",
+    "lead_created": "Создан лид",
+    "note": "Заметка"
+  },
+  "language": {
+    "label": "Язык",
+    "en": "English",
+    "ru": "Русский",
+    "kk": "Қазақша"
+  }
+}

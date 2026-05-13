@@ -87,18 +87,49 @@ The project includes an integrated REST API backend powered by **FastAPI** and *
    pip install -r requirements.txt
    ```
 
-4. Configure your Database:
-   Create a `.env` file in the `backend/` directory containing your PostgreSQL connection string (if omitted, it falls back to a local SQLite database for easy testing).
-   ```env
-   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/tinycrm
+4. Configure environment:
+   Copy [`backend/.env.example`](backend/.env.example) to `backend/.env` and adjust values.
+
+   Important variables:
+   - `DATABASE_URL` — PostgreSQL DSN or `sqlite:///./tinycrm.db` for local dev.
+   - `SECRET_KEY` — long random string for JWT signing. Required when `APP_ENV=production`.
+   - `CORS_ORIGINS` — comma-separated browser origins allowed to call the API.
+   - `TELEGRAM_BOT_TOKEN`, `GOOGLE_API_KEY`, `SENTRY_DSN` — optional integrations.
+
+5. Apply database migrations:
+   ```bash
+   cd backend
+   alembic upgrade head
    ```
 
-5. Start the backend development server:
+6. Start the backend development server:
    ```bash
    uvicorn app.main:app --reload
    ```
    
 The API will be available at `http://127.0.0.1:8000`, with interactive Swagger UI documentation at `http://127.0.0.1:8000/docs`.
+
+**Health checks:** `GET /healthz` (process up) and `GET /readyz` (database connectivity).
+
+### Frontend API URL
+
+- For **local Vite** with API on the same machine, create `.env` from [`.env.example`](.env.example) and set e.g. `VITE_API_BASE_URL=http://127.0.0.1:8000`.
+- For **Docker / nginx** (same host serving SPA and proxying `/api`), leave `VITE_API_BASE_URL` empty so the browser uses relative `/api/...` URLs.
+
+### Docker Compose
+
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+Set strong values for `POSTGRES_PASSWORD` and `SECRET_KEY` in your environment or a root `.env` file before production use. The backend container runs `alembic upgrade head` on startup.
+
+### CI / release
+
+GitHub Actions runs Ruff, pytest, Alembic smoke migrations, `vue-tsc`, Vitest, and a production `npm run build`.  
+Optional: add a repository secret `DEPLOY_URL` (public API base URL) so the deploy job can `curl` `/healthz` after you wire a real deployment step.
 
 ### Building for Production
 

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-
-const API_URL = 'http://127.0.0.1:8000/api'
+import { apiUrl } from '../lib/api'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
@@ -18,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
       formData.append('username', username)
       formData.append('password', password)
 
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData,
@@ -40,7 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(name: string, email: string, password: string, role: string = 'user') {
     isLoading.value = true
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch(apiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, role }),
@@ -58,7 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchCurrentUser() {
     if (!token.value) return
     try {
-      const response = await fetch(`${API_URL}/users/me`, {
+      const response = await fetch(apiUrl('/api/users/me'), {
         headers: { Authorization: `Bearer ${token.value}` },
       })
       if (response.ok) {

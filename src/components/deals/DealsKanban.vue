@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDealsStore } from '../../stores/deals'
 import { useContactsStore } from '../../stores/contacts'
 import type { Deal } from '../../types'
+import { apiUrl } from '../../lib/api'
+import { dealStageLabel } from '../../i18n/stages'
 
 const router = useRouter()
+const { t, locale } = useI18n()
 const dealsStore = useDealsStore()
 const contactsStore = useContactsStore()
 const stages: Deal['stage'][] = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
@@ -19,7 +23,7 @@ const userMap = computed(() => {
 
 async function fetchUsers() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/users', {
+    const res = await fetch(apiUrl('/api/users'), {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     if (res.ok) users.value = await res.json()
@@ -51,6 +55,11 @@ function formatCurrency(val: number): string {
   return `$${val}`
 }
 
+function stageTitle(stage: Deal['stage']): string {
+  locale.value
+  return dealStageLabel(t, stage)
+}
+
 function getStageColor(stage: string): string {
   switch (stage) {
     case 'New Request': return 'bg-cyan-100 text-cyan-700'
@@ -79,7 +88,7 @@ function getStageColor(stage: string): string {
       <!-- Column Header -->
       <div class="p-4 border-b border-gray-200 bg-white rounded-t-xl shrink-0 sticky top-0 z-10">
         <div class="flex items-center justify-between mb-1">
-          <h3 class="font-semibold text-gray-800 text-sm">{{ stage }}</h3>
+          <h3 class="font-semibold text-gray-800 text-sm">{{ stageTitle(stage) }}</h3>
           <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="getStageColor(stage)">
             {{ dealsStore.deals.filter((d: Deal) => d.stage === stage).length }}
           </span>

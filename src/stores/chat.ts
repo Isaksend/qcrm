@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-
-const API_URL = 'http://127.0.0.1:8000/api'
+import { apiUrl } from '../lib/api'
 
 interface ChatMessage {
   id: string
@@ -32,7 +31,7 @@ export const useChatStore = defineStore('chat', () => {
     isLoading.value = true
     activeContactId.value = contactId
     try {
-      const res = await fetch(`${API_URL}/chat/${contactId}`, {
+      const res = await fetch(apiUrl(`/api/chat/${contactId}`), {
         headers: getHeaders(),
       })
       if (res.ok) {
@@ -47,7 +46,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function sendMessage(contactId: string, content: string, dealId?: string) {
     try {
-      const res = await fetch(`${API_URL}/chat/send`, {
+      const res = await fetch(apiUrl('/api/chat/send'), {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ contactId, content, dealId: dealId || null }),
@@ -72,7 +71,7 @@ export const useChatStore = defineStore('chat', () => {
     pollInterval = setInterval(async () => {
       if (activeContactId.value !== contactId) return
       try {
-        const res = await fetch(`${API_URL}/chat/${contactId}`, {
+        const res = await fetch(apiUrl(`/api/chat/${contactId}`), {
           headers: getHeaders(),
         })
         if (res.ok) {

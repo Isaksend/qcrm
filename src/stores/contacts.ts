@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Contact } from '../types'
-const API_URL = 'http://127.0.0.1:8000/api'
+import { apiUrl } from '../lib/api'
+import { useAuthStore } from './auth'
+import { canonicalPhoneForStorage, normalizePhoneDigits } from '../lib/phone'
 
 export const useContactsStore = defineStore('contacts', () => {
   const contacts = ref<Contact[]>([])
@@ -50,7 +52,7 @@ export const useContactsStore = defineStore('contacts', () => {
     const payload = { ...data, avatar }
 
     try {
-      const response = await fetch(`${API_URL}/contacts`, {
+      const response = await fetch(apiUrl('/api/contacts'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -74,7 +76,7 @@ export const useContactsStore = defineStore('contacts', () => {
 
   async function searchContactByPhone(phone: string) {
     try {
-      const response = await fetch(`${API_URL}/contacts/search?phone=${encodeURIComponent(phone)}`, {
+      const response = await fetch(apiUrl(`/api/contacts/search?phone=${encodeURIComponent(phone)}`), {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       })
       if (response.ok) {
@@ -90,7 +92,7 @@ export const useContactsStore = defineStore('contacts', () => {
   async function fetchContacts() {
     isLoading.value = true
     try {
-      const response = await fetch(`${API_URL}/contacts`, {
+      const response = await fetch(apiUrl('/api/contacts'), {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       })
       if (response.ok) {
@@ -100,6 +102,109 @@ export const useContactsStore = defineStore('contacts', () => {
       console.error(e)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  /**
+   * Для формы сделки: найти контакт по телефону (любой формат) или создать без дублей по телефону/email.
+   */
+  async function findOrCreateContactForDeal(payload: {
+    phone: string
+    name: string
+    email?: string
+    company?: string
+    country_iso2?: string | null
+    city?: string | null
+  }): Promise<{ contact: Contact | null; error?: string }> {
+    const authStore = useAuthStore()
+    const token = authStore.token
+    if (!token) return { contact: null, error: 'Нет авторизации' }
+
+    const name = payload.name.trim()
+    if (!name) return { contact: null, error: 'Укажите имя контакта' }
+
+    const digits = normalizePhoneDigits(payload.phone)
+    if (digits.length < 7) {
+      return { contact: null, error: 'Введите телефон (не меньше 7 цифр)' }
+    }
+
+    const variants = [payload.phone.trim(), `+${digits}`, digits]
+    const seen = new Set<string>()
+    for (const p of variants) {
+      if (seen.has(p)) continue
+      seen.add(p)
+      const found = await searchContactByPhone(p)
+      if (found) {
+        if (!contacts.value.some((c) => c.id === found.id)) contacts.value.push(found)
+        return { contact: found }
+      }
+    }
+
+    let email = (payload.email ?? '').trim()
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    if (!emailValid) {
+      email = `tinycrm.${digits}.${crypto.randomUUID().slice(0, 8)}@noreply.invalid`
+    } else {
+      await fetchContacts()
+      const dupEmail = contacts.value.find((c) => c.email.toLowerCase() === email.toLowerCase())
+      if (dupEmail) return { contact: dupEmail }
+    }
+
+    const phoneStored = canonicalPhoneForStorage(payload.phone)
+    const avatar = name
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
+
+    const body = {
+      name,
+      email,
+      phone: phoneStored,
+      company: (payload.company ?? '').trim(),
+      role: 'Lead',
+      status: 'Prospect' as Contact['status'],
+      revenue: 0,
+      lastContact: new Date().toISOString().split('T')[0],
+      tags: [] as string[],
+      avatar,
+      country_iso2: payload.country_iso2 || null,
+      city: payload.city || null,
+    }
+
+    try {
+      const response = await fetch(apiUrl('/api/contacts'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      })
+      if (response.ok) {
+        const newContact = (await response.json()) as Contact
+        contacts.value.push(newContact)
+        return { contact: newContact }
+      }
+
+      await fetchContacts()
+      const byPhone = contacts.value.find((c) => normalizePhoneDigits(c.phone) === digits)
+      if (byPhone) return { contact: byPhone }
+      const byEmail = contacts.value.find((c) => c.email.toLowerCase() === email.toLowerCase())
+      if (byEmail) return { contact: byEmail }
+
+      let detail = 'Не удалось создать контакт'
+      try {
+        const err = await response.json()
+        if (err.detail) detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)
+      } catch {
+        /* ignore */
+      }
+      return { contact: null, error: detail }
+    } catch (e) {
+      console.error(e)
+      return { contact: null, error: 'Ошибка сети при создании контакта' }
     }
   }
 
@@ -117,5 +222,6 @@ export const useContactsStore = defineStore('contacts', () => {
     addContact,
     searchContactByPhone,
     fetchContacts,
+    findOrCreateContactForDeal,
   }
 })

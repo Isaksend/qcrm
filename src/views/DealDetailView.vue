@@ -5,6 +5,7 @@ import { useDealsStore } from '../stores/deals'
 import { useContactsStore } from '../stores/contacts'
 import ChatWindow from '../components/chat/ChatWindow.vue'
 import type { Deal, Note } from '../types'
+import { apiUrl } from '../lib/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,13 +36,13 @@ async function fetchData() {
   isLoading.value = true
   try {
     // 1. Fetch Users (for manager and note authors)
-    const userRes = await fetch(`http://127.0.0.1:8000/api/users`, {
+    const userRes = await fetch(apiUrl('/api/users'), {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     if (userRes.ok) users.value = await userRes.json()
 
     // 2. Fetch Deal
-    const res = await fetch(`http://127.0.0.1:8000/api/deals/${dealId}`, {
+    const res = await fetch(apiUrl(`/api/deals/${dealId}`), {
        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     if (res.ok) {
@@ -52,7 +53,7 @@ async function fetchData() {
     }
 
     // 3. Fetch Notes
-    const notesRes = await fetch(`http://127.0.0.1:8000/api/deals/${dealId}/notes`, {
+    const notesRes = await fetch(apiUrl(`/api/deals/${dealId}/notes`), {
        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     if (notesRes.ok) notes.value = await notesRes.json()
@@ -71,7 +72,7 @@ async function addNote() {
   if (!newNoteContent.value.trim()) return
   isSavingNote.value = true
   try {
-    const res = await fetch(`http://127.0.0.1:8000/api/deals/${dealId}/notes`, {
+    const res = await fetch(apiUrl(`/api/deals/${dealId}/notes`), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

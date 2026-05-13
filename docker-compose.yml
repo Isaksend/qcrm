@@ -20,8 +20,15 @@ services:
     restart: always
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-qwerty}@db:5432/${POSTGRES_DB:-tinycrm}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      SECRET_KEY: ${SECRET_KEY:-dev-docker-change-me-use-long-random-secret}
+      APP_ENV: ${APP_ENV:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    command: >
+      sh -c "alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       - db
     ports:
@@ -30,7 +37,11 @@ services:
       - ./backend/uploads:/app/uploads
 
   frontend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
     container_name: tinycrm-frontend
     restart: always
     ports:

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { monthlyRevenue } from '../../data/mock'
+
+const { t } = useI18n()
 
 const maxValue = computed(() => Math.max(...monthlyRevenue.map((m) => m.value)))
 
@@ -16,15 +19,11 @@ function formatValue(value: number): string {
 <template>
   <div class="card">
     <div class="flex items-center justify-between mb-6">
-      <h3 class="text-sm font-semibold text-gray-800">Revenue Trend</h3>
-      <span class="text-xs text-gray-400">Last 6 months</span>
+      <h3 class="text-sm font-semibold text-gray-800">{{ t('revenueChart.title') }}</h3>
+      <span class="text-xs text-gray-400">{{ t('revenueChart.subtitle') }}</span>
     </div>
     <div class="flex items-end gap-3 h-48">
-      <div
-        v-for="month in monthlyRevenue"
-        :key="month.month"
-        class="flex-1 flex flex-col items-center gap-2"
-      >
+      <div v-for="month in monthlyRevenue" :key="month.month" class="flex-1 flex flex-col items-center gap-2">
         <span class="text-xs font-medium text-gray-600">{{ formatValue(month.value) }}</span>
         <div class="w-full bg-gray-100 rounded-t-md relative flex-1 flex items-end">
           <div

@@ -1,5 +1,16 @@
+import re
+
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
+
 from app import models, schemas
+
+
+def normalize_phone_digits(phone: str | None) -> str:
+    """Digits only, for matching +7 771 ... vs 8771..."""
+    if not phone:
+        return ""
+    return re.sub(r"\D", "", phone)
 
 def get_deals(db: Session, skip: int = 0, limit: int = 100, company_id: str = None, user_id: str = None):
     query = db.query(models.Deal)
@@ -16,18 +27,37 @@ def create_deal(db: Session, deal: schemas.DealCreate):
     db.refresh(db_deal)
     return db_deal
 
-    return db_deal
 
 def get_deal(db: Session, deal_id: str):
     return db.query(models.Deal).filter(models.Deal.id == deal_id).first()
 
-def update_deal_stage(db: Session, deal_id: str, stage: str):
+def update_deal_stage(db: Session, deal_id: str, stage: str, user_id: str = None):
     db_deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
     if db_deal:
-        db_deal.stage = stage
-        db.commit()
-        db.refresh(db_deal)
+        old_stage = db_deal.stage
+        if old_stage != stage:
+            # 1. Update the deal
+            db_deal.stage = stage
+            
+            # 2. Record the history
+            history = models.DealStageHistory(
+                deal_id=deal_id,
+                old_stage=old_stage,
+                new_stage=stage,
+                changed_by=user_id
+            )
+            db.add(history)
+            
+            db.commit()
+            db.refresh(db_deal)
     return db_deal
+
+def create_communication_log(db: Session, log_data: dict):
+    db_log = models.CommunicationLog(**log_data)
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return db_log
 
 # Contacts
 def get_contacts(db: Session, skip: int = 0, limit: int = 100, company_id: str = None):
@@ -44,7 +74,34 @@ def create_contact(db: Session, contact: schemas.ContactCreate):
     return db_contact
 
 def get_contact_by_phone(db: Session, phone: str):
-    return db.query(models.Contact).filter(models.Contact.phone == phone).first()
+    """Match by exact string or by digits-only equality (avoid duplicates across formats)."""
+    if not phone or not str(phone).strip():
+        return None
+    raw = str(phone).strip()
+    norm = normalize_phone_digits(raw)
+    exact = db.query(models.Contact).filter(models.Contact.phone == raw).first()
+    if exact:
+        return exact
+    if not norm or len(norm) < 7:
+        return None
+    for row in db.query(models.Contact).filter(models.Contact.phone.isnot(None)).all():
+        if normalize_phone_digits(row.phone) == norm:
+            return row
+    return None
+
+
+def get_contact_by_email(db: Session, email: str, company_id: str | None = None):
+    if not email or not str(email).strip():
+        return None
+    em = str(email).strip().lower()
+    q = db.query(models.Contact).filter(models.Contact.email == em)
+    if company_id is not None:
+        q = q.filter(models.Contact.companyId == company_id)
+    return q.first()
+
+
+def get_contact(db: Session, contact_id: str):
+    return db.query(models.Contact).filter(models.Contact.id == contact_id).first()
 
 def get_contact_by_telegram_id(db: Session, telegram_id: str):
     return db.query(models.Contact).filter(models.Contact.telegram_id == telegram_id).first()
@@ -79,6 +136,30 @@ def create_activity(db: Session, activity: schemas.ActivityCreate):
     db.refresh(db_act)
     return db_act
 
+
+def get_activities_for_user(db: Session, user: models.User, skip: int = 0, limit: int = 100):
+    q = db.query(models.Activity)
+    if user.role == "super_admin":
+        return q.offset(skip).limit(limit).all()
+    company_id = user.company_id
+    if not company_id:
+        return []
+    contact_ids = [
+        r[0] for r in db.query(models.Contact.id).filter(models.Contact.companyId == company_id).all()
+    ]
+    deal_ids = [r[0] for r in db.query(models.Deal.id).filter(models.Deal.companyId == company_id).all()]
+    parts = []
+    if contact_ids:
+        parts.append(
+            and_(models.Activity.entityType == "contact", models.Activity.entityId.in_(contact_ids))
+        )
+    if deal_ids:
+        parts.append(and_(models.Activity.entityType == "deal", models.Activity.entityId.in_(deal_ids)))
+    if not parts:
+        return []
+    return q.filter(or_(*parts)).offset(skip).limit(limit).all()
+
+
 # Notes
 def get_deal_notes(db: Session, deal_id: str):
     return db.query(models.Note).filter(models.Note.dealId == deal_id).order_by(models.Note.createdAt.desc()).all()
@@ -93,6 +174,30 @@ def create_note(db: Session, note: schemas.NoteCreate, user_id: str):
 # AI Insights
 def get_ai_insights(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.AIInsight).offset(skip).limit(limit).all()
+
+
+def get_ai_insights_for_user(db: Session, user: models.User, skip: int = 0, limit: int = 100):
+    q = db.query(models.AIInsight)
+    if user.role == "super_admin":
+        return q.offset(skip).limit(limit).all()
+    company_id = user.company_id
+    if not company_id:
+        return []
+    contact_ids = [
+        r[0] for r in db.query(models.Contact.id).filter(models.Contact.companyId == company_id).all()
+    ]
+    deal_ids = [r[0] for r in db.query(models.Deal.id).filter(models.Deal.companyId == company_id).all()]
+    parts = []
+    if contact_ids:
+        parts.append(
+            and_(models.AIInsight.entityType == "contact", models.AIInsight.entityId.in_(contact_ids))
+        )
+    if deal_ids:
+        parts.append(and_(models.AIInsight.entityType == "deal", models.AIInsight.entityId.in_(deal_ids)))
+    if not parts:
+        return []
+    return q.filter(or_(*parts)).offset(skip).limit(limit).all()
+
 
 def create_ai_insight(db: Session, insight: schemas.AIInsightCreate):
     db_insight = models.AIInsight(**insight.model_dump())
@@ -147,3 +252,49 @@ def create_company(db: Session, company: schemas.CompanyCreate):
 
 def get_companies(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Company).offset(skip).limit(limit).all()
+
+# AI Feature Engineering
+def get_contact_ai_features(db: Session, contact_id: str):
+    import datetime
+    from sqlalchemy import func
+    
+    # 1. Total Deal Value
+    total_value = db.query(func.sum(models.Deal.value)).filter(models.Deal.contactId == contact_id).scalar() or 0.0
+    
+    # 2. Activity Metrics
+    now = datetime.datetime.utcnow()
+    thirty_days_ago = now - datetime.timedelta(days=30)
+    
+    # Get all activities for this contact
+    activities = db.query(models.Activity).filter(
+        models.Activity.entityType == "contact",
+        models.Activity.entityId == contact_id
+    ).all()
+    
+    activity_count_30d = 0
+    last_contact_date = None
+    
+    for act in activities:
+        try:
+            # Assuming ISO format string
+            act_date = datetime.datetime.fromisoformat(act.timestamp.replace('Z', ''))
+            if act_date > thirty_days_ago:
+                activity_count_30d += 1
+            
+            if last_contact_date is None or act_date > last_contact_date:
+                last_contact_date = act_date
+        except Exception:
+            continue
+            
+    days_since_last_contact = (now - last_contact_date).days if last_contact_date else 30 # default to 30 if never
+    
+    # 3. Simple Interaction Score (based on diversity of activity types)
+    unique_types = len(set(a.type for a in activities))
+    interaction_score = min(unique_types / 5.0, 1.0) # Normalized to 0-1
+    
+    return {
+        "activity_count_30d": activity_count_30d,
+        "days_since_last_contact": days_since_last_contact,
+        "total_deal_value": total_value,
+        "interaction_score": interaction_score
+    }

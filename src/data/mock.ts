@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Contact, Lead, Deal, Seller, Activity, AIInsight } from '../types'
 
 export const contacts: Contact[] = [

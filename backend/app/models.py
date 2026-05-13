@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime, JSON
+from sqlalchemy import Column, String, Integer, Float, DateTime, JSON, ForeignKey
 from app.database import Base
 import datetime
 import uuid
@@ -36,6 +36,8 @@ class Contact(Base):
     tags = Column(JSON, default=[])
     companyId = Column(String, nullable=True)
     telegram_id = Column(String, nullable=True, unique=True)
+    country_iso2 = Column(String(2), nullable=True, index=True)
+    city = Column(String(128), nullable=True, index=True)
 
 
 
@@ -98,3 +100,24 @@ class User(Base):
     role = Column(String, default="user") # super_admin, admin, user
     company_id = Column(String, nullable=True) # string without explicit FK for now to avoid DB lock issues on live dev
     is_active = Column(Integer, default=1)
+
+class DealStageHistory(Base):
+    __tablename__ = "deal_stage_history"
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    deal_id = Column(String, ForeignKey("deals.id", ondelete="CASCADE"), index=True)
+    old_stage = Column(String)
+    new_stage = Column(String)
+    changed_at = Column(DateTime, default=datetime.datetime.utcnow)
+    changed_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+class CommunicationLog(Base):
+    __tablename__ = "communication_logs"
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    type = Column(String, index=True)  # call, email, telegram, meeting
+    direction = Column(String)  # inbound, outbound
+    contact_id = Column(String, ForeignKey("contacts.id", ondelete="CASCADE"), index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    duration = Column(Integer, nullable=True) # seconds for calls
+    status = Column(String) # completed, missed, sent, opened, bounced
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    metadata_json = Column(JSON, nullable=True) # extra details like email subject, record url

@@ -40,6 +40,8 @@ class ContactBase(BaseModel):
     tags: Optional[List[str]] = None
     companyId: Optional[str] = None
     telegram_id: Optional[str] = None
+    country_iso2: Optional[str] = None
+    city: Optional[str] = None
 
 class ContactCreate(ContactBase):
     pass

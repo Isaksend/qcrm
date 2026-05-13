@@ -1,0 +1,323 @@
+{
+  "nav": {
+    "dashboard": "Бақылау тақтасы",
+    "contacts": "Байланыстар",
+    "deals": "Мәмілелер",
+    "analytics": "BI талдау",
+    "messages": "Хабарламалар",
+    "aiInsights": "ЖИ түйіндері",
+    "aiLab": "ЖИ зертханасы",
+    "team": "Команда"
+  },
+  "common": {
+    "cancel": "Болдырмау",
+    "save": "Сақтау",
+    "close": "Жабу",
+    "create": "Жасау",
+    "search": "Іздеу",
+    "loading": "Жүктелуде…",
+    "optional": "міндетті емес",
+    "active": "Белсенді",
+    "version": "Tiny CRM v1.0"
+  },
+  "topbar": {
+    "searchPlaceholder": "CRM-де іздеу…",
+    "searchShort": "Іздеу…",
+    "brand": "Tiny CRM"
+  },
+  "auth": {
+    "signInTitle": "Tiny CRM-ке кіру",
+    "email": "Email",
+    "password": "Құпия сөз",
+    "signIn": "Кіру",
+    "signingIn": "Кіруде…",
+    "noAccount": "Аккаунтыңыз жоқ па?",
+    "createOne": "Тіркелу",
+    "registerTitle": "Аккаунт жасау",
+    "fullName": "Толық аты-жөні",
+    "register": "Тіркелу",
+    "creatingAccount": "Аккаунт жасалуда…",
+    "haveAccount": "Аккаунтыңыз бар ма?",
+    "signInLink": "Кіру",
+    "errors": {
+      "fillAll": "Барлық өрістерді толтырыңыз",
+      "invalidCredentials": "Email немесе құпия сөз қате",
+      "registrationFailed": "Тіркелу сәтсіз. Email бос емес болуы мүмкін."
+    }
+  },
+  "profile": {
+    "title": "Профиль",
+    "subtitle": "Аккаунт баптаулары.",
+    "email": "Email",
+    "status": "Күйі",
+    "logout": "Шығу",
+    "loading": "Профиль жүктелуде…"
+  },
+  "dashboard": {
+    "title": "Бақылау тақтасы",
+    "subtitle": "CRM бойынша қысқаша ақпарат.",
+    "metrics": {
+      "totalRevenue": "Табыс",
+      "newRequests": "Жаңа сұраныстар",
+      "needsAction": "Әрекет қажет",
+      "contacts": "Байланыстар",
+      "conversionRate": "Конверсия",
+      "winLoss": "Жеңіс / жеңіліс"
+    },
+    "dealBreakdown": "Мәмілелер сатысы бойынша"
+  },
+  "contacts": {
+    "title": "Байланыстар",
+    "subtitle": "Клиенттермен байланыстарды басқару.",
+    "newContact": "Жаңа байланыс",
+    "searchPlaceholder": "Байланыстарды іздеу…",
+    "emptyTable": "Сүзгі бойынша ештеңе жоқ.",
+    "table": {
+      "contact": "Байланыс",
+      "company": "Компания",
+      "role": "Рөлі",
+      "status": "Күйі",
+      "revenue": "Табыс",
+      "lastContact": "Соңғы байланыс",
+      "ai": "ЖИ"
+    }
+  },
+  "contactStatus": {
+    "all": "Барлығы",
+    "active": "Белсенді",
+    "inactive": "Белсенді емес",
+    "prospect": "Потенциал"
+  },
+  "contactForm": {
+    "title": "Жаңа байланыс",
+    "fullName": "ТАӘ *",
+    "email": "Email *",
+    "phoneRegion": "Телефон және аймақ",
+    "company": "Компания *",
+    "role": "Рөлі",
+    "status": "Күйі",
+    "revenue": "Табыс ($)",
+    "tags": "Тегтер",
+    "tagsHint": "Үтірмен бөлінген",
+    "create": "Байланыс жасау",
+    "phoneIncomplete": "Толық нөмірді енгізіңіз (ел + нөмір)"
+  },
+  "countryPhone": {
+    "country": "Ел",
+    "nationalNumber": "Нөмір (ел кодысыз) *",
+    "fullNumber": "Толық нөмір:",
+    "digits": "цифр",
+    "city": "Қала",
+    "cityPlaceholder": "Алматы, Мәскеу…"
+  },
+  "contactDetail": {
+    "at": "компаниясында",
+    "roleCompanyLine": "{role} — {company}",
+    "totalRevenue": "Табыс",
+    "lastContact": "Соңғы байланыс",
+    "tags": "Тегтер",
+    "relatedDeals": "Байланысты мәмілелер",
+    "noDeals": "Мәмілелер жоқ.",
+    "analyzeAi": "ЖИ талдауы"
+  },
+  "deals": {
+    "title": "Мәмілелер",
+    "subtitle": "Мәмілелер және табыс шолуы.",
+    "kanban": "Канбан",
+    "list": "Тізім",
+    "newDeal": "Жаңа мәміле",
+    "totalPipeline": "Барлық pipeline",
+    "wonRevenue": "Жеңіспен алынған табыс",
+    "lostRevenue": "Жоғалған мәмілелер сомасы",
+    "dealsCount": "{n} мәміле",
+    "monthlyRevenue": "Айлық табыс"
+  },
+  "dealForm": {
+    "title": "Жаңа мәміле және байланыс",
+    "dealInfo": "Мәміле",
+    "dealTitle": "Мәміле атауы *",
+    "value": "Сома ($)",
+    "assignedTo": "Жауапты",
+    "meDefault": "Мен (әдепкі)",
+    "notes": "Ескертпе / сипаттама",
+    "notesPlaceholder": "Мәміле туралы…",
+    "contactLink": "Байланыс",
+    "contactHelp": "Елді таңдаңыз және ел кодынсыз нөмірді енгізіңіз. Толық нөмір бойынша іздейміз; жоқ болса — ел мен қала көрсетіп жасаймыз (нөмір бойынша қайталанбайды).",
+    "contactFound": "Байланыс табылды — бар жазба байланады",
+    "name": "Аты *",
+    "email": "Email",
+    "company": "Компания",
+    "createDeal": "Мәміле жасау",
+    "errors": {
+      "phone": "Толық нөмірді енгізіңіз (ел коды + нөмір, барлығы кемінде 10 цифр)",
+      "name": "Байланыс атын енгізіңіз",
+      "contactFailed": "Байланысты байлау сәтсіз"
+    }
+  },
+  "dealStages": {
+    "newRequest": "Жаңа сұраныс",
+    "qualified": "Сапалы",
+    "discovery": "Зерттеу",
+    "proposal": "Ұсыныс",
+    "negotiation": "Келіссөз",
+    "closedWon": "Жеңіспен жабылды",
+    "closedLost": "Жеңіліспен жабылды"
+  },
+  "analytics": {
+    "title": "Бизнес талдауы",
+    "subtitle": "Құбылыс, коммуникация және география.",
+    "salesVelocity": "Мәміле жылдамдығы",
+    "avgDaysBadge": "Сатыда орт. күн",
+    "velocityHint": "Компанияңыз үшін мәміле сатыларындағы орташа уақыт.",
+    "communication": "Коммуникация белсенділігі",
+    "last45": "Соңғы 45 күн",
+    "commHint": "Коммуникация түрлерінің бөлінісі.",
+    "byCountry": "Елдер бойынша байланыстар",
+    "crmBadge": "CRM",
+    "byCountryHint": "Байланыс жасау/өңдеу кезіндегі ел өрісі.",
+    "topCities": "Қалалар TOP",
+    "topLimit": "25 дейін",
+    "citiesHint": "Тек қаласы толтырылған байланыстар.",
+    "notSpecified": "Көрсетілмеген",
+    "noData": "Дерек жоқ",
+    "datasets": {
+      "contacts": "Байланыстар",
+      "avgDays": "Сатыда орт. күн"
+    },
+    "efficiency": "Тиімділік",
+    "efficiencySub": "Құбылыс жылдамдығы бойынша",
+    "totalInteractions": "Әрекеттер саны",
+    "interactionsPeriod": "Кезең үшін",
+    "stagesInReport": "Есептегі сатылар",
+    "velocityFoot": "Мәміле жылдамдығы"
+  },
+  "commTypes": {
+    "call": "Қоңырау",
+    "email": "Пошта",
+    "telegram": "Telegram",
+    "meeting": "Кездесу",
+    "other": "Басқа"
+  },
+  "messages": {
+    "title": "Хабарламалар",
+    "subtitle": "Telegram: CRM ішінен клиенттермен сөйлесу.",
+    "startChat": "Чат бастау",
+    "contacts": "Байланыстар",
+    "telegramLinked": "Telegram қосылған ({n})",
+    "noTelegram": "Telegram жоқ ({n})",
+    "noContacts": "Байланыстар жоқ",
+    "emptyStateTitle": "Telegram",
+    "emptyStateHint": "Байланысты таңдаңыз немесе «Чат бастау» басыңыз",
+    "newChatCta": "+ Жаңа чат",
+    "modalTitle": "Чат бастау",
+    "modalHint": "Клиенттің Telegram ID енгізіңіз. Байланыс жоқ болса — автоматты жасалады.",
+    "telegramId": "Telegram ID *",
+    "telegramIdPh": "Мысалы: 123456789",
+    "firstMessage": "Алғашқы хабарлама (міндетті емес)",
+    "firstMessagePh": "Сәлеметсіз бе! Қалай көмектесе аламын?",
+    "connecting": "Қосылуда…",
+    "error": "Қате",
+    "networkError": "Желі қатесі",
+    "alertBot": "«{name}» байланысы жасалды, бірақ клиент ботты (/start) әлі іске қосқан жоқ. Хабарлама CRM-де сақталды."
+  },
+  "users": {
+    "title": "Команда басқару",
+    "subtitle": "Пайдаланушылар, менеджерлер және әкімшілер.",
+    "newUser": "Жаңа пайдаланушы",
+    "noAccess": "Команда баптауларына рұқсат жоқ.",
+    "contactAdmin": "Компания әкімшісіне хабарласыңыз.",
+    "table": {
+      "name": "Аты",
+      "email": "Email",
+      "role": "Рөлі",
+      "status": "Күйі",
+      "actions": "Әрекеттер"
+    },
+    "active": "Белсенді",
+    "remove": "Жою",
+    "empty": "Компанияда пайдаланушылар жоқ.",
+    "modalTitle": "Жаңа мүше",
+    "modalHint": "Компания кеңістігінде аккаунт жасау.",
+    "emailAddress": "Email",
+    "tempPassword": "Уақытша құпия сөз",
+    "rolePermissions": "Рөл",
+    "roleUser": "Пайдаланушы (мәмілелер)",
+    "roleAdmin": "Әкімші (команда және баптаулар)",
+    "roleSuper": "Суперәкімші (бүкіл жүйе)",
+    "createAccount": "Жасау",
+    "confirmDelete": "Осы пайдаланушыны жоясыз ба?",
+    "errorPrefix": "Қате:"
+  },
+  "ai": {
+    "title": "ЖИ түйіндері",
+    "subtitle": "CRM бойынша ЖИ талдауы және ұсыныстар.",
+    "insightsCount": "Түйіндер: {n}",
+    "filters": {
+      "all": "Барлығы",
+      "contact": "Байланыстар",
+      "lead": "Лидтер",
+      "deal": "Мәмілелер",
+      "general": "Жалпы"
+    },
+    "empty": "Таңдалған сүзгі бойынша түйін жоқ."
+  },
+  "aiLab": {
+    "title": "ЖИ болжам зертханасы",
+    "subtitle": "Лид скорингі және кету болжамы: қолмен немесе CRM дерегі.",
+    "automatedTitle": "Авто талдау",
+    "automatedHint": "CRM дерегін жүктеу үшін байланыс ID енгізіңіз.",
+    "fetchAnalyze": "Жүктеп талдау",
+    "manualTitle": "Қолмен енгізу",
+    "activities": "Белсенділік (30 күн)",
+    "daysSince": "Соңғы байланыстан бері күн",
+    "dealValue": "Мәміле сомасы ($)",
+    "interactionScore": "Әрекет бағасы (0–1)",
+    "analyzing": "Талдауда…",
+    "runAnalysis": "ЖИ іске қосу",
+    "contactIdRequired": "Байланыс ID енгізіңіз",
+    "errors": {
+      "aiService": "ЖИ қызметіне қосылу сәтсіз.",
+      "contactAi": "Байланыс табылмады немесе ЖИ қатесі."
+    },
+    "leadCard": "Лид конверсиясы",
+    "churnCard": "Кету қаупі"
+  },
+  "globalSearch": {
+    "title": "Іздеу",
+    "placeholder": "Байланыстар мен мәмілелер…",
+    "empty": "Сұрау енгізіңіз…",
+    "noResults": "Нәтиже жоқ:",
+    "types": {
+      "contact": "Байланыс",
+      "deal": "Мәміле"
+    }
+  },
+  "pipeline": {
+    "title": "Құбылыс"
+  },
+  "revenueChart": {
+    "title": "Табыс динамикасы",
+    "subtitle": "Соңғы 6 ай"
+  },
+  "activity": {
+    "title": "Соңғы белсенділік",
+    "justNow": "Дәл қазір",
+    "hoursAgo": "{n} с бұрын",
+    "daysAgo": "{n} күн бұрын"
+  },
+  "activityTypes": {
+    "call": "Қоңырау",
+    "email": "Пошта",
+    "meeting": "Кездесу",
+    "deal_won": "Мәміле жеңілді",
+    "deal_lost": "Мәміле жоғалды",
+    "lead_created": "Лид жасалды",
+    "note": "Ескертпе"
+  },
+  "language": {
+    "label": "Тіл",
+    "en": "English",
+    "ru": "Русский",
+    "kk": "Қазақша"
+  }
+}

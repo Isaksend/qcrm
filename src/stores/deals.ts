@@ -2,8 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import type { Deal } from '../types'
-
-const API_URL = 'http://127.0.0.1:8000/api'
+import { apiUrl } from '../lib/api'
 
 export const useDealsStore = defineStore('deals', () => {
   const deals = ref<Deal[]>([])
@@ -57,7 +56,7 @@ export const useDealsStore = defineStore('deals', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await fetch(`${API_URL}/deals`, {
+      const response = await fetch(apiUrl('/api/deals'), {
         headers: { Authorization: `Bearer ${authStore.token}` }
       })
       if (!response.ok) throw new Error('Failed to fetch deals')
@@ -83,7 +82,7 @@ export const useDealsStore = defineStore('deals', () => {
 
     
     try {
-      const response = await fetch(`${API_URL}/deals`, {
+      const response = await fetch(apiUrl('/api/deals'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -110,7 +109,7 @@ export const useDealsStore = defineStore('deals', () => {
     if (deal) deal.stage = stage
 
     try {
-      const response = await fetch(`${API_URL}/deals/${id}/stage?stage=${encodeURIComponent(stage)}`, {
+      const response = await fetch(apiUrl(`/api/deals/${id}/stage?stage=${encodeURIComponent(stage)}`), {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${authStore.token}` }
       })

@@ -1,14 +1,29 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useContactsStore } from '../../stores/contacts'
 import { useDealsStore } from '../../stores/deals'
 import { useAI } from '../../composables/useAI'
-import { computed } from 'vue'
+import { getCountryByIso2 } from '../../lib/countries'
+import { dealStageLabel } from '../../i18n/stages'
 
+const { t, locale } = useI18n()
 const contactsStore = useContactsStore()
 const dealsStore = useDealsStore()
 const { analyze } = useAI()
 
 const contact = computed(() => contactsStore.selectedContact)
+
+const locationLine = computed(() => {
+  const c = contact.value
+  if (!c) return ''
+  const parts: string[] = []
+  if (c.city) parts.push(c.city)
+  if (c.country_iso2) {
+    parts.push(getCountryByIso2(c.country_iso2)?.name || c.country_iso2)
+  }
+  return parts.join(', ')
+})
 
 const contactDeals = computed(() => {
   if (!contact.value) return []
@@ -23,10 +38,10 @@ const statusClass: Record<string, string> = {
 
 const stageClass: Record<string, string> = {
   'New Request': 'badge-blue',
-  'Qualified': 'badge-indigo',
-  'Discovery': 'badge-blue',
-  'Proposal': 'badge-yellow',
-  'Negotiation': 'badge-yellow',
+  Qualified: 'badge-indigo',
+  Discovery: 'badge-blue',
+  Proposal: 'badge-yellow',
+  Negotiation: 'badge-yellow',
   'Closed Won': 'badge-green',
   'Closed Lost': 'badge-red',
 }
@@ -40,17 +55,27 @@ function handleAnalyze() {
     analyze('contact', contact.value.id, { ...contact.value })
   }
 }
+
+function contactStatusLabel(status: string) {
+  locale.value
+  const k = status.toLowerCase() as 'active' | 'inactive' | 'prospect'
+  return t(`contactStatus.${k}`)
+}
+
+function roleCompanyLine(c: { role: string; company: string }) {
+  return t('contactDetail.roleCompanyLine', { role: c.role, company: c.company })
+}
+
+function dealStage(s: string) {
+  return dealStageLabel(t, s)
+}
 </script>
 
 <template>
-  <div
-    v-if="contact"
-    class="fixed inset-0 z-30 flex justify-end"
-  >
+  <div v-if="contact" class="fixed inset-0 z-30 flex justify-end">
     <div class="absolute inset-0 bg-black/20" @click="contactsStore.selectedContactId = null"></div>
     <div class="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto animate-slide-in">
       <div class="p-6">
-        <!-- Header -->
         <div class="flex items-start justify-between mb-6">
           <div class="flex items-center gap-4">
             <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center">
@@ -58,8 +83,8 @@ function handleAnalyze() {
             </div>
             <div>
               <h2 class="text-lg font-semibold text-gray-900">{{ contact.name }}</h2>
-              <p class="text-sm text-gray-500">{{ contact.role }} at {{ contact.company }}</p>
-              <span class="badge mt-1" :class="statusClass[contact.status]">{{ contact.status }}</span>
+              <p class="text-sm text-gray-500">{{ roleCompanyLine(contact) }}</p>
+              <span class="badge mt-1" :class="statusClass[contact.status]">{{ contactStatusLabel(contact.status) }}</span>
             </div>
           </div>
           <button
@@ -72,7 +97,6 @@ function handleAnalyze() {
           </button>
         </div>
 
-        <!-- Contact Info -->
         <div class="space-y-3 mb-6">
           <div class="flex items-center gap-3 text-sm">
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,53 +110,52 @@ function handleAnalyze() {
             </svg>
             <span class="text-gray-600">{{ contact.phone }}</span>
           </div>
+          <div v-if="locationLine" class="flex items-center gap-3 text-sm">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="text-gray-600">{{ locationLine }}</span>
+          </div>
         </div>
 
-        <!-- Stats -->
         <div class="grid grid-cols-2 gap-4 mb-6">
           <div class="bg-gray-50 rounded-lg p-3">
-            <div class="text-xs text-gray-500 mb-1">Total Revenue</div>
+            <div class="text-xs text-gray-500 mb-1">{{ t('contactDetail.totalRevenue') }}</div>
             <div class="text-lg font-semibold text-gray-900">{{ formatCurrency(contact.revenue) }}</div>
           </div>
           <div class="bg-gray-50 rounded-lg p-3">
-            <div class="text-xs text-gray-500 mb-1">Last Contact</div>
+            <div class="text-xs text-gray-500 mb-1">{{ t('contactDetail.lastContact') }}</div>
             <div class="text-lg font-semibold text-gray-900">{{ contact.lastContact }}</div>
           </div>
         </div>
 
-        <!-- Tags -->
         <div class="mb-6">
-          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tags</h3>
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ t('contactDetail.tags') }}</h3>
           <div class="flex flex-wrap gap-2">
             <span v-for="tag in contact.tags" :key="tag" class="badge badge-indigo">{{ tag }}</span>
           </div>
         </div>
 
-        <!-- Related Deals -->
         <div class="mb-6">
-          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Related Deals</h3>
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ t('contactDetail.relatedDeals') }}</h3>
           <div v-if="contactDeals.length" class="space-y-2">
-            <div
-              v-for="deal in contactDeals"
-              :key="deal.id"
-              class="flex items-center justify-between bg-gray-50 rounded-lg p-3"
-            >
+            <div v-for="deal in contactDeals" :key="deal.id" class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
               <div>
                 <div class="text-sm font-medium text-gray-800">{{ deal.title }}</div>
-                <span class="badge mt-1" :class="stageClass[deal.stage]">{{ deal.stage }}</span>
+                <span class="badge mt-1" :class="stageClass[deal.stage]">{{ dealStage(deal.stage) }}</span>
               </div>
               <div class="text-sm font-semibold text-gray-700">{{ formatCurrency(deal.value) }}</div>
             </div>
           </div>
-          <p v-else class="text-sm text-gray-400">No related deals.</p>
+          <p v-else class="text-sm text-gray-400">{{ t('contactDetail.noDeals') }}</p>
         </div>
 
-        <!-- AI Button -->
         <button @click="handleAnalyze" class="btn-primary w-full justify-center">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
           </svg>
-          Analyze with AI
+          {{ t('contactDetail.analyzeAi') }}
         </button>
       </div>
     </div>

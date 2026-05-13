@@ -45,6 +45,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/ai-lab',
+      name: 'ai-lab',
+      component: () => import('../views/AILab.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/analytics',
+      name: 'analytics',
+      component: () => import('../views/AnalyticsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('../views/ProfileView.vue'),
@@ -65,18 +77,25 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  const isAuthRequired = to.matched.some(record => record.meta.requiresAuth || !record.meta.guest && !record.meta.requiresAuth) // assume default requires auth
-  const isGuestOnly = to.matched.some(record => record.meta.guest)
+/** Страницы без входа (явный whitelist — остальные только с токеном). */
+const PUBLIC_PATHS = new Set(['/login', '/register'])
 
-  if (isGuestOnly) {
+router.beforeEach((to, _from, next) => {
+  const token = localStorage.getItem('token')
+  const isPublic =
+    PUBLIC_PATHS.has(to.path) || to.matched.some((r) => r.meta.guest === true)
+
+  if (isPublic) {
     next()
-  } else if (isAuthRequired && !token) {
-    next('/login')
-  } else {
-    next()
+    return
   }
+
+  if (!token) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  next()
 })
 
 export default router

@@ -10,7 +10,7 @@ const columns: { key: keyof Deal; label: string }[] = [
   { key: 'contactId', label: 'Company' },
   { key: 'value', label: 'Value' },
   { key: 'stage', label: 'Stage' },
-  { key: 'sellerId', label: 'Seller' },
+  { key: 'userId', label: 'Owner' },
   { key: 'closedAt', label: 'Closed' },
 ]
 </script>

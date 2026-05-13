@@ -1,0 +1,323 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "deals": "Deals",
+    "analytics": "BI Analytics",
+    "messages": "Messages",
+    "aiInsights": "AI Insights",
+    "aiLab": "AI Lab",
+    "team": "Team"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading…",
+    "optional": "optional",
+    "active": "Active",
+    "version": "Tiny CRM v1.0"
+  },
+  "topbar": {
+    "searchPlaceholder": "Search CRM…",
+    "searchShort": "Search…",
+    "brand": "Tiny CRM"
+  },
+  "auth": {
+    "signInTitle": "Sign in to Tiny CRM",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "signingIn": "Signing in…",
+    "noAccount": "Don't have an account?",
+    "createOne": "Create one",
+    "registerTitle": "Create an Account",
+    "fullName": "Full Name",
+    "register": "Register",
+    "creatingAccount": "Creating account…",
+    "haveAccount": "Already have an account?",
+    "signInLink": "Sign in",
+    "errors": {
+      "fillAll": "Please fill in all fields",
+      "invalidCredentials": "Invalid email or password",
+      "registrationFailed": "Registration failed. Email might be taken."
+    }
+  },
+  "profile": {
+    "title": "User Profile",
+    "subtitle": "Manage your account settings.",
+    "email": "Email",
+    "status": "Status",
+    "logout": "Log out",
+    "loading": "Loading profile data…"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Welcome back. Here's what's happening with your CRM.",
+    "metrics": {
+      "totalRevenue": "Total Revenue",
+      "newRequests": "New Requests",
+      "needsAction": "Needs Action",
+      "contacts": "Contacts",
+      "conversionRate": "Conversion Rate",
+      "winLoss": "Win/Loss"
+    },
+    "dealBreakdown": "Deal Stage Breakdown"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "subtitle": "Manage your contacts and customer relationships.",
+    "newContact": "New Contact",
+    "searchPlaceholder": "Search contacts…",
+    "emptyTable": "No contacts found matching your criteria.",
+    "table": {
+      "contact": "Contact",
+      "company": "Company",
+      "role": "Role",
+      "status": "Status",
+      "revenue": "Revenue",
+      "lastContact": "Last Contact",
+      "ai": "AI"
+    }
+  },
+  "contactStatus": {
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "prospect": "Prospect"
+  },
+  "contactForm": {
+    "title": "New Contact",
+    "fullName": "Full Name *",
+    "email": "Email *",
+    "phoneRegion": "Phone & region",
+    "company": "Company *",
+    "role": "Role",
+    "status": "Status",
+    "revenue": "Revenue ($)",
+    "tags": "Tags",
+    "tagsHint": "Comma-separated",
+    "create": "Create Contact",
+    "phoneIncomplete": "Enter a full phone number (country + number)"
+  },
+  "countryPhone": {
+    "country": "Country",
+    "nationalNumber": "Number (without country code) *",
+    "fullNumber": "Full number:",
+    "digits": "digits",
+    "city": "City",
+    "cityPlaceholder": "Almaty, Moscow…"
+  },
+  "contactDetail": {
+    "at": "at",
+    "roleCompanyLine": "{role} at {company}",
+    "totalRevenue": "Total Revenue",
+    "lastContact": "Last Contact",
+    "tags": "Tags",
+    "relatedDeals": "Related Deals",
+    "noDeals": "No related deals.",
+    "analyzeAi": "Analyze with AI"
+  },
+  "deals": {
+    "title": "Deals",
+    "subtitle": "Overview of all your deals and revenue.",
+    "kanban": "Kanban",
+    "list": "List",
+    "newDeal": "New Deal",
+    "totalPipeline": "Total Pipeline",
+    "wonRevenue": "Won Revenue",
+    "lostRevenue": "Lost Revenue",
+    "dealsCount": "{n} deals",
+    "monthlyRevenue": "Monthly Revenue"
+  },
+  "dealForm": {
+    "title": "New Deal & Contact",
+    "dealInfo": "Deal Information",
+    "dealTitle": "Deal Title *",
+    "value": "Value ($)",
+    "assignedTo": "Assigned To",
+    "meDefault": "Me (default)",
+    "notes": "Notes / Description",
+    "notesPlaceholder": "Details about this deal…",
+    "contactLink": "Contact link",
+    "contactHelp": "Pick country and enter the number without country code. We match by full number or create a contact with country and city (no duplicate by number).",
+    "contactFound": "Contact found — existing record will be linked",
+    "name": "Name *",
+    "email": "Email",
+    "company": "Company",
+    "createDeal": "Create Deal",
+    "errors": {
+      "phone": "Enter a full number (country code + number, at least 10 digits total)",
+      "name": "Enter contact name",
+      "contactFailed": "Could not link contact"
+    }
+  },
+  "dealStages": {
+    "newRequest": "New Request",
+    "qualified": "Qualified",
+    "discovery": "Discovery",
+    "proposal": "Proposal",
+    "negotiation": "Negotiation",
+    "closedWon": "Closed Won",
+    "closedLost": "Closed Lost"
+  },
+  "analytics": {
+    "title": "Business Intelligence",
+    "subtitle": "Funnel, communications, and contact geography.",
+    "salesVelocity": "Sales Velocity",
+    "avgDaysBadge": "Avg days per stage",
+    "velocityHint": "Average time in deal stages for your company.",
+    "communication": "Communication activity",
+    "last45": "Last 45 days",
+    "commHint": "Distribution of communication types.",
+    "byCountry": "Contacts by country",
+    "crmBadge": "CRM",
+    "byCountryHint": "Based on country when creating or editing a contact.",
+    "topCities": "Top cities",
+    "topLimit": "up to 25",
+    "citiesHint": "Only contacts with city filled in.",
+    "notSpecified": "Not specified",
+    "noData": "No data",
+    "datasets": {
+      "contacts": "Contacts",
+      "avgDays": "Avg days in stage"
+    },
+    "efficiency": "Efficiency score",
+    "efficiencySub": "Based on funnel velocity",
+    "totalInteractions": "Total interactions",
+    "interactionsPeriod": "Communications in period",
+    "stagesInReport": "Stages in report",
+    "velocityFoot": "Sales velocity"
+  },
+  "commTypes": {
+    "call": "Call",
+    "email": "Email",
+    "telegram": "Telegram",
+    "meeting": "Meeting",
+    "other": "Other"
+  },
+  "messages": {
+    "title": "Messages",
+    "subtitle": "Telegram: chat with clients from the CRM.",
+    "startChat": "Start chat",
+    "contacts": "Contacts",
+    "telegramLinked": "Telegram linked ({n})",
+    "noTelegram": "Without Telegram ({n})",
+    "noContacts": "No contacts",
+    "emptyStateTitle": "Telegram Messenger",
+    "emptyStateHint": "Select a contact or tap “Start chat”",
+    "newChatCta": "+ Start new chat",
+    "modalTitle": "Start chat",
+    "modalHint": "Enter the client's Telegram ID. If the contact does not exist, it will be created automatically.",
+    "telegramId": "Telegram ID *",
+    "telegramIdPh": "e.g. 123456789",
+    "firstMessage": "First message (optional)",
+    "firstMessagePh": "Hello! How can I help?",
+    "connecting": "Connecting…",
+    "error": "Error",
+    "networkError": "Network error",
+    "alertBot": "Contact \"{name}\" was created, but the client has not started the bot (/start) yet. The message was saved in the CRM."
+  },
+  "users": {
+    "title": "Team management",
+    "subtitle": "Manage users, managers, and admins in your company.",
+    "newUser": "New User",
+    "noAccess": "You don't have permission to access team settings.",
+    "contactAdmin": "Please contact your company's administrator.",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "active": "Active",
+    "remove": "Remove",
+    "empty": "No users found in your company.",
+    "modalTitle": "Add team member",
+    "modalHint": "Create a new account in your company workspace.",
+    "emailAddress": "Email address",
+    "tempPassword": "Temporary password",
+    "rolePermissions": "Role permissions",
+    "roleUser": "User (view & edit deals)",
+    "roleAdmin": "Admin (manage team & settings)",
+    "roleSuper": "Super admin (global system admin)",
+    "createAccount": "Create account",
+    "confirmDelete": "Are you sure you want to delete this user?",
+    "errorPrefix": "Error:"
+  },
+  "ai": {
+    "title": "AI Insights",
+    "subtitle": "AI-generated analysis and recommendations across your CRM.",
+    "insightsCount": "{n} insights",
+    "filters": {
+      "all": "All",
+      "contact": "Contacts",
+      "lead": "Leads",
+      "deal": "Deals",
+      "general": "General"
+    },
+    "empty": "No insights found for the selected filter."
+  },
+  "aiLab": {
+    "title": "AI Prediction Lab",
+    "subtitle": "Test lead scoring and churn models with manual or automated data.",
+    "automatedTitle": "Automated analysis",
+    "automatedHint": "Enter a Contact ID to load real data from the CRM.",
+    "fetchAnalyze": "Fetch & analyze",
+    "manualTitle": "Manual overrides",
+    "activities": "Activities (30 days)",
+    "daysSince": "Days since contact",
+    "dealValue": "Deal value ($)",
+    "interactionScore": "Interaction score (0–1)",
+    "analyzing": "Analyzing…",
+    "runAnalysis": "Run AI analysis",
+    "contactIdRequired": "Please enter a contact ID",
+    "errors": {
+      "aiService": "Failed to connect to AI service.",
+      "contactAi": "Contact not found or AI failed."
+    },
+    "leadCard": "Lead conversion",
+    "churnCard": "Churn risk"
+  },
+  "globalSearch": {
+    "title": "Search",
+    "placeholder": "Search contacts and deals…",
+    "empty": "Type to search…",
+    "noResults": "No results for",
+    "types": {
+      "contact": "Contact",
+      "deal": "Deal"
+    }
+  },
+  "pipeline": {
+    "title": "Pipeline funnel"
+  },
+  "revenueChart": {
+    "title": "Revenue trend",
+    "subtitle": "Last 6 months"
+  },
+  "activity": {
+    "title": "Recent activity",
+    "justNow": "Just now",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago"
+  },
+  "activityTypes": {
+    "call": "Call",
+    "email": "Email",
+    "meeting": "Meeting",
+    "deal_won": "Deal won",
+    "deal_lost": "Deal lost",
+    "lead_created": "Lead created",
+    "note": "Note"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ru": "Russian",
+    "kk": "Kazakh"
+  }
+}
