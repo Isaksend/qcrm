@@ -52,7 +52,7 @@ audit_logger = logging.getLogger("audit")
 os.makedirs("uploads/chat", exist_ok=True)
 
 # Create DB Tables - Handled by Alembic in production
-# models.Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -497,3 +497,10 @@ async def upload_image_to_client(
         message_type="image",
     )
     return saved
+
+@app.post("/api/ml/lead-score/{contact_id}")
+async def create_lead_score(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    pass

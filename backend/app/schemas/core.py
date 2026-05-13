@@ -7,10 +7,12 @@ class DealBase(BaseModel):
     contactId: Optional[str] = None
     leadId: Optional[str] = None
     value: float = 0.0
+    currency: str = "KTZ"
     stage: str
     userId: Optional[str] = None
     companyId: Optional[str] = None
     notes: Optional[str] = None
+    createdAt: datetime = Field(default_factory=datetime.now)
     closedAt: Optional[datetime] = None
 
 class DealCreate(DealBase):
@@ -52,7 +54,22 @@ class Contact(ContactBase):
     class Config:
         from_attributes = True
 
+class MLPredictionBase(BaseModel):
+    contactId: str
+    modelType: str
+    score: float
+    riskTier: str
+    predictedAt: datetime = Field(default_factory=datetime.now)
 
+class MLPrediction(MLPredictionBase):
+    id: str
+    userId: str
+
+    class Config:
+        from_attributes = True
+
+class MLPredictionCreate(MLPredictionBase):
+	pass
 
 class ActivityBase(BaseModel):
     type: str
@@ -127,18 +144,20 @@ class AIInsight(AIInsightBase):
     class Config:
         from_attributes = True
 
-# --- Users, Auth & Companies ---
 
 class CompanyBase(BaseModel):
     name: str
+    industry: Optional[str] = ""
+    size: Optional[int] = 1
+    country: str
+    website: str
+    created_at: datetime = Field(default_factory=datetime.now)
 
 class CompanyCreate(CompanyBase):
     pass
 
 class CompanyResponse(CompanyBase):
     id: str
-    created_at: Optional[str] = None
-
     class Config:
         from_attributes = True
 

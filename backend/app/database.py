@@ -11,7 +11,12 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tinycrm.db")
 
 # check if sqlite vs postgres
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+if DATABASE_URL.startswith("sqlite"):
+	connect_args = {"check_same_thread": False}
+	print("Using sqlite")
+else:
+	connect_args = {}
+	print("Using postgres")
 
 engine = create_engine(
     DATABASE_URL, connect_args=connect_args

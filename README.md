@@ -62,7 +62,7 @@ npm run dev
 
 The application will be available at `http://localhost:5173`.
 
-### Backend Setup (FastAPI + PostgreSQL)
+### Backend Setup (FastAPI + PostgreSQL/SQLite)
 
 The project includes an integrated REST API backend powered by **FastAPI** and **SQLAlchemy**.
 
@@ -81,7 +81,7 @@ The project includes an integrated REST API backend powered by **FastAPI** and *
    python3 -m venv venv
    source venv/bin/activate
    ```
-
+   *Note: the tested python version is 3.13.5*
 3. Install requirements:
    ```bash
    pip install -r requirements.txt

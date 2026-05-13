@@ -133,7 +133,7 @@ export const contacts: Contact[] = [
     tags: ['Manufacturing', 'Industrial'],
   },
 ]
-
+/*
 export const sellers: Seller[] = [
   {
     id: 's1',
@@ -184,7 +184,7 @@ export const sellers: Seller[] = [
     activeLeads: 5,
   },
 ]
-
+*/
 export const leads: Lead[] = [
   {
     id: 'l1',
@@ -341,7 +341,9 @@ export const deals: Deal[] = [
     value: 48000,
     stage: 'Closed Won',
     closedAt: '2024-12-15',
-    sellerId: 's1',
+    userId: '',
+    companyId:'',
+    //sellerId: 's1',
   },
   {
     id: 'd2',
@@ -351,7 +353,9 @@ export const deals: Deal[] = [
     value: 35000,
     stage: 'Closed Won',
     closedAt: '2024-12-20',
-    sellerId: 's1',
+    userId: '',
+    companyId:'',
+    //sellerId: 's1',
   },
   {
     id: 'd3',
@@ -361,7 +365,9 @@ export const deals: Deal[] = [
     value: 120000,
     stage: 'Negotiation',
     closedAt: null,
-    sellerId: 's1',
+    userId: '',
+    companyId:'',
+    //sellerId: 's1',
   },
   {
     id: 'd4',
@@ -371,7 +377,9 @@ export const deals: Deal[] = [
     value: 95000,
     stage: 'Negotiation',
     closedAt: null,
-    sellerId: 's2',
+    userId: '',
+    companyId:'',
+    //sellerId: 's2',
   },
   {
     id: 'd5',
@@ -381,7 +389,9 @@ export const deals: Deal[] = [
     value: 85000,
     stage: 'Proposal',
     closedAt: null,
-    sellerId: 's2',
+    userId: '',
+    companyId:'',
+    //sellerId: 's2',
   },
   {
     id: 'd6',
@@ -391,7 +401,9 @@ export const deals: Deal[] = [
     value: 250000,
     stage: 'Discovery',
     closedAt: null,
-    sellerId: 's1',
+    userId: '',
+    companyId:'',
+    //sellerId: 's1',
   },
   {
     id: 'd7',
@@ -401,7 +413,9 @@ export const deals: Deal[] = [
     value: 62000,
     stage: 'Proposal',
     closedAt: null,
-    sellerId: 's4',
+    userId: '',
+    companyId:'',
+    //sellerId: 's4',
   },
   {
     id: 'd8',
@@ -411,7 +425,9 @@ export const deals: Deal[] = [
     value: 110000,
     stage: 'Discovery',
     closedAt: null,
-    sellerId: 's4',
+    userId: '',
+    companyId:'',
+    //sellerId: 's4',
   },
   {
     id: 'd9',
@@ -421,7 +437,9 @@ export const deals: Deal[] = [
     value: 38000,
     stage: 'Closed Lost',
     closedAt: '2024-11-30',
-    sellerId: 's2',
+    userId: '',
+    companyId:'',
+    //sellerId: 's2',
   },
   {
     id: 'd10',
@@ -431,7 +449,9 @@ export const deals: Deal[] = [
     value: 175000,
     stage: 'Discovery',
     closedAt: null,
-    sellerId: 's3',
+    userId: '',
+    companyId:'',
+    //sellerId: 's3',
   },
 ]
 
@@ -575,7 +595,7 @@ export const aiInsights: AIInsight[] = [
       'Share case studies from similar AI/ML companies',
       'Offer pilot program to reduce perceived risk',
     ],
-  },
+  },/*
   {
     id: 'ai5',
     entityType: 'seller',
@@ -603,7 +623,7 @@ export const aiInsights: AIInsight[] = [
       'Enroll in advanced negotiation workshop',
       'Review and practice objection handling scripts',
     ],
-  },
+  },*/
   {
     id: 'ai7',
     entityType: 'general',
@@ -796,7 +816,7 @@ export const mockAIResponses: Record<string, AIInsight> = {
   },
   l6: aiInsights.find((i) => i.entityId === 'l6')!,
   s1: aiInsights.find((i) => i.entityId === 's1')!,
-  s2: {
+  /*s2: {
     id: 'ai-s2',
     entityType: 'seller',
     entityId: 's2',
@@ -809,9 +829,9 @@ export const mockAIResponses: Record<string, AIInsight> = {
       'Practice MEDDIC framework for discovery',
       'Aim for 2 large enterprise deals this quarter',
     ],
-  },
+  },*/
   s3: aiInsights.find((i) => i.entityId === 's3')!,
-  s4: {
+  /*s4: {
     id: 'ai-s4',
     entityType: 'seller',
     entityId: 's4',
@@ -824,7 +844,7 @@ export const mockAIResponses: Record<string, AIInsight> = {
       'Share best practices with team in next sales meeting',
       'Consider moving to strategic account management role',
     ],
-  },
+  },*/
 }
 
 export const monthlyRevenue = [

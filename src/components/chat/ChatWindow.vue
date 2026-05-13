@@ -25,7 +25,7 @@ const isUploading = ref(false)
 // New Deal Modal State
 const showNewDealModal = ref(false)
 const isCreatingDeal = ref(false)
-const newDeal = ref({
+const newDeal = ref<Deal>({
   title: '',
   value: 0,
   stage: 'New Request' as Deal['stage'],
@@ -132,7 +132,18 @@ async function handleCreateDeal() {
       companyId: null as string | null, // handled by store/backend
     })
     showNewDealModal.value = false
-    newDeal.value = { title: '', value: 0, stage: 'New Request', notes: '' }
+    newDeal.value = {
+      title: '',
+      value: 0,
+      stage: 'New Request',
+      notes: '',
+      id: '',
+      leadId: '',
+      contactId: '',
+      closedAt: null,
+      userId: '',
+      companyId: null
+    }
   } catch (e) {
     console.error(e)
   } finally {
