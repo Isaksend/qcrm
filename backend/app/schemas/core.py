@@ -10,6 +10,7 @@ class DealBase(BaseModel):
     currency: str = "KTZ"
     stage: str
     userId: Optional[str] = None
+    createdById: Optional[str] = None
     companyId: Optional[str] = None
     notes: Optional[str] = None
     createdAt: datetime = Field(default_factory=datetime.now)
@@ -22,6 +23,10 @@ class DealUpdate(BaseModel):
     title: Optional[str] = None
     stage: Optional[str] = None
     value: Optional[float] = None
+    contactId: Optional[str] = None
+    leadId: Optional[str] = None
+    notes: Optional[str] = None
+    userId: Optional[str] = None
 
 class Deal(DealBase):
     id: str
@@ -53,6 +58,23 @@ class Contact(ContactBase):
 
     class Config:
         from_attributes = True
+
+
+class ContactUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    role: Optional[str] = None
+    status: Optional[str] = None
+    avatar: Optional[str] = None
+    revenue: Optional[float] = None
+    lastContact: Optional[str] = None
+    tags: Optional[List[str]] = None
+    companyId: Optional[str] = None
+    telegram_id: Optional[str] = None
+    country_iso2: Optional[str] = None
+    city: Optional[str] = None
 
 class MLPredictionBase(BaseModel):
     contactId: str
@@ -87,6 +109,14 @@ class Activity(ActivityBase):
     class Config:
         from_attributes = True
 
+
+class ActivityUpdate(BaseModel):
+    type: Optional[str] = None
+    entityType: Optional[str] = None
+    entityId: Optional[str] = None
+    description: Optional[str] = None
+    timestamp: Optional[str] = None
+
 class NoteBase(BaseModel):
     dealId: str
     content: str
@@ -98,6 +128,7 @@ class Note(NoteBase):
     id: str
     userId: str
     createdAt: datetime
+    authorName: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -161,10 +192,14 @@ class CompanyResponse(CompanyBase):
     class Config:
         from_attributes = True
 
+
+class CompanyUpdate(BaseModel):
+    name: Optional[str] = None
+
 class UserBase(BaseModel):
     name: str
     email: str
-    role: str = "user"
+    role: str = "sales_representative"
     company_id: Optional[str] = None
 
 class UserCreate(UserBase):

@@ -3,10 +3,12 @@
     "dashboard": "Dashboard",
     "contacts": "Contacts",
     "deals": "Deals",
+    "companies": "Companies",
     "analytics": "BI Analytics",
     "messages": "Messages",
     "aiInsights": "AI Insights",
     "aiLab": "AI Lab",
+    "activities": "Activities",
     "team": "Team"
   },
   "common": {
@@ -14,6 +16,7 @@
     "save": "Save",
     "close": "Close",
     "create": "Create",
+    "delete": "Delete",
     "search": "Search",
     "loading": "Loading…",
     "optional": "optional",
@@ -64,7 +67,13 @@
       "conversionRate": "Conversion Rate",
       "winLoss": "Win/Loss"
     },
-    "dealBreakdown": "Deal Stage Breakdown"
+    "dealBreakdown": "Deal Stage Breakdown",
+    "funnelConversions": "Stage transition rates",
+    "funnelHint": "Based on {n} stage-change events in history",
+    "funnelEmpty": "No stage history yet — move deals on the Kanban board to populate this.",
+    "churnDistribution": "Churn risk distribution (contacts)",
+    "churnSample": "Sampled {n} contacts in your scope",
+    "churnHeuristic": "Churn model not loaded — using a simple heuristic from last activity."
   },
   "contacts": {
     "title": "Contacts",
@@ -118,7 +127,12 @@
     "tags": "Tags",
     "relatedDeals": "Related Deals",
     "noDeals": "No related deals.",
-    "analyzeAi": "Analyze with AI"
+    "analyzeAi": "Analyze with AI",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Delete this contact? Related deals will be kept but unlinked.",
+    "saveEdits": "Save changes",
+    "editTitle": "Edit contact"
   },
   "deals": {
     "title": "Deals",
@@ -149,9 +163,10 @@
     "company": "Company",
     "createDeal": "Create Deal",
     "errors": {
-      "phone": "Enter a full number (country code + number, at least 10 digits total)",
+      "phone": "Enter a full number (country code + number, at least 7 digits in the number)",
       "name": "Enter contact name",
-      "contactFailed": "Could not link contact"
+      "contactFailed": "Could not link contact",
+      "dealFailed": "Could not create deal"
     }
   },
   "dealStages": {
@@ -220,6 +235,35 @@
     "networkError": "Network error",
     "alertBot": "Contact \"{name}\" was created, but the client has not started the bot (/start) yet. The message was saved in the CRM."
   },
+  "companies": {
+    "title": "Companies",
+    "subtitle": "View and update your organization (admins) or all tenants (super admin).",
+    "edit": "Edit",
+    "empty": "No companies returned.",
+    "loadError": "Could not load companies.",
+    "confirmDelete": "Delete this company? Users must be reassigned first."
+  },
+  "activities": {
+    "title": "Activities",
+    "subtitle": "Log calls, emails, meetings, and notes linked to contacts or deals.",
+    "new": "Log activity",
+    "add": "Add activity",
+    "edit": "Edit activity",
+    "entityId": "Contact or deal ID",
+    "description": "Description",
+    "confirmDelete": "Delete this activity?",
+    "types": {
+      "call": "Call",
+      "email": "Email",
+      "meeting": "Meeting",
+      "note": "Note"
+    },
+    "col": {
+      "type": "Type",
+      "entity": "Entity",
+      "description": "Description"
+    }
+  },
   "users": {
     "title": "Team management",
     "subtitle": "Manage users, managers, and admins in your company.",
@@ -241,7 +285,8 @@
     "emailAddress": "Email address",
     "tempPassword": "Temporary password",
     "rolePermissions": "Role permissions",
-    "roleUser": "User (view & edit deals)",
+    "roleUser": "Sales representative",
+    "roleManager": "Manager (team & pipeline)",
     "roleAdmin": "Admin (manage team & settings)",
     "roleSuper": "Super admin (global system admin)",
     "createAccount": "Create account",

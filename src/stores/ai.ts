@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AIInsight, AIMode } from '../types'
 import { apiUrl } from '../lib/api'
+import { useAuthStore } from './auth'
 
 export const useAIStore = defineStore('ai', () => {
+  const authStore = useAuthStore()
   const mode = ref<AIMode>('demo')
   const apiKey = ref('')
   const panelOpen = ref(false)
@@ -44,8 +46,12 @@ export const useAIStore = defineStore('ai', () => {
   }
 
   async function fetchInsights() {
+    const token = authStore.token || localStorage.getItem('token')
+    if (!token) return
     try {
-      const response = await fetch(apiUrl('/api/insights'))
+      const response = await fetch(apiUrl('/api/insights'), {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (response.ok) {
         insights.value = await response.json()
       }
@@ -55,6 +61,8 @@ export const useAIStore = defineStore('ai', () => {
   }
 
   async function saveInsight(insight: AIInsight) {
+    const token = authStore.token || localStorage.getItem('token')
+    if (!token) return insight
     try {
       // Remove temporary ID to let backend generate one, though backend might ignore it if it doesn't match UUID
       const payload = {
@@ -68,7 +76,10 @@ export const useAIStore = defineStore('ai', () => {
       }
       const response = await fetch(apiUrl('/api/insights'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload)
       })
       if (response.ok) {

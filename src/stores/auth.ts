@@ -36,13 +36,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(name: string, email: string, password: string, role: string = 'user') {
+  async function register(name: string, email: string, password: string, _role?: string) {
     isLoading.value = true
     try {
       const response = await fetch(apiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, email, password, role: 'sales_representative' }),
       })
       if (!response.ok) throw new Error('Registration failed')
       return await login(email, password)

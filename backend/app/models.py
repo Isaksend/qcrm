@@ -17,6 +17,7 @@ class Deal(Base):
     stage = Column(String, index=True) # Discovery, Proposal, Negotiation, Closed Won, Closed Lost
     closedAt = Column(DateTime, nullable=True)
     userId = Column(String, nullable=True)
+    createdById = Column(String, nullable=True)
     companyId = Column(String, nullable=True)
     notes = Column(String, nullable=True)
 

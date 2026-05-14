@@ -57,6 +57,12 @@ def get_current_admin(current_user: models.User = Depends(get_current_active_use
         raise HTTPException(status_code=403, detail="The user doesn't have enough privileges")
     return current_user
 
+
+def get_current_admin_or_manager(current_user: models.User = Depends(get_current_active_user)):
+    if current_user.role not in ("admin", "super_admin", "manager"):
+        raise HTTPException(status_code=403, detail="The user doesn't have enough privileges")
+    return current_user
+
 def get_current_super_admin(current_user: models.User = Depends(get_current_active_user)):
     if current_user.role != "super_admin":
         raise HTTPException(status_code=403, detail="Requires super admin privileges")

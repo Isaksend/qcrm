@@ -35,5 +35,20 @@ export const analyticsService = {
       headers: getAuthHeader()
     });
     return response.data;
+  },
+
+  async getFunnelConversions() {
+    const response = await axios.get(`${analyticsBase()}/funnel-conversions`, {
+      headers: getAuthHeader()
+    });
+    return response.data as { edges: { from_stage: string; to_stage: string; count: number; conversion_rate: number }[]; events: number };
+  },
+
+  async getChurnRiskDistribution(limit = 80) {
+    const response = await axios.get(`${analyticsBase()}/churn-risk-distribution`, {
+      headers: getAuthHeader(),
+      params: { limit }
+    });
+    return response.data as { buckets: Record<string, number>; total_scored: number; model_loaded: boolean };
   }
 };

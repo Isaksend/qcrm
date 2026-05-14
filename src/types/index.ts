@@ -37,7 +37,9 @@ export interface Deal {
   value: number
   stage: 'New Request' | 'Qualified' | 'Discovery' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost'
   closedAt: string | null
-  userId: string
+  userId: string | null
+  /** Кто создал сделку (аудит); может совпадать с userId. */
+  createdById?: string | null
   companyId: string | null
   notes?: string
 }
@@ -59,6 +61,8 @@ export interface Note {
   userId: string
   content: string
   createdAt: string
+  /** Имя автора с бэкенда (если есть) */
+  authorName?: string | null
 }
 
 export interface AIInsight {

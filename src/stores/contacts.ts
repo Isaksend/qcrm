@@ -6,6 +6,7 @@ import { useAuthStore } from './auth'
 import { canonicalPhoneForStorage, normalizePhoneDigits } from '../lib/phone'
 
 export const useContactsStore = defineStore('contacts', () => {
+  const authStore = useAuthStore()
   const contacts = ref<Contact[]>([])
   const isLoading = ref(false)
   const searchQuery = ref('')
@@ -74,10 +75,15 @@ export const useContactsStore = defineStore('contacts', () => {
     }
   }
 
+  function contactsAuthHeader(): Record<string, string> {
+    const t = authStore.token || localStorage.getItem('token')
+    return t ? { Authorization: `Bearer ${t}` } : {}
+  }
+
   async function searchContactByPhone(phone: string) {
     try {
       const response = await fetch(apiUrl(`/api/contacts/search?phone=${encodeURIComponent(phone)}`), {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: contactsAuthHeader(),
       })
       if (response.ok) {
         return await response.json()
@@ -93,7 +99,7 @@ export const useContactsStore = defineStore('contacts', () => {
     isLoading.value = true
     try {
       const response = await fetch(apiUrl('/api/contacts'), {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: contactsAuthHeader(),
       })
       if (response.ok) {
         contacts.value = await response.json()
@@ -140,14 +146,23 @@ export const useContactsStore = defineStore('contacts', () => {
       }
     }
 
+    await fetchContacts()
+    const localByDigits = contacts.value.find((c) => normalizePhoneDigits(c.phone) === digits)
+    if (localByDigits) return { contact: localByDigits }
+
     let email = (payload.email ?? '').trim()
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     if (!emailValid) {
       email = `tinycrm.${digits}.${crypto.randomUUID().slice(0, 8)}@noreply.invalid`
     } else {
-      await fetchContacts()
       const dupEmail = contacts.value.find((c) => c.email.toLowerCase() === email.toLowerCase())
-      if (dupEmail) return { contact: dupEmail }
+      // Только тот же контакт (email + те же цифры телефона). Иначе — создаём новую запись с уникальным email.
+      if (dupEmail && normalizePhoneDigits(dupEmail.phone) === digits) {
+        return { contact: dupEmail }
+      }
+      if (dupEmail) {
+        email = `tinycrm.${digits}.${crypto.randomUUID().slice(0, 8)}@noreply.invalid`
+      }
     }
 
     const phoneStored = canonicalPhoneForStorage(payload.phone)
@@ -192,7 +207,7 @@ export const useContactsStore = defineStore('contacts', () => {
       const byPhone = contacts.value.find((c) => normalizePhoneDigits(c.phone) === digits)
       if (byPhone) return { contact: byPhone }
       const byEmail = contacts.value.find((c) => c.email.toLowerCase() === email.toLowerCase())
-      if (byEmail) return { contact: byEmail }
+      if (byEmail && normalizePhoneDigits(byEmail.phone) === digits) return { contact: byEmail }
 
       let detail = 'Не удалось создать контакт'
       try {
@@ -205,6 +220,47 @@ export const useContactsStore = defineStore('contacts', () => {
     } catch (e) {
       console.error(e)
       return { contact: null, error: 'Ошибка сети при создании контакта' }
+    }
+  }
+
+  async function updateContact(id: string, patch: Partial<Contact>) {
+    const token = authStore.token
+    if (!token) return null
+    try {
+      const response = await fetch(apiUrl(`/api/contacts/${id}`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(patch),
+      })
+      if (!response.ok) return null
+      const updated = (await response.json()) as Contact
+      const i = contacts.value.findIndex((c) => c.id === id)
+      if (i >= 0) contacts.value[i] = updated
+      return updated
+    } catch (e) {
+      console.error(e)
+      return null
+    }
+  }
+
+  async function deleteContact(id: string) {
+    const token = authStore.token
+    if (!token) return false
+    try {
+      const response = await fetch(apiUrl(`/api/contacts/${id}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) return false
+      contacts.value = contacts.value.filter((c) => c.id !== id)
+      if (selectedContactId.value === id) selectedContactId.value = null
+      return true
+    } catch (e) {
+      console.error(e)
+      return false
     }
   }
 
@@ -223,5 +279,7 @@ export const useContactsStore = defineStore('contacts', () => {
     searchContactByPhone,
     fetchContacts,
     findOrCreateContactForDeal,
+    updateContact,
+    deleteContact,
   }
 })

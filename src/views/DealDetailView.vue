@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDealsStore } from '../stores/deals'
 import { useContactsStore } from '../stores/contacts'
+import { useAuthStore } from '../stores/auth'
 import ChatWindow from '../components/chat/ChatWindow.vue'
 import type { Deal, Note } from '../types'
 import { apiUrl } from '../lib/api'
@@ -11,14 +12,23 @@ const route = useRoute()
 const router = useRouter()
 const dealsStore = useDealsStore()
 const contactsStore = useContactsStore()
+const authStore = useAuthStore()
 
 const dealId = route.params.id as string
 const deal = ref<Deal | null>(null)
-const manager = ref<any>(null)
 const notes = ref<Note[]>([])
 const newNoteContent = ref('')
 const isLoading = ref(true)
 const isSavingNote = ref(false)
+const titleEdit = ref('')
+
+watch(
+  deal,
+  (d) => {
+    if (d) titleEdit.value = d.title
+  },
+  { immediate: true },
+)
 
 const contact = computed(() => {
   if (!deal.value) return null
@@ -28,37 +38,104 @@ const contact = computed(() => {
 const users = ref<any[]>([])
 const userMap = computed(() => {
   const map: Record<string, any> = {}
-  users.value.forEach(u => map[u.id] = u)
+  users.value.forEach((u) => (map[u.id] = u))
   return map
 })
 
+const manager = computed(() => {
+  const id = typeof deal.value?.userId === 'string' ? deal.value.userId.trim() : ''
+  if (!id) return null
+  return userMap.value[id] ?? null
+})
+
+const creator = computed(() => {
+  if (!deal.value) return null
+  const raw = deal.value.createdById || deal.value.userId
+  const id = typeof raw === 'string' ? raw.trim() : ''
+  if (!id) return null
+  return userMap.value[id] ?? null
+})
+
+function noteUserId(note: Note): string {
+  const n = note as Note & { user_id?: string }
+  const raw = n.userId ?? n.user_id
+  return raw != null && String(raw).trim() !== '' ? String(raw).trim() : ''
+}
+
+function userDisplayName(userId: string | null | undefined): string {
+  const id = typeof userId === 'string' ? userId.trim() : ''
+  if (!id) return ''
+  const u = userMap.value[id]
+  if (u?.name) return u.name as string
+  return `Пользователь ${id.slice(0, 8)}…`
+}
+
+function mergeAuthUserIntoList() {
+  const u = authStore.user
+  if (!u?.id) return
+  if (users.value.some((x) => x.id === u.id)) return
+  users.value = [...users.value, { ...u }]
+}
+
+async function hydrateMissingUsers(authHeaders: Record<string, string>) {
+  mergeAuthUserIntoList()
+  const ids = new Set<string>()
+  const add = (raw: string | null | undefined) => {
+    const s = typeof raw === 'string' ? raw.trim() : ''
+    if (s) ids.add(s)
+  }
+  if (deal.value) {
+    add(deal.value.userId ?? undefined)
+    add(deal.value.createdById ?? undefined)
+  }
+  for (const n of notes.value) {
+    add(noteUserId(n))
+  }
+  for (const id of ids) {
+    if (users.value.some((u) => u.id === id)) continue
+    try {
+      const r = await fetch(apiUrl(`/api/users/${encodeURIComponent(id)}`), { headers: authHeaders })
+      if (r.ok) users.value.push(await r.json())
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 async function fetchData() {
   isLoading.value = true
+  const token = authStore.token || localStorage.getItem('token')
+  const authHeaders: Record<string, string> = {}
+  if (token) authHeaders.Authorization = `Bearer ${token}`
   try {
-    // 1. Fetch Users (for manager and note authors)
+    if (token && !authStore.user) {
+      await authStore.fetchCurrentUser()
+    }
+
+    // 1. Список коллег компании
     const userRes = await fetch(apiUrl('/api/users'), {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: authHeaders,
     })
     if (userRes.ok) users.value = await userRes.json()
+    mergeAuthUserIntoList()
 
-    // 2. Fetch Deal
+    // 2. Сделка
     const res = await fetch(apiUrl(`/api/deals/${dealId}`), {
-       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: authHeaders,
     })
     if (res.ok) {
       deal.value = await res.json()
-      if (deal.value?.userId) {
-        manager.value = userMap.value[deal.value.userId]
-      }
     }
 
-    // 3. Fetch Notes
+    // 3. Заметки
     const notesRes = await fetch(apiUrl(`/api/deals/${dealId}/notes`), {
-       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: authHeaders,
     })
     if (notesRes.ok) notes.value = await notesRes.json()
 
-    // 4. Ensure contacts pre-loaded
+    await hydrateMissingUsers(authHeaders)
+
+    // 4. Контакты для сайдбара
     if (contactsStore.contacts.length === 0) await contactsStore.fetchContacts()
     
   } catch (e) {
@@ -71,13 +148,13 @@ async function fetchData() {
 async function addNote() {
   if (!newNoteContent.value.trim()) return
   isSavingNote.value = true
+  const token = authStore.token || localStorage.getItem('token')
+  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) authHeaders.Authorization = `Bearer ${token}`
   try {
     const res = await fetch(apiUrl(`/api/deals/${dealId}/notes`), {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
+      headers: authHeaders,
       body: JSON.stringify({
         dealId: dealId,
         content: newNoteContent.value
@@ -93,6 +170,18 @@ async function addNote() {
   } finally {
     isSavingNote.value = false
   }
+}
+
+async function saveDealTitle() {
+  if (!deal.value) return
+  await dealsStore.updateDeal(dealId, { title: titleEdit.value })
+  await fetchData()
+}
+
+async function deleteThisDeal() {
+  if (!confirm('Delete this deal?')) return
+  const ok = await dealsStore.deleteDeal(dealId)
+  if (ok) router.push('/deals')
 }
 
 onMounted(() => {
@@ -131,18 +220,25 @@ function formatDate(dateStr: string) {
 
     <div v-else-if="deal" class="space-y-6">
       <!-- Header -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <button @click="router.back()" class="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-          </button>
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">{{ deal.title }}</h1>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold" :class="stageClass[deal.stage]">
-                {{ deal.stage }}
-              </span>
-              <span class="text-xs text-gray-400 font-mono">ID: {{ deal.id.slice(0, 8) }}</span>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex flex-col gap-2 flex-1 min-w-0">
+          <div class="flex items-center gap-4">
+            <button @click="router.back()" class="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors shrink-0">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            </button>
+            <div class="min-w-0 flex-1">
+              <input
+                v-model="titleEdit"
+                class="text-2xl font-bold text-gray-900 w-full border border-transparent hover:border-gray-200 focus:border-indigo-300 rounded-lg px-2 py-1 -ml-2"
+              />
+              <div class="flex items-center gap-2 mt-1 flex-wrap">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold" :class="stageClass[deal.stage]">
+                  {{ deal.stage }}
+                </span>
+                <span class="text-xs text-gray-400 font-mono">ID: {{ deal.id.slice(0, 8) }}</span>
+                <button type="button" class="text-xs font-semibold text-indigo-600" @click="saveDealTitle">Save title</button>
+                <button type="button" class="text-xs font-semibold text-red-600" @click="deleteThisDeal">Delete deal</button>
+              </div>
             </div>
           </div>
         </div>
@@ -157,7 +253,7 @@ function formatDate(dateStr: string) {
         <div class="lg:col-span-2 space-y-6">
           <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-6 border-b border-gray-50 pb-2">Deal Context</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
                 <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Status</label>
                 <p class="font-bold text-gray-900 flex items-center gap-1.5">
@@ -166,15 +262,33 @@ function formatDate(dateStr: string) {
                 </p>
               </div>
               <div>
-                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Assigned Manager</label>
+                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Ответственный</label>
                 <div v-if="manager" class="flex flex-col">
                   <span class="font-bold text-gray-900">{{ manager.name }}</span>
                   <span class="text-[10px] text-indigo-600 font-bold uppercase">{{ manager.role }}</span>
                 </div>
-                <p v-else class="text-gray-400 italic">Unassigned</p>
+                <div v-else-if="deal.userId && String(deal.userId).trim()" class="flex flex-col">
+                  <span class="font-bold text-gray-900">{{ userDisplayName(deal.userId) }}</span>
+                  <span class="text-[10px] text-gray-500 font-bold uppercase">id: {{ String(deal.userId).slice(0, 8) }}…</span>
+                </div>
+                <p v-else class="text-gray-400 italic">Не назначен</p>
               </div>
               <div>
-                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Closed Date</label>
+                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Кто создал</label>
+                <div v-if="creator" class="flex flex-col">
+                  <span class="font-bold text-gray-900">{{ creator.name }}</span>
+                  <span class="text-[10px] text-gray-500 font-bold uppercase">{{ creator.email }}</span>
+                </div>
+                <div
+                  v-else-if="(deal.createdById && String(deal.createdById).trim()) || (deal.userId && String(deal.userId).trim())"
+                  class="flex flex-col"
+                >
+                  <span class="font-bold text-gray-900">{{ userDisplayName(deal.createdById || deal.userId) }}</span>
+                </div>
+                <p v-else class="text-gray-400 italic">Не указано</p>
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Дата закрытия</label>
                 <p class="font-bold text-gray-900">{{ deal.closedAt ? formatDate(deal.closedAt) : 'Pending' }}</p>
               </div>
             </div>
@@ -217,7 +331,9 @@ function formatDate(dateStr: string) {
                 <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-indigo-400"></div>
                 
                 <div class="flex items-center gap-2 mb-1">
-                  <span class="text-xs font-black text-gray-900">{{ userMap[note.userId]?.name || 'Unknown User' }}</span>
+                  <span class="text-xs font-black text-gray-900">{{
+                    note.authorName || userDisplayName(noteUserId(note)) || 'Неизвестный автор'
+                  }}</span>
                   <span class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">{{ formatDate(note.createdAt) }}</span>
                 </div>
                 <div class="text-sm text-gray-600 bg-white p-3 rounded-lg border border-gray-100 shadow-sm inline-block max-w-full break-words">

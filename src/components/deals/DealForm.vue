@@ -87,7 +87,7 @@ async function submit() {
   if (!form.title.trim()) return
 
   const digits = normalizePhoneDigits(contactFullPhone.value)
-  if (digits.length < 10) {
+  if (digits.length < 7) {
     submitError.value = t('dealForm.errors.phone')
     return
   }
@@ -110,7 +110,7 @@ async function submit() {
     return
   }
 
-  await dealsStore.addDeal({
+  const dealResult = await dealsStore.addDeal({
     leadId: '',
     contactId: contact.id,
     title: form.title,
@@ -124,6 +124,10 @@ async function submit() {
     companyId: authStore.user?.company_id || null,
     notes: form.notes,
   })
+  if (!dealResult.ok) {
+    submitError.value = dealResult.error || t('dealForm.errors.dealFailed')
+    return
+  }
   emit('close')
 }
 

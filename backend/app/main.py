@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
@@ -14,8 +14,8 @@ from sqlalchemy import text
 from typing import List, Optional
 from pydantic import BaseModel
 
-from app import models, schemas, crud, auth, ai_analyzer, tenant_access
-from app.database import get_db
+from app import models, schemas, crud, auth, ai_analyzer, tenant_access, roles
+from app.database import get_db, ensure_deals_created_by_column
 from app.telegram_bot import start_polling, stop_polling, send_telegram_message, get_telegram_user_info, send_telegram_photo
 from app.services.ai_service import ai_service
 from app.routers import ai_router, analytics_router
@@ -57,6 +57,7 @@ os.makedirs("uploads/chat", exist_ok=True)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting up...")
+    ensure_deals_created_by_column()
     try:
         ai_service.load_artifacts(get_settings().ML_MODELS_PATH)
     except Exception as exc:
@@ -160,19 +161,20 @@ def read_deals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), c
     user_id = None
     company_id = current_user.company_id
     
-    if current_user.role == "user":
+    if roles.is_sales_rep(current_user.role):
         user_id = current_user.id
-    elif current_user.role == "super_admin":
+    elif roles.is_super_admin(current_user.role):
         company_id = None
         
     return crud.get_deals(db, skip=skip, limit=limit, company_id=company_id, user_id=user_id)
 
 @app.post("/api/deals", response_model=schemas.Deal)
 def create_deal(deal: schemas.DealCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
-    if current_user.role == "user":
+    if roles.is_sales_rep(current_user.role):
         deal.userId = current_user.id
-    
+
     deal.companyId = current_user.company_id
+    deal = deal.model_copy(update={"createdById": current_user.id})
     new_deal = crud.create_deal(db=db, deal=deal)
     audit_logger.info(f"User {current_user.email} created deal: {new_deal.title} (ID: {new_deal.id})")
     return new_deal
@@ -183,10 +185,10 @@ def read_deal(deal_id: str, db: Session = Depends(get_db), current_user: models.
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
         
-    if current_user.role == "user" and deal.userId != current_user.id:
+    if roles.is_sales_rep(current_user.role) and deal.userId != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this deal")
         
-    if current_user.role == "admin" and deal.companyId != current_user.company_id:
+    if roles.is_company_admin(current_user.role) and deal.companyId != current_user.company_id:
         raise HTTPException(status_code=403, detail="Not authorized to access this deal")
         
     return deal
@@ -198,25 +200,54 @@ def update_stage(deal_id: str, stage: str, db: Session = Depends(get_db), curren
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
     
-    if current_user.role == "user" and deal.userId != current_user.id:
+    if roles.is_sales_rep(current_user.role) and deal.userId != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this deal")
     
-    if current_user.role == "admin" and deal.companyId != current_user.company_id:
+    if roles.is_company_admin(current_user.role) and deal.companyId != current_user.company_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this deal")
 
     return crud.update_deal_stage(db=db, deal_id=deal_id, stage=stage, user_id=current_user.id)
 
+
+@app.patch("/api/deals/{deal_id}", response_model=schemas.Deal)
+def update_deal(
+    deal_id: str,
+    body: schemas.DealUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.ensure_deal_access(db, current_user, deal_id)
+    updated = crud.update_deal_combined(db, deal_id, body, user_id=current_user.id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    return updated
+
+
+@app.delete("/api/deals/{deal_id}")
+def remove_deal(
+    deal_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.ensure_deal_access(db, current_user, deal_id)
+    if not crud.delete_deal(db, deal_id):
+        raise HTTPException(status_code=404, detail="Deal not found")
+    return {"status": "deleted"}
+
 @app.get("/api/deals/{deal_id}/notes", response_model=List[schemas.Note])
 def read_deal_notes(deal_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
     tenant_access.ensure_deal_access(db, current_user, deal_id)
-    return crud.get_deal_notes(db, deal_id=deal_id)
+    rows = crud.get_deal_notes(db, deal_id=deal_id)
+    return [crud.note_to_response(db, n) for n in rows]
+
 
 @app.post("/api/deals/{deal_id}/notes", response_model=schemas.Note)
 def create_deal_note(deal_id: str, note: schemas.NoteCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
     tenant_access.ensure_deal_access(db, current_user, deal_id)
     if note.dealId != deal_id:
         raise HTTPException(status_code=400, detail="Mismatched deal ID")
-    return crud.create_note(db, note=note, user_id=current_user.id)
+    saved = crud.create_note(db, note=note, user_id=current_user.id)
+    return crud.note_to_response(db, saved)
 
 # -------- CONTACTS --------
 @app.get("/api/contacts", response_model=List[schemas.Contact])
@@ -229,6 +260,32 @@ def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)
     if current_user.role != "super_admin":
         contact.companyId = current_user.company_id
     return crud.create_contact(db=db, contact=contact)
+
+
+@app.patch("/api/contacts/{contact_id}", response_model=schemas.Contact)
+def update_contact_route(
+    contact_id: str,
+    body: schemas.ContactUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.ensure_contact_access(db, current_user, contact_id)
+    updated = crud.update_contact(db, contact_id, body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return updated
+
+
+@app.delete("/api/contacts/{contact_id}")
+def delete_contact_route(
+    contact_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.ensure_contact_access(db, current_user, contact_id)
+    if not crud.delete_contact(db, contact_id):
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return {"status": "deleted"}
 
 @app.get("/api/contacts/search", response_model=schemas.Contact)
 def search_contact(
@@ -259,6 +316,48 @@ def create_activity(
     tenant_access.validate_activity_target(db, current_user, activity)
     return crud.create_activity(db=db, activity=activity)
 
+
+@app.get("/api/activities/{activity_id}", response_model=schemas.Activity)
+def read_activity(
+    activity_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return tenant_access.ensure_activity_access(db, current_user, activity_id)
+
+
+@app.patch("/api/activities/{activity_id}", response_model=schemas.Activity)
+def update_activity_route(
+    activity_id: str,
+    body: schemas.ActivityUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    act = tenant_access.ensure_activity_access(db, current_user, activity_id)
+    merged = schemas.ActivityCreate(
+        type=body.type if body.type is not None else act.type,
+        entityType=body.entityType if body.entityType is not None else act.entityType,
+        entityId=body.entityId if body.entityId is not None else act.entityId,
+        description=body.description if body.description is not None else act.description,
+        timestamp=body.timestamp if body.timestamp is not None else act.timestamp,
+    )
+    tenant_access.validate_activity_target(db, current_user, merged)
+    updated = crud.update_activity(db, activity_id, body)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return updated
+
+
+@app.delete("/api/activities/{activity_id}")
+def delete_activity_route(
+    activity_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.ensure_activity_access(db, current_user, activity_id)
+    crud.delete_activity(db, activity_id)
+    return {"status": "deleted"}
+
 # -------- AI INSIGHTS --------
 @app.get("/api/insights", response_model=List[schemas.AIInsight])
 def read_ai_insights(
@@ -284,7 +383,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
+    safe = user.model_copy(update={"role": "sales_representative"})
+    return crud.create_user(db=db, user=safe)
 
 @app.post("/api/auth/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -302,20 +402,62 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 def read_users_me(current_user: models.User = Depends(auth.get_current_active_user)):
     return current_user
 
+
+@app.get("/api/users/{user_id}", response_model=schemas.UserResponse)
+def read_user_by_id(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    """Карточка пользователя по id (та же компания или super_admin) — для отображения на сделке."""
+    target = crud.get_user(db, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if roles.is_super_admin(current_user.role):
+        return target
+    if current_user.id == target.id:
+        return target
+    if not current_user.company_id or target.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="Not permitted to view this user")
+    return target
+
+
 # -------- RBAC USERS MANAGEMENT --------
 @app.get("/api/users", response_model=List[schemas.UserResponse])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
-    # Admins see their company users. Super Admins see all.
-    comp_id = current_user.company_id if current_user.role != "super_admin" else None
+    """Список коллег компании для всех авторизованных (имена в карточках сделок и т.д.). Управление — отдельные эндпоинты с RBAC."""
+    if roles.is_super_admin(current_user.role):
+        comp_id = None
+    elif current_user.company_id:
+        comp_id = current_user.company_id
+    else:
+        return []
     return crud.get_users(db, skip=skip, limit=limit, company_id=comp_id)
 
 @app.post("/api/users", response_model=schemas.UserResponse)
-def create_new_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_admin)):
-    # Restrict roles based on who is creating
-    if current_user.role != "super_admin":
-        if user.role == "super_admin":
-            raise HTTPException(status_code=403, detail="Cannot create super admin")
-        user.company_id = current_user.company_id # Force admin's company id
+def create_new_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_admin_or_manager)):
+    if user.role == "user":
+        user = user.model_copy(update={"role": "sales_representative"})
+
+    if current_user.role == "manager":
+        if user.role != "sales_representative":
+            raise HTTPException(status_code=403, detail="Managers may only create sales representative accounts")
+        user = user.model_copy(update={"company_id": current_user.company_id})
+        return crud.create_user(db=db, user=user)
+
+    if current_user.role == "super_admin":
+        allowed_roles = ("super_admin", "admin", "manager", "sales_representative")
+        if user.role not in allowed_roles:
+            raise HTTPException(status_code=400, detail=f"role must be one of {allowed_roles}")
+        return crud.create_user(db=db, user=user)
+
+    if user.role == "super_admin":
+        raise HTTPException(status_code=403, detail="Cannot create super admin")
+    if user.role == "admin":
+        raise HTTPException(status_code=403, detail="Only super administrators can create company administrators")
+    if user.role not in ("manager", "sales_representative"):
+        raise HTTPException(status_code=403, detail="Invalid role for company administrator")
+    user = user.model_copy(update={"company_id": current_user.company_id})
     return crud.create_user(db=db, user=user)
 
 @app.delete("/api/users/{user_id}")
@@ -336,13 +478,58 @@ def create_company(company: schemas.CompanyCreate, db: Session = Depends(get_db)
     return crud.create_company(db=db, company=company)
 
 @app.get("/api/companies", response_model=List[schemas.CompanyResponse])
-def get_companies_list(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_super_admin)):
-    return crud.get_companies(db, skip=skip, limit=limit)
+def get_companies_list(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    if roles.is_super_admin(current_user.role):
+        return crud.get_companies(db, skip=skip, limit=limit)
+    if roles.is_company_admin(current_user.role) and current_user.company_id:
+        c = crud.get_company(db, current_user.company_id)
+        return [c] if c else []
+    raise HTTPException(status_code=403, detail="Not permitted to list companies")
+
+
+@app.patch("/api/companies/{company_id}", response_model=schemas.CompanyResponse)
+def patch_company(
+    company_id: str,
+    body: schemas.CompanyUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    if roles.is_super_admin(current_user.role):
+        pass
+    elif roles.is_company_admin(current_user.role) and current_user.company_id == company_id:
+        pass
+    else:
+        raise HTTPException(status_code=403, detail="Not permitted to update this company")
+    c = crud.update_company(db, company_id, body)
+    if not c:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return c
+
+
+@app.delete("/api/companies/{company_id}")
+def remove_company(
+    company_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_super_admin),
+):
+    company = crud.get_company(db, company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if db.query(models.User).filter(models.User.company_id == company_id).count() > 0:
+        raise HTTPException(status_code=400, detail="Reassign or remove users before deleting this company")
+    crud.delete_company(db, company_id)
+    return {"status": "deleted"}
 
 # -------- TELEGRAM CHAT --------
 @app.get("/api/chat/{contact_id}", response_model=List[schemas.ChatMessageOut])
-def get_chat_history(contact_id: str, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_active_user)):
-    tenant_access.ensure_contact_access(db, current_user, contact_id)
+def get_chat_history(
+    contact_id: str,
+    limit: int = 100,
+    deal_id: Optional[str] = Query(None, alias="dealId"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    tenant_access.ensure_chat_contact_access(db, current_user, contact_id, deal_id)
     return crud.get_chat_messages(db, contact_id=contact_id, limit=limit)
 
 @app.post("/api/chat/send", response_model=schemas.ChatMessageOut)
@@ -355,7 +542,7 @@ async def send_message_to_client(
     contact = db.query(models.Contact).filter(models.Contact.id == msg.contactId).first()
     if not contact:
         raise HTTPException(status_code=404, detail=f"Contact with ID {msg.contactId} not found")
-    tenant_access.ensure_contact_access(db, current_user, contact.id)
+    tenant_access.ensure_chat_contact_access(db, current_user, contact.id, msg.dealId)
     if not contact.telegram_id:
         raise HTTPException(status_code=400, detail="Contact has no Telegram ID linked. Ask the client to /start the bot and provide their ID.")
 
@@ -467,7 +654,7 @@ async def upload_image_to_client(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_active_user),
 ):
-    contact = tenant_access.ensure_contact_access(db, current_user, contactId)
+    contact = tenant_access.ensure_chat_contact_access(db, current_user, contactId, dealId)
     if not contact.telegram_id:
         raise HTTPException(status_code=400, detail="Contact has no Telegram linked")
 
@@ -497,10 +684,3 @@ async def upload_image_to_client(
         message_type="image",
     )
     return saved
-
-@app.post("/api/ml/lead-score/{contact_id}")
-async def create_lead_score(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
-):
-    pass

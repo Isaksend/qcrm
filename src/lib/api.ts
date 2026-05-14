@@ -10,7 +10,9 @@ export function joinApiPath(origin: string | undefined | null, path: string): st
 /**
  * Backend base URL for API calls.
  * - Leave VITE_API_BASE_URL unset or empty for same-origin (Docker/nginx: `/api/...`).
- * - Set to full origin for local Vite + remote API, e.g. `http://127.0.0.1:8000`.
+ * - Local `vite` / `vite preview`: при пустом значении запросы идут на тот же порт, что и SPA;
+ *   в репозитории для dev и preview настроен proxy `/api` → uvicorn (см. vite.config.ts).
+ * - Явный бэкенд: `VITE_API_BASE_URL=http://127.0.0.1:8000` (удобно без proxy или другой порт).
  */
 export function getBackendOrigin(): string {
   const raw = import.meta.env.VITE_API_BASE_URL

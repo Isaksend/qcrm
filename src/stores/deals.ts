@@ -78,27 +78,40 @@ export const useDealsStore = defineStore('deals', () => {
     }
   }
 
-  async function addDeal(data: Omit<Deal, 'id'>) {
-
-    
+  async function addDeal(
+    data: Omit<Deal, 'id'>
+  ): Promise<{ ok: true; deal: Deal } | { ok: false; error: string }> {
     try {
       const response = await fetch(apiUrl('/api/deals'), {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authStore.token}`
+          Authorization: `Bearer ${authStore.token}`,
         },
         body: JSON.stringify({
           ...data,
-          companyId: authStore.user?.company_id || null,
-          userId: data.userId || authStore.user?.id || null 
-        })
+          leadId: data.leadId?.trim() ? data.leadId : null,
+          contactId: data.contactId?.trim() ? data.contactId : null,
+          companyId: authStore.user?.company_id ?? null,
+          userId: data.userId?.trim() ? data.userId : authStore.user?.id ?? null,
+        }),
       })
-      if (!response.ok) throw new Error('Failed to create deal')
-      const newDeal = await response.json()
+      if (!response.ok) {
+        let detail = 'Не удалось создать сделку'
+        try {
+          const err = await response.json()
+          if (err.detail) detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)
+        } catch {
+          /* ignore */
+        }
+        return { ok: false, error: detail }
+      }
+      const newDeal = (await response.json()) as Deal
       deals.value.push(newDeal)
+      return { ok: true, deal: newDeal }
     } catch (e: any) {
-      console.error('Error adding deal:', e.message)
+      console.error('Error adding deal:', e)
+      return { ok: false, error: e?.message || 'Ошибка сети при создании сделки' }
     }
   }
 
@@ -125,6 +138,46 @@ export const useDealsStore = defineStore('deals', () => {
     }
   }
 
+  async function updateDeal(id: string, patch: Partial<Deal>) {
+    error.value = null
+    try {
+      const response = await fetch(apiUrl(`/api/deals/${id}`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authStore.token}`,
+        },
+        body: JSON.stringify(patch),
+      })
+      if (!response.ok) throw new Error('Failed to update deal')
+      const updated = (await response.json()) as Deal
+      const i = deals.value.findIndex((d) => d.id === id)
+      if (i >= 0) deals.value[i] = updated
+      return updated
+    } catch (e: any) {
+      error.value = e.message
+      console.error(e)
+      return null
+    }
+  }
+
+  async function deleteDeal(id: string) {
+    error.value = null
+    try {
+      const response = await fetch(apiUrl(`/api/deals/${id}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authStore.token}` },
+      })
+      if (!response.ok) throw new Error('Failed to delete deal')
+      deals.value = deals.value.filter((d) => d.id !== id)
+      return true
+    } catch (e: any) {
+      error.value = e.message
+      console.error(e)
+      return false
+    }
+  }
+
   return {
     deals,
     sortField,
@@ -140,5 +193,7 @@ export const useDealsStore = defineStore('deals', () => {
     setSort,
     addDeal,
     updateDealStage,
+    updateDeal,
+    deleteDeal,
   }
 })

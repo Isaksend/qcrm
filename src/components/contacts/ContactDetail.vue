@@ -1,16 +1,55 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useContactsStore } from '../../stores/contacts'
 import { useDealsStore } from '../../stores/deals'
 import { useAI } from '../../composables/useAI'
 import { getCountryByIso2 } from '../../lib/countries'
 import { dealStageLabel } from '../../i18n/stages'
+import type { Contact } from '../../types'
 
 const { t, locale } = useI18n()
 const contactsStore = useContactsStore()
 const dealsStore = useDealsStore()
 const { analyze } = useAI()
+
+const editOpen = ref(false)
+const editForm = ref({
+  name: '',
+  email: '',
+  phone: '',
+  company: '',
+  status: 'Active' as Contact['status'],
+})
+
+watch(
+  () => contactsStore.selectedContact,
+  (c) => {
+    if (!c) return
+    editForm.value = {
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      company: c.company,
+      status: c.status,
+    }
+  },
+  { immediate: true },
+)
+
+async function saveEdits() {
+  const c = contact.value
+  if (!c) return
+  await contactsStore.updateContact(c.id, { ...editForm.value })
+  editOpen.value = false
+}
+
+async function removeContact() {
+  const c = contact.value
+  if (!c || !confirm(t('contactDetail.confirmDelete'))) return
+  await contactsStore.deleteContact(c.id)
+  await dealsStore.fetchDeals()
+}
 
 const contact = computed(() => contactsStore.selectedContact)
 
@@ -76,25 +115,41 @@ function dealStage(s: string) {
     <div class="absolute inset-0 bg-black/20" @click="contactsStore.selectedContactId = null"></div>
     <div class="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto animate-slide-in">
       <div class="p-6">
-        <div class="flex items-start justify-between mb-6">
-          <div class="flex items-center gap-4">
-            <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center">
+        <div class="flex items-start justify-between gap-3 mb-6">
+          <div class="flex items-center gap-4 min-w-0">
+            <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
               <span class="text-indigo-600 text-lg font-semibold">{{ contact.avatar }}</span>
             </div>
-            <div>
+            <div class="min-w-0">
               <h2 class="text-lg font-semibold text-gray-900">{{ contact.name }}</h2>
               <p class="text-sm text-gray-500">{{ roleCompanyLine(contact) }}</p>
               <span class="badge mt-1" :class="statusClass[contact.status]">{{ contactStatusLabel(contact.status) }}</span>
             </div>
           </div>
-          <button
-            @click="contactsStore.selectedContactId = null"
-            class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div class="flex items-start gap-2 shrink-0">
+            <button
+              type="button"
+              class="text-xs font-medium text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-50"
+              @click="editOpen = true"
+            >
+              {{ t('contactDetail.edit') }}
+            </button>
+            <button
+              type="button"
+              class="text-xs font-medium text-red-600 px-2 py-1 rounded-lg hover:bg-red-50"
+              @click="removeContact"
+            >
+              {{ t('contactDetail.delete') }}
+            </button>
+            <button
+              @click="contactsStore.selectedContactId = null"
+              class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="space-y-3 mb-6">
@@ -149,6 +204,23 @@ function dealStage(s: string) {
             </div>
           </div>
           <p v-else class="text-sm text-gray-400">{{ t('contactDetail.noDeals') }}</p>
+        </div>
+
+        <div v-if="editOpen" class="border border-gray-200 rounded-xl p-4 mb-6 space-y-3 bg-gray-50">
+          <h3 class="text-sm font-semibold text-gray-800">{{ t('contactDetail.editTitle') }}</h3>
+          <input v-model="editForm.name" class="w-full px-3 py-2 border rounded-lg text-sm" />
+          <input v-model="editForm.email" class="w-full px-3 py-2 border rounded-lg text-sm" />
+          <input v-model="editForm.phone" class="w-full px-3 py-2 border rounded-lg text-sm" />
+          <input v-model="editForm.company" class="w-full px-3 py-2 border rounded-lg text-sm" />
+          <select v-model="editForm.status" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Prospect">Prospect</option>
+          </select>
+          <div class="flex gap-2 justify-end">
+            <button type="button" class="text-sm text-gray-600" @click="editOpen = false">{{ t('common.cancel') }}</button>
+            <button type="button" class="btn-primary text-sm" @click="saveEdits">{{ t('contactDetail.saveEdits') }}</button>
+          </div>
         </div>
 
         <button @click="handleAnalyze" class="btn-primary w-full justify-center">

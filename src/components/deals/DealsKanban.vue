@@ -119,13 +119,13 @@ function getStageColor(stage: string): string {
             </button>
             <div 
                class="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 rounded-full border border-indigo-100 shrink-0 ml-2"
-               :title="'Assigned to: ' + (userMap[deal.userId] || 'Unknown')"
+               :title="'Assigned to: ' + (deal.userId && userMap[deal.userId] ? userMap[deal.userId] : 'Unknown')"
             >
               <div class="w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[8px] text-white font-bold">
-                {{ userMap[deal.userId] ? userMap[deal.userId].charAt(0) : 'U' }}
+                {{ deal.userId && userMap[deal.userId] ? userMap[deal.userId].charAt(0) : 'U' }}
               </div>
               <span class="text-[10px] font-bold text-indigo-700 truncate max-w-[60px]">
-                {{ userMap[deal.userId] || '—' }}
+                {{ (deal.userId && userMap[deal.userId]) || '—' }}
               </span>
             </div>
           </div>

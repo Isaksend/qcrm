@@ -9,16 +9,23 @@ const authStore = useAuthStore()
 const { t } = useI18n()
 
 const navItems = computed(() => {
+  const elevated = ['admin', 'super_admin', 'manager'].includes(authStore.userRole)
   const items = [
     { to: '/', key: 'nav.dashboard', icon: 'chart-bar' },
     { to: '/contacts', key: 'nav.contacts', icon: 'users' },
     { to: '/deals', key: 'nav.deals', icon: 'currency' },
+  ]
+  if (elevated) {
+    items.push({ to: '/companies', key: 'nav.companies', icon: 'currency' })
+  }
+  items.push(
     { to: '/analytics', key: 'nav.analytics', icon: 'chart-bar' },
     { to: '/messages', key: 'nav.messages', icon: 'chat' },
     { to: '/ai', key: 'nav.aiInsights', icon: 'sparkles' },
     { to: '/ai-lab', key: 'nav.aiLab', icon: 'sparkles' },
-  ]
-  if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin') {
+    { to: '/activities', key: 'nav.activities', icon: 'sparkles' },
+  )
+  if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin' || authStore.userRole === 'manager') {
     items.push({ to: '/users', key: 'nav.team', icon: 'shield-check' })
   }
   return items

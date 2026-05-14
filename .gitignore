@@ -6,6 +6,7 @@ dist
 *.local
 npm-debug.log*
 
+backend/**/__pycache__/
 # Python / FastAPI Backend
 backend/venv/
 **/__pycache__/

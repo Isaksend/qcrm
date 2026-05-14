@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
+import logging
 import os
 from dotenv import load_dotenv
 
@@ -24,6 +25,28 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+
+def ensure_deals_created_by_column() -> None:
+    """Если колонка deals.createdById ещё не создана (миграция не прогонялась), добавляем — иначе SELECT по Deal падает с 500."""
+    try:
+        insp = inspect(engine)
+        if not insp.has_table("deals"):
+            return
+        names = {c["name"] for c in insp.get_columns("deals")}
+        if "createdById" in names:
+            return
+        # PostgreSQL без кавычек мог дать lowercase
+        if any(n.lower() == "createdbyid" for n in names):
+            return
+        with engine.begin() as conn:
+            if DATABASE_URL.startswith("sqlite"):
+                conn.execute(text('ALTER TABLE deals ADD COLUMN "createdById" TEXT'))
+            else:
+                conn.execute(text('ALTER TABLE deals ADD COLUMN IF NOT EXISTS "createdById" VARCHAR'))
+    except Exception as exc:
+        logging.getLogger("uvicorn.error").warning("ensure_deals_created_by_column: %s", exc)
+
 
 def get_db():
     db = SessionLocal()

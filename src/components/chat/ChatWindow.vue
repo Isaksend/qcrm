@@ -5,6 +5,8 @@ import { useDealsStore } from '../../stores/deals'
 import { apiUrl, getBackendOrigin } from '../../lib/api'
 import type { Deal } from '../../types'
 
+type NewDealDraft = Pick<Deal, 'title' | 'value' | 'stage' | 'notes'>
+
 const props = defineProps<{
   contactId: string
   contactName: string
@@ -25,11 +27,12 @@ const isUploading = ref(false)
 // New Deal Modal State
 const showNewDealModal = ref(false)
 const isCreatingDeal = ref(false)
-const newDeal = ref<Deal>({
+const newDealError = ref('')
+const newDeal = ref<NewDealDraft>({
   title: '',
   value: 0,
-  stage: 'New Request' as Deal['stage'],
-  notes: ''
+  stage: 'New Request',
+  notes: '',
 })
 
 // AI Analysis State
@@ -53,9 +56,9 @@ function scrollToBottom() {
 }
 
 onMounted(async () => {
-  await chatStore.fetchMessages(props.contactId)
+  await chatStore.fetchMessages(props.contactId, props.dealId)
   scrollToBottom()
-  chatStore.startPolling(props.contactId)
+  chatStore.startPolling(props.contactId, props.dealId)
 })
 
 onUnmounted(() => {
@@ -119,33 +122,46 @@ async function handleFileUpload(event: Event) {
   }
 }
 
+function closeNewDealModal() {
+  showNewDealModal.value = false
+  newDealError.value = ''
+}
+
+function openNewDealModal() {
+  newDealError.value = ''
+  showNewDealModal.value = true
+}
+
 async function handleCreateDeal() {
   if (!newDeal.value.title || isCreatingDeal.value) return
   isCreatingDeal.value = true
+  newDealError.value = ''
   try {
-    await dealsStore.addDeal({
+    const payload: Omit<Deal, 'id'> = {
+      title: newDeal.value.title,
+      value: newDeal.value.value,
+      stage: newDeal.value.stage,
+      notes: newDeal.value.notes || '',
       leadId: '',
-      closedAt: null,
-      ...newDeal.value,
       contactId: props.contactId,
-      userId: '', // handled by store/backend
-      companyId: null as string | null, // handled by store/backend
-    })
+      closedAt: null,
+      userId: '',
+      companyId: null,
+    }
+    const result = await dealsStore.addDeal(payload)
+    if (!result.ok) {
+      newDealError.value = result.error
+      return
+    }
     showNewDealModal.value = false
     newDeal.value = {
       title: '',
       value: 0,
       stage: 'New Request',
       notes: '',
-      id: '',
-      leadId: '',
-      contactId: '',
-      closedAt: null,
-      userId: '',
-      companyId: null
     }
-  } catch (e) {
-    console.error(e)
+  } catch (e: any) {
+    newDealError.value = e?.message || 'Ошибка создания сделки'
   } finally {
     isCreatingDeal.value = false
   }
@@ -227,7 +243,7 @@ function openImage(url: string) {
           <span class="text-[9px] font-black uppercase tracking-tighter hidden sm:inline">AI Анализ</span>
         </button>
         <button 
-          @click="showNewDealModal = true"
+          @click="openNewDealModal"
           class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2"
         >
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
@@ -404,7 +420,7 @@ function openImage(url: string) {
     <div v-if="showNewDealModal" class="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col p-6 overflow-y-auto">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-black text-gray-900 uppercase tracking-tight">Новая сделка</h3>
-        <button @click="showNewDealModal = false" class="text-gray-400 hover:text-gray-600">
+        <button @click="closeNewDealModal" class="text-gray-400 hover:text-gray-600">
            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
@@ -425,6 +441,7 @@ function openImage(url: string) {
             </select>
           </div>
         </div>
+        <p v-if="newDealError" class="text-sm text-red-600">{{ newDealError }}</p>
         <button @click="handleCreateDeal" :disabled="!newDeal.title || isCreatingDeal" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 disabled:bg-gray-200 transition-all shadow-lg shadow-indigo-100">
           {{ isCreatingDeal ? 'Создание...' : 'Создать сделку' }}
         </button>

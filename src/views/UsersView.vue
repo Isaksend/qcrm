@@ -12,7 +12,7 @@ const showForm = ref(false)
 const name = ref('')
 const email = ref('')
 const password = ref('')
-const role = ref('user')
+const role = ref('sales_representative')
 
 async function fetchUsers() {
   try {
@@ -46,7 +46,7 @@ async function createUser() {
       name.value = ''
       email.value = ''
       password.value = ''
-      role.value = 'user'
+      role.value = 'sales_representative'
       await fetchUsers()
     } else {
       const data = await res.json()
@@ -76,7 +76,7 @@ async function deleteUser(id: string) {
 }
 
 onMounted(() => {
-  if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin') {
+  if (['admin', 'super_admin', 'manager'].includes(authStore.userRole)) {
     fetchUsers()
   }
 })
@@ -89,7 +89,7 @@ onMounted(() => {
         <h1 class="text-2xl font-bold text-gray-900">{{ t('users.title') }}</h1>
         <p class="text-sm text-gray-500 mt-1">{{ t('users.subtitle') }}</p>
       </div>
-      <button v-if="authStore.userRole !== 'user'" @click="showForm = true" class="btn-primary">
+      <button v-if="['admin', 'super_admin', 'manager'].includes(authStore.userRole)" @click="showForm = true" class="btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
@@ -97,7 +97,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <div v-if="authStore.userRole === 'user'" class="card text-center py-12 text-gray-500">
+    <div v-if="!['admin', 'super_admin', 'manager'].includes(authStore.userRole)" class="card text-center py-12 text-gray-500">
       <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
@@ -139,6 +139,8 @@ onMounted(() => {
                 :class="{
                   'bg-purple-100 text-purple-700': u.role === 'super_admin',
                   'bg-blue-100 text-blue-700': u.role === 'admin',
+                  'bg-amber-100 text-amber-800': u.role === 'manager',
+                  'bg-emerald-100 text-emerald-800': u.role === 'sales_representative',
                   'bg-gray-100 text-gray-600': u.role === 'user',
                 }"
               >
@@ -153,7 +155,12 @@ onMounted(() => {
             </td>
             <td class="py-3 px-4 text-right">
               <button
-                v-if="u.id !== authStore.user?.id && (authStore.userRole === 'super_admin' || u.role !== 'super_admin')"
+                v-if="
+                  u.id !== authStore.user?.id &&
+                  (authStore.userRole === 'super_admin' ||
+                    (authStore.userRole === 'admin' && u.role !== 'super_admin' && u.role !== 'admin') ||
+                    (authStore.userRole === 'manager' && u.role === 'sales_representative'))
+                "
                 @click="deleteUser(u.id)"
                 class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors"
               >
@@ -210,8 +217,9 @@ onMounted(() => {
               v-model="role"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
             >
-              <option value="user">{{ t('users.roleUser') }}</option>
-              <option value="admin">{{ t('users.roleAdmin') }}</option>
+              <option value="sales_representative">{{ t('users.roleUser') }}</option>
+              <option v-if="authStore.userRole !== 'manager'" value="manager">{{ t('users.roleManager') }}</option>
+              <option v-if="authStore.userRole === 'super_admin'" value="admin">{{ t('users.roleAdmin') }}</option>
               <option v-if="authStore.userRole === 'super_admin'" value="super_admin">{{ t('users.roleSuper') }}</option>
             </select>
           </div>

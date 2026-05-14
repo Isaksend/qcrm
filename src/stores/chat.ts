@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { apiUrl } from '../lib/api'
+import { useAuthStore } from './auth'
 
 interface ChatMessage {
   id: string
@@ -15,23 +16,31 @@ interface ChatMessage {
 }
 
 export const useChatStore = defineStore('chat', () => {
+  const authStore = useAuthStore()
   const messages = ref<ChatMessage[]>([])
   const isLoading = ref(false)
   const activeContactId = ref<string | null>(null)
+  const activeDealIdForChat = ref<string | null>(null)
   let pollInterval: ReturnType<typeof setInterval> | null = null
 
   function getHeaders() {
+    const token = authStore.token || localStorage.getItem('token')
     return {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${token || ''}`,
       'Content-Type': 'application/json',
     }
   }
 
-  async function fetchMessages(contactId: string) {
+  async function fetchMessages(contactId: string, dealId?: string | null) {
     isLoading.value = true
     activeContactId.value = contactId
+    activeDealIdForChat.value = dealId || null
     try {
-      const res = await fetch(apiUrl(`/api/chat/${contactId}`), {
+      const q =
+        dealId && String(dealId).trim() !== ''
+          ? `?dealId=${encodeURIComponent(String(dealId).trim())}`
+          : ''
+      const res = await fetch(apiUrl(`/api/chat/${contactId}${q}`), {
         headers: getHeaders(),
       })
       if (res.ok) {
@@ -65,13 +74,18 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function startPolling(contactId: string, intervalMs = 3000) {
+  function startPolling(contactId: string, dealId?: string | null, intervalMs = 3000) {
     stopPolling()
     activeContactId.value = contactId
+    activeDealIdForChat.value = dealId || null
     pollInterval = setInterval(async () => {
       if (activeContactId.value !== contactId) return
       try {
-        const res = await fetch(apiUrl(`/api/chat/${contactId}`), {
+        const q =
+          activeDealIdForChat.value && String(activeDealIdForChat.value).trim() !== ''
+            ? `?dealId=${encodeURIComponent(String(activeDealIdForChat.value).trim())}`
+            : ''
+        const res = await fetch(apiUrl(`/api/chat/${contactId}${q}`), {
           headers: getHeaders(),
         })
         if (res.ok) {
@@ -88,6 +102,7 @@ export const useChatStore = defineStore('chat', () => {
       clearInterval(pollInterval)
       pollInterval = null
     }
+    activeDealIdForChat.value = null
   }
 
   return {

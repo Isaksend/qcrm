@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends
+from collections import Counter
 from sqlalchemy.orm import Session
 from sqlalchemy import func, false
 from app.database import get_db
-from app import models, auth
+from app import models, auth, crud
+from app.services.ai_service import ai_service
+from app.schemas.ai_schemas import ChurnPredictInput
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["Analytics"])
 
@@ -145,3 +148,62 @@ async def contacts_by_city(
             for city, iso, cnt in rows
         ],
     }
+
+
+@router.get("/funnel-conversions")
+def funnel_conversions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    """Доли переходов между стадиями по журналу DealStageHistory (в рамках доступных сделок)."""
+    deal_ids = _deal_ids_for_user(db, current_user)
+    history_q = db.query(models.DealStageHistory)
+    if deal_ids is not None:
+        if not deal_ids:
+            return {"edges": [], "events": 0}
+        history_q = history_q.filter(models.DealStageHistory.deal_id.in_(deal_ids))
+    rows = history_q.all()
+    trans = Counter((h.old_stage, h.new_stage) for h in rows)
+    denom = Counter(h.old_stage for h in rows)
+    edges = []
+    for (old_s, new_s), cnt in trans.items():
+        d = denom.get(old_s) or 1
+        edges.append(
+            {
+                "from_stage": old_s,
+                "to_stage": new_s,
+                "count": cnt,
+                "conversion_rate": round(cnt / d, 4),
+            }
+        )
+    edges.sort(key=lambda e: (e["from_stage"], e["to_stage"]))
+    return {"edges": edges, "events": len(rows)}
+
+
+@router.get("/churn-risk-distribution")
+async def churn_risk_distribution(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+    limit: int = 80,
+):
+    """Распределение уровней риска оттока по контактам (ML или эвристика, если модель не загружена)."""
+    q = _contacts_query_for_user(db, current_user)
+    contacts = q.limit(min(max(limit, 1), 200)).all()
+    buckets = {"Low": 0, "Medium": 0, "High": 0}
+    model_ok = ai_service.churn_model is not None
+    for c in contacts:
+        feats = crud.get_contact_ai_features(db, c.id)
+        try:
+            if model_ok:
+                inp = ChurnPredictInput(**feats)
+                res = await ai_service.predict_churn(inp)
+                tier = res.risk_category
+            else:
+                days = int(feats.get("days_since_last_contact") or 30)
+                tier = "High" if days > 21 else ("Medium" if days > 7 else "Low")
+        except Exception:
+            tier = "Medium"
+        if tier not in buckets:
+            tier = "Medium"
+        buckets[tier] += 1
+    return {"buckets": buckets, "total_scored": len(contacts), "model_loaded": model_ok}

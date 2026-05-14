@@ -21,7 +21,9 @@ def get_deals(db: Session, skip: int = 0, limit: int = 100, company_id: str = No
     return query.offset(skip).limit(limit).all()
 
 def create_deal(db: Session, deal: schemas.DealCreate):
-    db_deal = models.Deal(**deal.model_dump())
+    # В SQLAlchemy-модели Deal нет полей currency / createdAt из Pydantic-схемы — иначе TypeError и 500.
+    data = deal.model_dump(exclude={"currency", "createdAt"})
+    db_deal = models.Deal(**data)
     db.add(db_deal)
     db.commit()
     db.refresh(db_deal)
@@ -51,6 +53,45 @@ def update_deal_stage(db: Session, deal_id: str, stage: str, user_id: str = None
             db.commit()
             db.refresh(db_deal)
     return db_deal
+
+def update_deal_combined(db: Session, deal_id: str, upd: schemas.DealUpdate, user_id: str | None = None):
+    """Обновление полей сделки + смена стадии с записью в DealStageHistory."""
+    db_deal = get_deal(db, deal_id)
+    if not db_deal:
+        return None
+    data = upd.model_dump(exclude_unset=True)
+    if "stage" in data and data["stage"] is not None and data["stage"] != db_deal.stage:
+        old_stage = db_deal.stage
+        new_stage = data["stage"]
+        db_deal.stage = new_stage
+        history = models.DealStageHistory(
+            deal_id=deal_id,
+            old_stage=old_stage,
+            new_stage=new_stage,
+            changed_by=user_id,
+        )
+        db.add(history)
+        data.pop("stage", None)
+    for field in ("title", "value", "notes", "contactId", "leadId", "userId"):
+        if field in data and data[field] is not None:
+            setattr(db_deal, field, data[field])
+    db.commit()
+    db.refresh(db_deal)
+    return db_deal
+
+
+def delete_deal(db: Session, deal_id: str):
+    db.query(models.Note).filter(models.Note.dealId == deal_id).delete()
+    db.query(models.Activity).filter(
+        models.Activity.entityType == "deal", models.Activity.entityId == deal_id
+    ).delete()
+    db.query(models.DealStageHistory).filter(models.DealStageHistory.deal_id == deal_id).delete()
+    db_deal = get_deal(db, deal_id)
+    if db_deal:
+        db.delete(db_deal)
+        db.commit()
+    return db_deal
+
 
 def create_communication_log(db: Session, log_data: dict):
     db_log = models.CommunicationLog(**log_data)
@@ -103,6 +144,32 @@ def get_contact_by_email(db: Session, email: str, company_id: str | None = None)
 def get_contact(db: Session, contact_id: str):
     return db.query(models.Contact).filter(models.Contact.id == contact_id).first()
 
+
+def update_contact(db: Session, contact_id: str, data: schemas.ContactUpdate):
+    c = get_contact(db, contact_id)
+    if not c:
+        return None
+    for k, v in data.model_dump(exclude_unset=True).items():
+        if hasattr(c, k) and v is not None:
+            setattr(c, k, v)
+    db.commit()
+    db.refresh(c)
+    return c
+
+
+def delete_contact(db: Session, contact_id: str):
+    c = get_contact(db, contact_id)
+    if not c:
+        return None
+    for d in db.query(models.Deal).filter(models.Deal.contactId == contact_id).all():
+        d.contactId = None
+    db.query(models.Activity).filter(
+        models.Activity.entityType == "contact", models.Activity.entityId == contact_id
+    ).delete()
+    db.delete(c)
+    db.commit()
+    return c
+
 def get_contact_by_telegram_id(db: Session, telegram_id: str):
     return db.query(models.Contact).filter(models.Contact.telegram_id == telegram_id).first()
 
@@ -135,6 +202,30 @@ def create_activity(db: Session, activity: schemas.ActivityCreate):
     db.commit()
     db.refresh(db_act)
     return db_act
+
+
+def get_activity(db: Session, activity_id: str):
+    return db.query(models.Activity).filter(models.Activity.id == activity_id).first()
+
+
+def update_activity(db: Session, activity_id: str, data: schemas.ActivityUpdate):
+    act = get_activity(db, activity_id)
+    if not act:
+        return None
+    for k, v in data.model_dump(exclude_unset=True).items():
+        if hasattr(act, k) and v is not None:
+            setattr(act, k, v)
+    db.commit()
+    db.refresh(act)
+    return act
+
+
+def delete_activity(db: Session, activity_id: str):
+    act = get_activity(db, activity_id)
+    if act:
+        db.delete(act)
+        db.commit()
+    return act
 
 
 def get_activities_for_user(db: Session, user: models.User, skip: int = 0, limit: int = 100):
@@ -170,6 +261,12 @@ def create_note(db: Session, note: schemas.NoteCreate, user_id: str):
     db.commit()
     db.refresh(db_note)
     return db_note
+
+
+def note_to_response(db: Session, n: models.Note) -> schemas.Note:
+    u = get_user(db, n.userId)
+    base = schemas.Note.model_validate(n)
+    return base.model_copy(update={"authorName": u.name if u else None})
 
 # AI Insights
 def get_ai_insights(db: Session, skip: int = 0, limit: int = 100):
@@ -252,6 +349,29 @@ def create_company(db: Session, company: schemas.CompanyCreate):
 
 def get_companies(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Company).offset(skip).limit(limit).all()
+
+
+def get_company(db: Session, company_id: str):
+    return db.query(models.Company).filter(models.Company.id == company_id).first()
+
+
+def update_company(db: Session, company_id: str, data: schemas.CompanyUpdate):
+    c = get_company(db, company_id)
+    if not c:
+        return None
+    if data.name is not None:
+        c.name = data.name
+    db.commit()
+    db.refresh(c)
+    return c
+
+
+def delete_company(db: Session, company_id: str):
+    c = get_company(db, company_id)
+    if not c:
+        return
+    db.delete(c)
+    db.commit()
 
 # AI Feature Engineering
 def get_contact_ai_features(db: Session, contact_id: str):
