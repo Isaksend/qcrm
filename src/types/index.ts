@@ -65,6 +65,30 @@ export interface Note {
   authorName?: string | null
 }
 
+/** Задача / напоминание по сделке */
+export interface DealTask {
+  id: string
+  dealId: string
+  title: string
+  dueAt: string | null
+  isDone: number
+  createdBy: string | null
+  createdAt: string
+  /** Исполнитель (кому назначена задача) */
+  assignedUserId?: string | null
+}
+
+/** Элемент списка «мои открытые задачи по сделкам» (GET /api/users/me/deal-tasks). */
+export interface MyDealTaskItem {
+  id: string
+  dealId: string
+  dealTitle: string
+  title: string
+  dueAt: string | null
+  assignedUserId: string | null
+  createdAt: string
+}
+
 export interface AIInsight {
   id: string
   entityType: 'contact' | 'lead' | 'deal' | 'user' | 'general'

@@ -11,7 +11,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const store = useContactsStore()
 
-const contactGeo = reactive<CountryPhoneModel>({
+let contactGeo = reactive<CountryPhoneModel>({
   countryIso2: 'KZ',
   nationalNumber: '',
   city: '',

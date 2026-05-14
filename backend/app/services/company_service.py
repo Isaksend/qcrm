@@ -1,6 +1,7 @@
 """Компании (tenant)."""
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
@@ -19,8 +20,20 @@ def _parse_created_at(raw) -> datetime:
     return datetime.utcnow()
 
 
+def _require_valid_timezone(tz: str) -> str:
+    s = (tz or "").strip()
+    if not s:
+        raise HTTPException(status_code=400, detail="Timezone cannot be empty")
+    try:
+        ZoneInfo(s)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid timezone identifier")
+    return s
+
+
 def _company_to_response(c: models.Company, src: schemas.CompanyCreate | None = None) -> schemas.CompanyResponse:
-    """ORM хранит только id/name/created_at; остальные поля ответа — из запроса или значения по умолчанию."""
+    """ORM хранит id/name/created_at/timezone; industry и др. — из запроса или заглушки."""
+    tz = (getattr(c, "timezone", None) or "").strip() or "UTC"
     if src is not None:
         return schemas.CompanyResponse(
             id=c.id,
@@ -29,6 +42,7 @@ def _company_to_response(c: models.Company, src: schemas.CompanyCreate | None = 
             size=src.size if src.size is not None else 1,
             country=src.country,
             website=src.website,
+            timezone=tz,
             created_at=src.created_at,
         )
     return schemas.CompanyResponse(
@@ -38,12 +52,14 @@ def _company_to_response(c: models.Company, src: schemas.CompanyCreate | None = 
         size=1,
         country="",
         website="",
+        timezone=tz,
         created_at=_parse_created_at(c.created_at),
     )
 
 
 class CompanyService:
     def create(self, db: Session, company: schemas.CompanyCreate) -> schemas.CompanyResponse:
+        company = company.model_copy(update={"timezone": _require_valid_timezone(company.timezone)})
         row = crud.create_company(db=db, company=company)
         return _company_to_response(row, company)
 
@@ -63,7 +79,19 @@ class CompanyService:
             pass
         else:
             raise HTTPException(status_code=403, detail="Not permitted to update this company")
-        c = crud.update_company(db, company_id, body)
+
+        body_dump = body.model_dump(exclude_unset=True)
+        if "timezone" in body_dump and roles.is_manager(user.role) and not roles.is_super_admin(user.role):
+            raise HTTPException(
+                status_code=403,
+                detail="Only company administrators can change the timezone",
+            )
+
+        patch = body
+        if body.timezone is not None:
+            patch = body.model_copy(update={"timezone": _require_valid_timezone(body.timezone)})
+
+        c = crud.update_company(db, company_id, patch)
         if not c:
             raise HTTPException(status_code=404, detail="Company not found")
         return _company_to_response(c)

@@ -22,6 +22,17 @@ def _assert_assignee_for_deal(db: Session, deal: models.Deal, new_user_id: str) 
         raise HTTPException(status_code=400, detail="Cannot assign a deal to a super administrator")
 
 
+def _can_delegate_task_assignee(user: models.User) -> bool:
+    """Назначать задачу на другого пользователя компании могут админ, менеджер и super_admin."""
+    if roles.is_super_admin(user.role):
+        return True
+    if user.role == "admin":
+        return True
+    if roles.is_manager(user.role):
+        return True
+    return False
+
+
 class DealService:
     def list_for_user(self, db: Session, user: models.User, skip: int, limit: int):
         company_id = user.company_id
@@ -46,7 +57,7 @@ class DealService:
             deal = deal.model_copy(update={"createdById": user.id})
         else:
             deal = deal.model_copy(update={"companyId": user.company_id, "createdById": user.id})
-        new_deal = crud.create_deal(db=db, deal=deal)
+        new_deal = crud.create_deal(db=db, deal=deal, history_actor_id=user.id)
         audit_logger.info("User %s created deal: %s (ID: %s)", user.email, new_deal.title, new_deal.id)
         return new_deal
 
@@ -91,6 +102,94 @@ class DealService:
             raise HTTPException(status_code=400, detail="Mismatched deal ID")
         saved = crud.create_note(db, note=note, user_id=user.id)
         return crud.note_to_response(db, saved)
+
+    def list_deal_history(self, db: Session, user: models.User, deal_id: str) -> list[schemas.DealHistoryEntry]:
+        tenant_access.ensure_deal_access(db, user, deal_id)
+        rows = crud.list_deal_change_history(db, deal_id)
+        out: list[schemas.DealHistoryEntry] = []
+        for r in rows:
+            actor = crud.get_user(db, r.changed_by) if r.changed_by else None
+            out.append(
+                schemas.DealHistoryEntry(
+                    id=r.id,
+                    deal_id=r.deal_id,
+                    field=r.field,
+                    old_value=r.old_value,
+                    new_value=r.new_value,
+                    changed_at=r.changed_at,
+                    changed_by_id=r.changed_by,
+                    changed_by_name=actor.name if actor else None,
+                )
+            )
+        return out
+
+    def list_tasks(self, db: Session, user: models.User, deal_id: str) -> list[models.DealTask]:
+        tenant_access.ensure_deal_access(db, user, deal_id)
+        return crud.list_deal_tasks(db, deal_id)
+
+    def create_task(self, db: Session, user: models.User, deal_id: str, body: schemas.DealTaskCreate) -> models.DealTask:
+        deal = tenant_access.ensure_deal_access(db, user, deal_id)
+        title = (body.title or "").strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Title is required")
+        raw_assign = (body.assignedUserId or "").strip() if body.assignedUserId else ""
+        if _can_delegate_task_assignee(user):
+            assignee_id = raw_assign or (deal.userId and str(deal.userId).strip()) or user.id
+        else:
+            assignee_id = user.id
+        _assert_assignee_for_deal(db, deal, assignee_id)
+        payload = schemas.DealTaskCreate(title=title, dueAt=body.dueAt, assignedUserId=assignee_id)
+        return crud.create_deal_task(db, deal_id, payload, created_by=user.id, assigned_user_id=assignee_id)
+
+    def update_task(
+        self, db: Session, user: models.User, deal_id: str, task_id: str, body: schemas.DealTaskUpdate
+    ) -> models.DealTask:
+        deal = tenant_access.ensure_deal_access(db, user, deal_id)
+        data = body.model_dump(exclude_unset=True)
+        if "title" in data:
+            title = (data["title"] or "").strip()
+            if not title:
+                raise HTTPException(status_code=400, detail="Title cannot be empty")
+            body = body.model_copy(update={"title": title})
+        if "assignedUserId" in data and data["assignedUserId"] is not None:
+            aid = str(data["assignedUserId"]).strip()
+            if not aid:
+                raise HTTPException(status_code=400, detail="assignedUserId cannot be empty")
+            if not _can_delegate_task_assignee(user) and aid != user.id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only company administrators and managers can assign tasks to other users",
+                )
+            _assert_assignee_for_deal(db, deal, aid)
+            body = body.model_copy(update={"assignedUserId": aid})
+        updated = crud.update_deal_task(db, deal_id, task_id, body)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return updated
+
+    def delete_task(self, db: Session, user: models.User, deal_id: str, task_id: str) -> None:
+        tenant_access.ensure_deal_access(db, user, deal_id)
+        if not crud.delete_deal_task(db, deal_id, task_id):
+            raise HTTPException(status_code=404, detail="Task not found")
+
+    def list_my_open_deal_tasks(self, db: Session, user: models.User, limit: int = 100) -> schemas.MyDealTasksResponse:
+        cnt = crud.count_my_open_deal_tasks(db, user)
+        rows = crud.list_my_open_deal_task_rows(db, user, limit=limit)
+        items: list[schemas.MyDealTaskItem] = []
+        for t, d in rows:
+            deal_title = (d.title or "").strip() or "—"
+            items.append(
+                schemas.MyDealTaskItem(
+                    id=t.id,
+                    dealId=t.dealId,
+                    dealTitle=deal_title,
+                    title=t.title,
+                    dueAt=t.dueAt,
+                    assignedUserId=t.assignedUserId,
+                    createdAt=t.createdAt,
+                )
+            )
+        return schemas.MyDealTasksResponse(openCount=cnt, items=items)
 
 
 deal_service = DealService()

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime, JSON, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, DateTime, JSON, ForeignKey, Text
 from app.database import Base
 import datetime
 import uuid
@@ -90,6 +90,8 @@ class Company(Base):
     id = Column(String, primary_key=True, default=generate_uuid, index=True)
     name = Column(String, index=True)
     created_at = Column(String) # simple string timestamp
+    # IANA, например Europe/Moscow; задаётся администратором компании
+    timezone = Column(String(64), nullable=False, default="UTC")
 
 class User(Base):
     __tablename__ = "users"
@@ -110,6 +112,36 @@ class DealStageHistory(Base):
     new_stage = Column(String)
     changed_at = Column(DateTime, default=datetime.datetime.utcnow)
     changed_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+
+class DealChangeHistory(Base):
+    """Унифицированная история изменений полей сделки (включая стадию)."""
+
+    __tablename__ = "deal_change_history"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    deal_id = Column(String, ForeignKey("deals.id", ondelete="CASCADE"), index=True, nullable=False)
+    field = Column(String(64), nullable=False, index=True)
+    old_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)
+    changed_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    changed_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+
+class DealTask(Base):
+    """Задача / напоминание по сделке."""
+
+    __tablename__ = "deal_tasks"
+
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
+    dealId = Column(String, ForeignKey("deals.id", ondelete="CASCADE"), index=True, nullable=False)
+    title = Column(String(512), nullable=False)
+    dueAt = Column(DateTime, nullable=True, index=True)
+    isDone = Column(Integer, default=0, nullable=False)
+    createdBy = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.datetime.utcnow)
+    assignedUserId = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+
 
 class CommunicationLog(Base):
     __tablename__ = "communication_logs"

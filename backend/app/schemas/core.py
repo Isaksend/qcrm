@@ -34,6 +34,66 @@ class Deal(DealBase):
     class Config:
         from_attributes = True
 
+
+class DealHistoryEntry(BaseModel):
+    """Запись истории изменений сделки."""
+
+    id: str
+    deal_id: str
+    field: str
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    changed_at: datetime
+    changed_by_id: Optional[str] = None
+    changed_by_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DealTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=512)
+    dueAt: Optional[datetime] = None
+    """Исполнитель; по умолчанию на бэкенде — ответственный по сделке или текущий пользователь."""
+    assignedUserId: Optional[str] = None
+
+
+class DealTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=512)
+    dueAt: Optional[datetime] = None
+    isDone: Optional[int] = Field(None, ge=0, le=1)
+    assignedUserId: Optional[str] = None
+
+
+class DealTask(BaseModel):
+    id: str
+    dealId: str
+    title: str
+    dueAt: Optional[datetime] = None
+    isDone: int
+    createdBy: Optional[str] = None
+    createdAt: datetime
+    assignedUserId: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class MyDealTaskItem(BaseModel):
+    id: str
+    dealId: str
+    dealTitle: str
+    title: str
+    dueAt: Optional[datetime] = None
+    assignedUserId: Optional[str] = None
+    createdAt: datetime
+
+
+class MyDealTasksResponse(BaseModel):
+    openCount: int
+    items: List[MyDealTaskItem]
+
+
 class ContactBase(BaseModel):
     name: str
     email: str
@@ -188,6 +248,7 @@ class CompanyBase(BaseModel):
     size: Optional[int] = 1
     country: str
     website: str
+    timezone: str = Field(default="UTC", description="IANA, e.g. Europe/Moscow")
     created_at: datetime = Field(default_factory=datetime.now)
 
 class CompanyCreate(CompanyBase):
@@ -201,6 +262,7 @@ class CompanyResponse(CompanyBase):
 
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
+    timezone: Optional[str] = None
 
 class UserBase(BaseModel):
     name: str

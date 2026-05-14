@@ -1,6 +1,9 @@
+import datetime
 import re
+import math
+import uuid
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, false, nullslast, or_
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -20,11 +23,67 @@ def get_deals(db: Session, skip: int = 0, limit: int = 100, company_id: str = No
         query = query.filter(models.Deal.userId == user_id)
     return query.offset(skip).limit(limit).all()
 
-def create_deal(db: Session, deal: schemas.DealCreate):
+
+def _serialize_deal_value(val) -> str | None:
+    if val is None:
+        return None
+    if isinstance(val, float):
+        if math.isnan(val):
+            return None
+        return repr(val)
+    return str(val)
+
+
+def _deal_field_values_equal(field: str, old, new) -> bool:
+    if field == "value":
+        try:
+            return abs(float(old or 0) - float(new or 0)) < 1e-9
+        except (TypeError, ValueError):
+            return old == new
+    if field in ("contactId", "leadId", "userId", "notes", "title"):
+        return (old or "") == (new or "")
+    return old == new
+
+
+def append_deal_change(
+    db: Session,
+    deal_id: str,
+    field: str,
+    old,
+    new,
+    changed_by: str | None,
+) -> None:
+    if _deal_field_values_equal(field, old, new):
+        return
+    row = models.DealChangeHistory(
+        id=str(uuid.uuid4()),
+        deal_id=deal_id,
+        field=field,
+        old_value=_serialize_deal_value(old),
+        new_value=_serialize_deal_value(new),
+        changed_by=changed_by,
+    )
+    db.add(row)
+
+
+def list_deal_change_history(db: Session, deal_id: str, limit: int = 200):
+    return (
+        db.query(models.DealChangeHistory)
+        .filter(models.DealChangeHistory.deal_id == deal_id)
+        .order_by(models.DealChangeHistory.changed_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def create_deal(db: Session, deal: schemas.DealCreate, *, history_actor_id: str | None = None):
     # В SQLAlchemy-модели Deal нет полей currency / createdAt из Pydantic-схемы — иначе TypeError и 500.
     data = deal.model_dump(exclude={"currency", "createdAt"})
     db_deal = models.Deal(**data)
     db.add(db_deal)
+    db.flush()
+    actor = history_actor_id or db_deal.createdById or db_deal.userId
+    append_deal_change(db, db_deal.id, "deal_created", None, db_deal.title, actor)
     db.commit()
     db.refresh(db_deal)
     return db_deal
@@ -40,7 +99,7 @@ def update_deal_stage(db: Session, deal_id: str, stage: str, user_id: str = None
         if old_stage != stage:
             # 1. Update the deal
             db_deal.stage = stage
-            
+
             # 2. Record the history
             history = models.DealStageHistory(
                 deal_id=deal_id,
@@ -49,13 +108,14 @@ def update_deal_stage(db: Session, deal_id: str, stage: str, user_id: str = None
                 changed_by=user_id
             )
             db.add(history)
-            
+            append_deal_change(db, deal_id, "stage", old_stage, stage, user_id)
+
             db.commit()
             db.refresh(db_deal)
     return db_deal
 
 def update_deal_combined(db: Session, deal_id: str, upd: schemas.DealUpdate, user_id: str | None = None):
-    """Обновление полей сделки + смена стадии с записью в DealStageHistory."""
+    """Обновление полей сделки + смена стадии с записью в DealStageHistory и deal_change_history."""
     db_deal = get_deal(db, deal_id)
     if not db_deal:
         return None
@@ -71,10 +131,17 @@ def update_deal_combined(db: Session, deal_id: str, upd: schemas.DealUpdate, use
             changed_by=user_id,
         )
         db.add(history)
+        append_deal_change(db, deal_id, "stage", old_stage, new_stage, user_id)
         data.pop("stage", None)
     for field in ("title", "value", "notes", "contactId", "leadId", "userId"):
-        if field in data and data[field] is not None:
-            setattr(db_deal, field, data[field])
+        if field not in data or data[field] is None:
+            continue
+        old = getattr(db_deal, field)
+        new = data[field]
+        if _deal_field_values_equal(field, old, new):
+            continue
+        append_deal_change(db, deal_id, field, old, new, user_id)
+        setattr(db_deal, field, new)
     db.commit()
     db.refresh(db_deal)
     return db_deal
@@ -82,10 +149,12 @@ def update_deal_combined(db: Session, deal_id: str, upd: schemas.DealUpdate, use
 
 def delete_deal(db: Session, deal_id: str):
     db.query(models.Note).filter(models.Note.dealId == deal_id).delete()
+    db.query(models.DealTask).filter(models.DealTask.dealId == deal_id).delete()
     db.query(models.Activity).filter(
         models.Activity.entityType == "deal", models.Activity.entityId == deal_id
     ).delete()
     db.query(models.DealStageHistory).filter(models.DealStageHistory.deal_id == deal_id).delete()
+    db.query(models.DealChangeHistory).filter(models.DealChangeHistory.deal_id == deal_id).delete()
     db_deal = get_deal(db, deal_id)
     if db_deal:
         db.delete(db_deal)
@@ -268,6 +337,118 @@ def note_to_response(db: Session, n: models.Note) -> schemas.Note:
     base = schemas.Note.model_validate(n)
     return base.model_copy(update={"authorName": u.name if u else None})
 
+
+# Задачи / напоминания по сделке
+def list_deal_tasks(db: Session, deal_id: str):
+    return (
+        db.query(models.DealTask)
+        .filter(models.DealTask.dealId == deal_id)
+        .order_by(
+            models.DealTask.isDone.asc(),
+            nullslast(models.DealTask.dueAt.asc()),
+            models.DealTask.createdAt.desc(),
+        )
+        .all()
+    )
+
+
+def get_deal_task(db: Session, task_id: str) -> models.DealTask | None:
+    return db.query(models.DealTask).filter(models.DealTask.id == task_id).first()
+
+
+def create_deal_task(
+    db: Session,
+    deal_id: str,
+    payload: schemas.DealTaskCreate,
+    created_by: str | None,
+    assigned_user_id: str | None,
+):
+    t = models.DealTask(
+        dealId=deal_id,
+        title=payload.title.strip(),
+        dueAt=payload.dueAt,
+        isDone=0,
+        createdBy=created_by,
+        createdAt=datetime.datetime.utcnow(),
+        assignedUserId=assigned_user_id,
+    )
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return t
+
+
+def update_deal_task(
+    db: Session,
+    deal_id: str,
+    task_id: str,
+    body: schemas.DealTaskUpdate,
+) -> models.DealTask | None:
+    t = get_deal_task(db, task_id)
+    if not t or t.dealId != deal_id:
+        return None
+    data = body.model_dump(exclude_unset=True)
+    if "title" in data and data["title"] is not None:
+        t.title = data["title"].strip()
+    if "dueAt" in data:
+        t.dueAt = data["dueAt"]
+    if "isDone" in data and data["isDone"] is not None:
+        t.isDone = int(data["isDone"])
+    if "assignedUserId" in data and data["assignedUserId"] is not None:
+        t.assignedUserId = str(data["assignedUserId"]).strip() or None
+    db.commit()
+    db.refresh(t)
+    return t
+
+
+def delete_deal_task(db: Session, deal_id: str, task_id: str) -> bool:
+    t = get_deal_task(db, task_id)
+    if not t or t.dealId != deal_id:
+        return False
+    db.delete(t)
+    db.commit()
+    return True
+
+
+def _my_open_deal_tasks_query(db: Session, user: models.User):
+    """Задачи с isDone=0, назначенные на user, по сделкам, которые пользователь может открыть."""
+    from app import roles
+
+    q = (
+        db.query(models.DealTask, models.Deal)
+        .join(models.Deal, models.Deal.id == models.DealTask.dealId)
+        .filter(models.DealTask.assignedUserId == user.id)
+        .filter(models.DealTask.isDone == 0)
+        .filter(models.DealTask.assignedUserId.isnot(None))
+    )
+    if roles.is_super_admin(user.role):
+        return q
+    if user.role == "admin":
+        if not user.company_id:
+            return q.filter(false())
+        return q.filter(models.Deal.companyId == user.company_id)
+    if not user.company_id:
+        return q.filter(false())
+    q = q.filter(models.Deal.companyId == user.company_id)
+    if roles.sees_own_deals_only(user.role):
+        q = q.filter(models.Deal.userId == user.id)
+    return q
+
+
+def count_my_open_deal_tasks(db: Session, user: models.User) -> int:
+    q = _my_open_deal_tasks_query(db, user)
+    return q.with_entities(models.DealTask.id).count()
+
+
+def list_my_open_deal_task_rows(db: Session, user: models.User, limit: int = 200):
+    q = _my_open_deal_tasks_query(db, user)
+    return (
+        q.order_by(nullslast(models.DealTask.dueAt.asc()), models.DealTask.createdAt.desc())
+        .limit(limit)
+        .all()
+    )
+
+
 # AI Insights
 def get_ai_insights(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.AIInsight).offset(skip).limit(limit).all()
@@ -360,7 +541,12 @@ def delete_user(db: Session, user_id: str):
 # Companies
 def create_company(db: Session, company: schemas.CompanyCreate):
     import datetime
-    db_company = models.Company(name=company.name, created_at=datetime.datetime.utcnow().isoformat())
+    tz = (company.timezone or "UTC").strip() or "UTC"
+    db_company = models.Company(
+        name=company.name,
+        created_at=datetime.datetime.utcnow().isoformat(),
+        timezone=tz,
+    )
     db.add(db_company)
     db.commit()
     db.refresh(db_company)
@@ -378,8 +564,11 @@ def update_company(db: Session, company_id: str, data: schemas.CompanyUpdate):
     c = get_company(db, company_id)
     if not c:
         return None
-    if data.name is not None:
-        c.name = data.name
+    payload = data.model_dump(exclude_unset=True)
+    if "name" in payload and payload["name"] is not None:
+        c.name = payload["name"]
+    if "timezone" in payload and payload["timezone"] is not None:
+        c.timezone = payload["timezone"]
     db.commit()
     db.refresh(c)
     return c

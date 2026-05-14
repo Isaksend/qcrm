@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app import auth, models, schemas
 from app.database import get_db
 from app.services.user_service import user_service
+from app.services.deal_service import deal_service
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -13,6 +14,16 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 @router.get("/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(auth.get_current_active_user)):
     return current_user
+
+
+@router.get("/me/deal-tasks", response_model=schemas.MyDealTasksResponse)
+def read_my_deal_tasks(
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    """Открытые задачи, назначенные на текущего пользователя (счётчик + список для «входящих»)."""
+    return deal_service.list_my_open_deal_tasks(db, current_user, limit=limit)
 
 
 @router.get("", response_model=List[schemas.UserResponse])

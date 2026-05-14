@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { useMyDealTasksStore } from '../../stores/myDealTasks'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const myDealTasksStore = useMyDealTasksStore()
 const { t } = useI18n()
+
+onMounted(() => {
+  void myDealTasksStore.refresh(80)
+})
 
 const navItems = computed(() => {
   const elevated = ['admin', 'super_admin', 'manager'].includes(authStore.userRole)
@@ -14,6 +20,12 @@ const navItems = computed(() => {
     { to: '/', key: 'nav.dashboard', icon: 'chart-bar' },
     { to: '/contacts', key: 'nav.contacts', icon: 'users' },
     { to: '/deals', key: 'nav.deals', icon: 'currency' },
+    {
+      to: '/my-tasks',
+      key: 'nav.myTasks',
+      icon: 'clipboard',
+      badge: myDealTasksStore.openCount,
+    },
   ]
   if (elevated) {
     items.push({ to: '/companies', key: 'nav.companies', icon: 'currency' })
@@ -50,7 +62,7 @@ function isActive(to: string) {
         :key="item.to"
         :to="item.to"
         :class="[
-          'sidebar-link',
+          'sidebar-link flex items-center gap-3',
           isActive(item.to) ? 'sidebar-link-active' : 'sidebar-link-inactive',
         ]"
       >
@@ -80,7 +92,17 @@ function isActive(to: string) {
         <svg v-if="item.icon === 'chat'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
-        <span>{{ t(item.key) }}</span>
+        <!-- Clipboard / tasks -->
+        <svg v-if="item.icon === 'clipboard'" class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+        <span class="flex-1 min-w-0 truncate">{{ t(item.key) }}</span>
+        <span
+          v-if="typeof item.badge === 'number' && item.badge > 0"
+          class="shrink-0 min-w-[1.25rem] rounded-full bg-amber-400 text-[10px] font-black text-slate-900 px-1.5 py-0.5 text-center leading-none"
+        >
+          {{ item.badge > 99 ? '99+' : item.badge }}
+        </span>
       </router-link>
     </nav>
 

@@ -22,7 +22,7 @@ const companies = ref<{ id: string; name: string }[]>([])
 const contactFound = ref(false)
 const submitError = ref('')
 
-const contactGeo = reactive<CountryPhoneModel>({
+let contactGeo = reactive<CountryPhoneModel>({
   countryIso2: 'KZ',
   nationalNumber: '',
   city: '',

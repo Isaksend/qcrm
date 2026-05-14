@@ -5,15 +5,16 @@ import { useI18n } from 'vue-i18n'
 import { useDealsStore } from '../stores/deals'
 import { useContactsStore } from '../stores/contacts'
 import { useAuthStore } from '../stores/auth'
+import { useMyDealTasksStore } from '../stores/myDealTasks'
 import ChatWindow from '../components/chat/ChatWindow.vue'
 import AIPredictionCard from '../components/ai/AIPredictionCard.vue'
-import type { Deal, Note } from '../types'
+import type { Deal, Note, DealTask } from '../types'
 import type { AIPredictionResponse } from '../types/ai'
 import { apiUrl } from '../lib/api'
 
 const route = useRoute()
 const router = useRouter()
-const { t, locale } = useI18n()
+const { t, locale, te } = useI18n()
 
 const STAGE_I18N: Record<string, string> = {
   'New Request': 'dealStages.newRequest',
@@ -45,6 +46,7 @@ function userRoleLabel(role: string | null | undefined): string {
 const dealsStore = useDealsStore()
 const contactsStore = useContactsStore()
 const authStore = useAuthStore()
+const myDealTasksStore = useMyDealTasksStore()
 
 const dealId = route.params.id as string
 const deal = ref<Deal | null>(null)
@@ -59,8 +61,27 @@ const dealAiError = ref('')
 const dealAiLead = ref<AIPredictionResponse | null>(null)
 const dealAiChurn = ref<AIPredictionResponse | null>(null)
 
+type DealHistoryRow = {
+  id: string
+  deal_id: string
+  field: string
+  old_value: string | null
+  new_value: string | null
+  changed_at: string
+  changed_by_id: string | null
+  changed_by_name: string | null
+}
+
+const dealHistory = ref<DealHistoryRow[]>([])
 const reassignUserId = ref('')
 const isSavingReassign = ref(false)
+
+const tasks = ref<DealTask[]>([])
+const newTaskTitle = ref('')
+const newTaskDue = ref('')
+const newTaskAssigneeId = ref('')
+const isSavingTask = ref(false)
+const togglingTaskId = ref<string | null>(null)
 
 const users = ref<any[]>([])
 
@@ -82,6 +103,36 @@ const assignableColleagues = computed(() => {
   )
 })
 
+/** Исполнители для новой задачи (та же компания, что и сделка). */
+const taskAssignOptions = computed(() => {
+  const opts = assignableColleagues.value
+  if (opts.length) return opts
+  const u = authStore.user
+  return u?.id ? [{ id: u.id, name: u.name || u.email, email: u.email }] : []
+})
+
+/** Список для селекта исполнителя: коллеги + уже назначенные на задачах (если их не было в списке). */
+const taskAssignForSelect = computed(() => {
+  const base = [...taskAssignOptions.value]
+  const ids = new Set(base.map((u) => u.id))
+  for (const t of tasks.value) {
+    const aid = t.assignedUserId && String(t.assignedUserId).trim()
+    if (!aid || ids.has(aid)) continue
+    const u = userMap.value[aid]
+    if (u) {
+      base.push(u)
+      ids.add(aid)
+    }
+  }
+  return base.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }))
+})
+
+/** Админ / менеджер / super_admin могут ставить исполнителем другого пользователя компании. */
+const canDelegateTasks = computed(() => {
+  const r = authStore.userRole
+  return r === 'admin' || r === 'super_admin' || r === 'manager'
+})
+
 watch(
   deal,
   (d) => {
@@ -95,6 +146,21 @@ watch(
   (uid) => {
     const s = typeof uid === 'string' ? uid.trim() : ''
     reassignUserId.value = s
+  },
+  { immediate: true },
+)
+
+watch(
+  () => [deal.value?.id, deal.value?.userId, taskAssignOptions.value.map((u) => u.id).join(',')],
+  () => {
+    const uid = deal.value?.userId && String(deal.value.userId).trim()
+    if (uid && taskAssignOptions.value.some((o) => o.id === uid)) {
+      newTaskAssigneeId.value = uid
+    } else if (authStore.user?.id) {
+      newTaskAssigneeId.value = authStore.user.id
+    } else {
+      newTaskAssigneeId.value = ''
+    }
   },
   { immediate: true },
 )
@@ -159,6 +225,11 @@ async function hydrateMissingUsers(authHeaders: Record<string, string>) {
   for (const n of notes.value) {
     add(noteUserId(n))
   }
+  for (const t of tasks.value) {
+    add(t.createdBy ?? undefined)
+    add(t.assignedUserId ?? undefined)
+  }
+  add(newTaskAssigneeId.value || undefined)
   for (const id of ids) {
     if (users.value.some((u) => u.id === id)) continue
     try {
@@ -205,6 +276,15 @@ async function loadDealContactAi(contactId: string, forDealId: string) {
   }
 }
 
+async function loadDealTasks(authHeaders: Record<string, string>) {
+  const tasksRes = await fetch(apiUrl(`/api/deals/${encodeURIComponent(dealId)}/tasks`), { headers: authHeaders })
+  if (tasksRes.ok) {
+    tasks.value = await tasksRes.json()
+  } else {
+    tasks.value = []
+  }
+}
+
 async function fetchData() {
   isLoading.value = true
   const token = authStore.token || localStorage.getItem('token')
@@ -235,6 +315,15 @@ async function fetchData() {
       headers: authHeaders,
     })
     if (notesRes.ok) notes.value = await notesRes.json()
+
+    const histRes = await fetch(apiUrl(`/api/deals/${encodeURIComponent(dealId)}/history`), { headers: authHeaders })
+    if (histRes.ok) {
+      dealHistory.value = await histRes.json()
+    } else {
+      dealHistory.value = []
+    }
+
+    await loadDealTasks(authHeaders)
 
     await hydrateMissingUsers(authHeaders)
 
@@ -282,6 +371,122 @@ async function addNote() {
   } finally {
     isSavingNote.value = false
   }
+}
+
+async function addTask() {
+  if (!newTaskTitle.value.trim()) return
+  isSavingTask.value = true
+  const token = authStore.token || localStorage.getItem('token')
+  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) authHeaders.Authorization = `Bearer ${token}`
+  try {
+    const body: Record<string, unknown> = { title: newTaskTitle.value.trim() }
+    if (canDelegateTasks.value && newTaskAssigneeId.value.trim()) {
+      body.assignedUserId = newTaskAssigneeId.value.trim()
+    }
+    if (newTaskDue.value.trim()) {
+      body.dueAt = new Date(newTaskDue.value).toISOString()
+    }
+    const res = await fetch(apiUrl(`/api/deals/${encodeURIComponent(dealId)}/tasks`), {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify(body),
+    })
+    if (res.ok) {
+      newTaskTitle.value = ''
+      newTaskDue.value = ''
+      await loadDealTasks(authHeaders)
+      await hydrateMissingUsers(authHeaders)
+      void myDealTasksStore.refresh(80)
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isSavingTask.value = false
+  }
+}
+
+async function updateTaskAssignee(task: DealTask, ev: Event) {
+  const el = ev.target as HTMLSelectElement
+  const newId = el?.value?.trim() || ''
+  if (!newId || newId === (task.assignedUserId && String(task.assignedUserId).trim())) return
+  const token = authStore.token || localStorage.getItem('token')
+  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) authHeaders.Authorization = `Bearer ${token}`
+  try {
+    const res = await fetch(
+      apiUrl(`/api/deals/${encodeURIComponent(dealId)}/tasks/${encodeURIComponent(task.id)}`),
+      {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ assignedUserId: newId }),
+      },
+    )
+    if (res.ok) {
+      await loadDealTasks(authHeaders)
+      await hydrateMissingUsers(authHeaders)
+      void myDealTasksStore.refresh(80)
+    } else {
+      el.value = (task.assignedUserId && String(task.assignedUserId).trim()) || ''
+    }
+  } catch (e) {
+    console.error(e)
+    el.value = (task.assignedUserId && String(task.assignedUserId).trim()) || ''
+  }
+}
+
+async function toggleTaskDone(task: DealTask) {
+  togglingTaskId.value = task.id
+  const token = authStore.token || localStorage.getItem('token')
+  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) authHeaders.Authorization = `Bearer ${token}`
+  const next = task.isDone ? 0 : 1
+  try {
+    const res = await fetch(
+      apiUrl(`/api/deals/${encodeURIComponent(dealId)}/tasks/${encodeURIComponent(task.id)}`),
+      {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ isDone: next }),
+      },
+    )
+    if (res.ok) {
+      await loadDealTasks(authHeaders)
+      void myDealTasksStore.refresh(80)
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    togglingTaskId.value = null
+  }
+}
+
+async function deleteTask(task: DealTask) {
+  if (!confirm(t('dealDetail.tasksConfirmDelete'))) return
+  const token = authStore.token || localStorage.getItem('token')
+  const authHeaders: Record<string, string> = {}
+  if (token) authHeaders.Authorization = `Bearer ${token}`
+  try {
+    const res = await fetch(
+      apiUrl(`/api/deals/${encodeURIComponent(dealId)}/tasks/${encodeURIComponent(task.id)}`),
+      { method: 'DELETE', headers: authHeaders },
+    )
+    if (res.ok) {
+      await loadDealTasks(authHeaders)
+      void myDealTasksStore.refresh(80)
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function isTaskOverdue(task: DealTask): boolean {
+  if (task.isDone) return false
+  const raw = task.dueAt
+  if (raw == null || String(raw).trim() === '') return false
+  const t = new Date(raw).getTime()
+  if (Number.isNaN(t)) return false
+  return t < Date.now()
 }
 
 async function saveDealTitle() {
@@ -341,6 +546,18 @@ function formatDate(dateStr: string) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function historyFieldLabel(field: string): string {
+  const p = `dealDetail.historyField.${field}`
+  return te(p) ? t(p) : field
+}
+
+function historyCellText(field: string, val: string | null): string {
+  if (val == null || val === '') return '—'
+  if (field === 'userId') return userDisplayName(val)
+  if (val.length > 96) return `${val.slice(0, 96)}…`
+  return val
 }
 </script>
 
@@ -460,6 +677,149 @@ function formatDate(dateStr: string) {
                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2">{{ t('dealDetail.originalDescription') }}</label>
                <p class="text-sm text-gray-600 bg-gray-50 p-4 rounded-xl italic">{{ deal.notes }}</p>
             </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
+            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 border-b border-gray-50 pb-2">
+              {{ t('dealDetail.historyTitle') }}
+            </h3>
+            <p v-if="dealHistory.length === 0" class="text-sm text-gray-400">{{ t('dealDetail.historyEmpty') }}</p>
+            <table v-else class="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr class="text-left text-[10px] uppercase text-gray-400 font-black tracking-widest border-b border-gray-100">
+                  <th class="pb-2 pr-3">{{ t('dealDetail.historyColTime') }}</th>
+                  <th class="pb-2 pr-3">{{ t('dealDetail.historyColField') }}</th>
+                  <th class="pb-2 pr-3">{{ t('dealDetail.historyColOld') }}</th>
+                  <th class="pb-2 pr-3">{{ t('dealDetail.historyColNew') }}</th>
+                  <th class="pb-2">{{ t('dealDetail.historyColUser') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in dealHistory"
+                  :key="row.id"
+                  class="border-b border-gray-50 last:border-0 align-top"
+                >
+                  <td class="py-2 pr-3 text-gray-500 whitespace-nowrap">{{ formatDate(row.changed_at) }}</td>
+                  <td class="py-2 pr-3 font-medium text-gray-800">{{ historyFieldLabel(row.field) }}</td>
+                  <td class="py-2 pr-3 text-gray-600 break-all max-w-[200px]">{{ historyCellText(row.field, row.old_value) }}</td>
+                  <td class="py-2 pr-3 text-gray-600 break-all max-w-[200px]">{{ historyCellText(row.field, row.new_value) }}</td>
+                  <td class="py-2 text-gray-700">{{ row.changed_by_name || row.changed_by_id || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 border-b border-gray-50 pb-2">
+              {{ t('dealDetail.tasksTitle') }}
+            </h3>
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+              <input
+                v-model="newTaskTitle"
+                type="text"
+                class="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                :placeholder="t('dealDetail.tasksPlaceholder')"
+              />
+              <input
+                v-model="newTaskDue"
+                type="datetime-local"
+                class="sm:w-56 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                :title="t('dealDetail.tasksDueHint')"
+              />
+            </div>
+            <div v-if="canDelegateTasks" class="mb-4">
+              <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1.5">{{
+                t('dealDetail.tasksAssignLabel')
+              }}</label>
+              <select
+                v-model="newTaskAssigneeId"
+                class="w-full max-w-md border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+              >
+                <option v-for="u in taskAssignForSelect" :key="u.id" :value="u.id">
+                  {{ u.name }} — {{ u.email }}
+                </option>
+              </select>
+              <p class="text-[11px] text-gray-500 mt-1">{{ t('dealDetail.tasksAssignHint') }}</p>
+            </div>
+            <p v-else class="mb-4 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 max-w-2xl">
+              {{ t('dealDetail.tasksAssignSalesNote') }}
+            </p>
+            <div class="mb-6">
+              <button
+                type="button"
+                class="btn-primary text-sm py-2 px-4 shrink-0 disabled:opacity-50"
+                :disabled="!newTaskTitle.trim() || isSavingTask"
+                @click="addTask"
+              >
+                {{ t('dealDetail.tasksAdd') }}
+              </button>
+            </div>
+            <p v-if="tasks.length === 0" class="text-sm text-gray-400">{{ t('dealDetail.tasksEmpty') }}</p>
+            <ul v-else class="space-y-3">
+              <li
+                v-for="task in tasks"
+                :key="task.id"
+                class="flex flex-wrap items-start gap-3 p-4 rounded-xl border transition-colors"
+                :class="
+                  isTaskOverdue(task)
+                    ? 'border-amber-300 bg-amber-50/70'
+                    : task.isDone
+                      ? 'border-gray-100 bg-gray-50/50 opacity-80'
+                      : 'border-gray-100 bg-white'
+                "
+              >
+                <label class="flex items-start gap-2 cursor-pointer shrink-0 pt-0.5">
+                  <input
+                    type="checkbox"
+                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 mt-0.5"
+                    :aria-label="t('dealDetail.tasksDoneToggle')"
+                    :checked="!!task.isDone"
+                    :disabled="togglingTaskId === task.id"
+                    @change="toggleTaskDone(task)"
+                  />
+                </label>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-900 break-words" :class="{ 'line-through text-gray-500': !!task.isDone }">
+                    {{ task.title }}
+                  </p>
+                  <p class="text-[11px] text-gray-500 mt-1">
+                    <span v-if="task.dueAt">{{ t('dealDetail.tasksDueLabel') }}: {{ formatDate(task.dueAt) }}</span>
+                    <span v-else>{{ t('dealDetail.tasksNoDue') }}</span>
+                    <span v-if="task.assignedUserId" class="ml-2">
+                      · {{ t('dealDetail.tasksAssigneeShort') }}: {{ userDisplayName(task.assignedUserId) }}
+                    </span>
+                    <span v-if="task.createdBy" class="ml-2">
+                      · {{ t('dealDetail.tasksAuthorShort') }}: {{ userDisplayName(task.createdBy) }}
+                    </span>
+                  </p>
+                  <p v-if="isTaskOverdue(task)" class="text-[11px] font-bold text-amber-700 mt-1">
+                    {{ t('dealDetail.tasksOverdue') }}
+                  </p>
+                  <div v-if="canDelegateTasks && !task.isDone && taskAssignForSelect.length" class="mt-2 max-w-md">
+                    <label class="text-[10px] text-gray-400 uppercase font-black block mb-1">{{
+                      t('dealDetail.tasksReassignLabel')
+                    }}</label>
+                    <select
+                      class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white"
+                      :value="task.assignedUserId || ''"
+                      @change="updateTaskAssignee(task, $event)"
+                    >
+                      <option v-for="u in taskAssignForSelect" :key="u.id" :value="u.id">
+                        {{ u.name }} — {{ u.email }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="text-xs font-bold text-red-600 hover:text-red-800 shrink-0"
+                  @click="deleteTask(task)"
+                >
+                  {{ t('dealDetail.tasksDelete') }}
+                </button>
+              </li>
+            </ul>
           </div>
 
           <template v-if="deal.contactId && String(deal.contactId).trim()">

@@ -29,6 +29,56 @@ def create_deal(
     return deal_service.create(db, current_user, deal)
 
 
+@router.get("/{deal_id}/history", response_model=List[schemas.DealHistoryEntry])
+def read_deal_history(
+    deal_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return deal_service.list_deal_history(db, current_user, deal_id)
+
+
+@router.get("/{deal_id}/tasks", response_model=List[schemas.DealTask])
+def read_deal_tasks(
+    deal_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return deal_service.list_tasks(db, current_user, deal_id)
+
+
+@router.post("/{deal_id}/tasks", response_model=schemas.DealTask)
+def create_deal_task(
+    deal_id: str,
+    body: schemas.DealTaskCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return deal_service.create_task(db, current_user, deal_id, body)
+
+
+@router.patch("/{deal_id}/tasks/{task_id}", response_model=schemas.DealTask)
+def update_deal_task(
+    deal_id: str,
+    task_id: str,
+    body: schemas.DealTaskUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    return deal_service.update_task(db, current_user, deal_id, task_id, body)
+
+
+@router.delete("/{deal_id}/tasks/{task_id}")
+def remove_deal_task(
+    deal_id: str,
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user),
+):
+    deal_service.delete_task(db, current_user, deal_id, task_id)
+    return {"status": "deleted"}
+
+
 @router.get("/{deal_id}", response_model=schemas.Deal)
 def read_deal(
     deal_id: str,
