@@ -147,3 +147,17 @@ def company_admin_auth(client: TestClient, db_session: Session) -> dict[str, Any
         "user_id": uid,
         "email": email,
     }
+
+
+@pytest.fixture
+def manager_auth(client: TestClient, db_session: Session) -> dict[str, Any]:
+    cid = add_company(db_session)
+    email = f"mgr_{uuid.uuid4().hex[:12]}@test.local"
+    uid = add_user(db_session, email=email, role="manager", company_id=cid)
+    token = login_access_token(client, email)
+    return {
+        "headers": {"Authorization": f"Bearer {token}"},
+        "company_id": cid,
+        "user_id": uid,
+        "email": email,
+    }

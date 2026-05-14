@@ -59,10 +59,42 @@ const dealAiError = ref('')
 const dealAiLead = ref<AIPredictionResponse | null>(null)
 const dealAiChurn = ref<AIPredictionResponse | null>(null)
 
+const reassignUserId = ref('')
+const isSavingReassign = ref(false)
+
+const users = ref<any[]>([])
+
+const canReassignDeal = computed(() => {
+  const r = authStore.userRole
+  if (r !== 'admin' && r !== 'super_admin') return false
+  const cid = deal.value?.companyId
+  return typeof cid === 'string' && cid.trim() !== ''
+})
+
+const assignableColleagues = computed(() => {
+  const cid = deal.value?.companyId
+  if (!cid || typeof cid !== 'string') return []
+  return users.value.filter(
+    (u) =>
+      u.company_id === cid &&
+      u.role !== 'super_admin' &&
+      u.is_active !== 0,
+  )
+})
+
 watch(
   deal,
   (d) => {
     if (d) titleEdit.value = d.title
+  },
+  { immediate: true },
+)
+
+watch(
+  () => deal.value?.userId,
+  (uid) => {
+    const s = typeof uid === 'string' ? uid.trim() : ''
+    reassignUserId.value = s
   },
   { immediate: true },
 )
@@ -72,7 +104,6 @@ const contact = computed(() => {
   return contactsStore.getContact(deal.value.contactId)
 })
 
-const users = ref<any[]>([])
 const userMap = computed(() => {
   const map: Record<string, any> = {}
   users.value.forEach((u) => (map[u.id] = u))
@@ -259,6 +290,19 @@ async function saveDealTitle() {
   await fetchData()
 }
 
+async function saveReassignOwner() {
+  if (!deal.value || !reassignUserId.value.trim()) return
+  if (reassignUserId.value.trim() === (deal.value.userId || '').trim()) return
+  isSavingReassign.value = true
+  try {
+    const updated = await dealsStore.updateDeal(dealId, { userId: reassignUserId.value.trim() })
+    if (updated) deal.value = updated
+    await fetchData()
+  } finally {
+    isSavingReassign.value = false
+  }
+}
+
 async function deleteThisDeal() {
   if (!confirm(t('dealDetail.confirmDeleteDeal'))) return
   const ok = await dealsStore.deleteDeal(dealId)
@@ -378,6 +422,37 @@ function formatDate(dateStr: string) {
               <div>
                 <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">{{ t('dealDetail.closingDate') }}</label>
                 <p class="font-bold text-gray-900">{{ deal.closedAt ? formatDate(deal.closedAt) : t('dealDetail.pendingClose') }}</p>
+              </div>
+            </div>
+
+            <div
+              v-if="canReassignDeal && assignableColleagues.length"
+              class="mt-6 pt-6 border-t border-gray-50"
+            >
+              <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2">{{
+                t('dealDetail.reassignOwner')
+              }}</label>
+              <div class="flex flex-wrap gap-3 items-center">
+                <select
+                  v-model="reassignUserId"
+                  class="flex-1 min-w-[200px] max-w-md border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                >
+                  <option v-for="u in assignableColleagues" :key="u.id" :value="u.id">
+                    {{ u.name }} — {{ u.email }}
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  class="btn-primary text-sm py-2 px-4 shrink-0"
+                  :disabled="
+                    isSavingReassign ||
+                    !reassignUserId.trim() ||
+                    reassignUserId.trim() === (deal.userId && String(deal.userId).trim())
+                  "
+                  @click="saveReassignOwner"
+                >
+                  {{ t('dealDetail.reassignSave') }}
+                </button>
               </div>
             </div>
             

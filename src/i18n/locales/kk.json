@@ -174,7 +174,9 @@
     "contactDossier": "Байланыс карточкасы",
     "unknownAuthor": "Белгісіз автор",
     "networkError": "Желі қатесі",
-    "userFallback": "Пайдаланушы {id}…"
+    "userFallback": "Пайдаланушы {id}…",
+    "reassignOwner": "Жауаптыны ауыстыру",
+    "reassignSave": "Сақтау"
   },
   "aiPrediction": {
     "confidenceScore": "Сенім деңгейі",

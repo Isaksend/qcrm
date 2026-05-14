@@ -174,7 +174,9 @@
     "contactDossier": "Contact dossier",
     "unknownAuthor": "Unknown author",
     "networkError": "Network error",
-    "userFallback": "User {id}…"
+    "userFallback": "User {id}…",
+    "reassignOwner": "Reassign owner",
+    "reassignSave": "Save"
   },
   "aiPrediction": {
     "confidenceScore": "Confidence score",

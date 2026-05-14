@@ -174,7 +174,9 @@
     "contactDossier": "Карточка контакта",
     "unknownAuthor": "Неизвестный автор",
     "networkError": "Ошибка сети",
-    "userFallback": "Пользователь {id}…"
+    "userFallback": "Пользователь {id}…",
+    "reassignOwner": "Переназначить ответственного",
+    "reassignSave": "Сохранить"
   },
   "aiPrediction": {
     "confidenceScore": "Уверенность модели",

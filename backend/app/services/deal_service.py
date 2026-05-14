@@ -9,18 +9,33 @@ from app import crud, models, schemas, tenant_access, roles
 audit_logger = logging.getLogger("audit")
 
 
+def _assert_assignee_for_deal(db: Session, deal: models.Deal, new_user_id: str) -> None:
+    """Ответственный — активный пользователь той же компании, что и сделка (не super_admin)."""
+    if not deal.companyId:
+        raise HTTPException(status_code=400, detail="Deal has no company; cannot assign owner")
+    target = crud.get_user(db, new_user_id)
+    if not target or not target.is_active:
+        raise HTTPException(status_code=400, detail="Assignee not found or inactive")
+    if target.company_id != deal.companyId:
+        raise HTTPException(status_code=400, detail="Assignee must belong to the same company as the deal")
+    if target.role == "super_admin":
+        raise HTTPException(status_code=400, detail="Cannot assign a deal to a super administrator")
+
+
 class DealService:
     def list_for_user(self, db: Session, user: models.User, skip: int, limit: int):
-        user_id = None
         company_id = user.company_id
-        if roles.is_sales_rep(user.role):
-            user_id = user.id
-        elif roles.is_super_admin(user.role):
+        user_id_filter = None
+        if roles.is_super_admin(user.role):
             company_id = None
-        return crud.get_deals(db, skip=skip, limit=limit, company_id=company_id, user_id=user_id)
+        elif roles.sees_own_deals_only(user.role):
+            user_id_filter = user.id
+        return crud.get_deals(
+            db, skip=skip, limit=limit, company_id=company_id, user_id=user_id_filter
+        )
 
     def create(self, db: Session, user: models.User, deal: schemas.DealCreate) -> models.Deal:
-        if roles.is_sales_rep(user.role):
+        if roles.is_sales_rep(user.role) or roles.is_manager(user.role):
             deal = deal.model_copy(update={"userId": user.id})
         if roles.is_super_admin(user.role):
             if not deal.companyId:
@@ -36,27 +51,24 @@ class DealService:
         return new_deal
 
     def get_by_id(self, db: Session, user: models.User, deal_id: str) -> models.Deal:
-        deal = crud.get_deal(db, deal_id=deal_id)
-        if not deal:
-            raise HTTPException(status_code=404, detail="Deal not found")
-        if roles.is_sales_rep(user.role) and deal.userId != user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this deal")
-        if roles.is_company_admin(user.role) and deal.companyId != user.company_id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this deal")
-        return deal
+        return tenant_access.ensure_deal_access(db, user, deal_id)
 
     def update_stage(self, db: Session, user: models.User, deal_id: str, stage: str) -> models.Deal:
-        deal = crud.get_deal(db, deal_id=deal_id)
-        if not deal:
-            raise HTTPException(status_code=404, detail="Deal not found")
-        if roles.is_sales_rep(user.role) and deal.userId != user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to update this deal")
-        if roles.is_company_admin(user.role) and deal.companyId != user.company_id:
-            raise HTTPException(status_code=403, detail="Not authorized to update this deal")
+        tenant_access.ensure_deal_access(db, user, deal_id)
         return crud.update_deal_stage(db=db, deal_id=deal_id, stage=stage, user_id=user.id)
 
     def update(self, db: Session, user: models.User, deal_id: str, body: schemas.DealUpdate) -> models.Deal:
-        tenant_access.ensure_deal_access(db, user, deal_id)
+        deal = tenant_access.ensure_deal_access(db, user, deal_id)
+        data = body.model_dump(exclude_unset=True)
+        if "userId" in data and data["userId"] is not None:
+            new_uid = data["userId"]
+            if new_uid != deal.userId:
+                if not (roles.is_super_admin(user.role) or user.role == "admin"):
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Only company administrators can reassign the deal owner",
+                    )
+                _assert_assignee_for_deal(db, deal, new_uid)
         updated = crud.update_deal_combined(db, deal_id, body, user_id=user.id)
         if not updated:
             raise HTTPException(status_code=404, detail="Deal not found")

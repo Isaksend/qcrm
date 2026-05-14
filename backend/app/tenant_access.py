@@ -13,13 +13,15 @@ def ensure_deal_access(db: Session, user: models.User, deal_id: str) -> models.D
         raise HTTPException(status_code=404, detail="Deal not found")
     if roles.is_super_admin(user.role):
         return deal
-    if roles.is_company_admin(user.role):
+    if user.role == "admin":
         if deal.companyId != user.company_id:
             raise HTTPException(status_code=403, detail="Not authorized to access this deal")
         return deal
-    if deal.userId != user.id or deal.companyId != user.company_id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this deal")
-    return deal
+    if roles.sees_own_deals_only(user.role):
+        if deal.companyId != user.company_id or deal.userId != user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this deal")
+        return deal
+    raise HTTPException(status_code=403, detail="Not authorized to access this deal")
 
 
 def ensure_contact_access(db: Session, user: models.User, contact_id: str) -> models.Contact:
@@ -53,10 +55,14 @@ def user_can_read_deal(user: models.User, deal: models.Deal) -> bool:
     """Согласовано с read_deal: кто может открыть карточку сделки."""
     if roles.is_super_admin(user.role):
         return True
-    if roles.is_sales_rep(user.role):
-        return deal.userId == user.id
-    if roles.is_company_admin(user.role):
+    if user.role == "admin":
         return bool(user.company_id and deal.companyId == user.company_id)
+    if roles.sees_own_deals_only(user.role):
+        return bool(
+            user.company_id
+            and deal.companyId == user.company_id
+            and deal.userId == user.id
+        )
     return False
 
 

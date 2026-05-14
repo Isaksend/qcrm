@@ -103,10 +103,18 @@ function dealStage(s: string) {
 </script>
 
 <template>
-  <div v-if="contact" class="fixed inset-0 z-30 flex justify-end">
-    <div class="absolute inset-0 bg-black/20" @click="contactsStore.selectedContactId = null"></div>
-    <div class="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto animate-slide-in">
-      <div class="p-6">
+  <!-- Teleport: иначе fixed обрезается overflow у <main> в App.vue -->
+  <Teleport to="body">
+    <div v-if="contact" class="fixed inset-0 z-50 flex justify-end">
+      <div
+        class="absolute inset-0 z-0 bg-black/20"
+        aria-hidden="true"
+        @click="contactsStore.selectedContactId = null"
+      />
+      <div
+        class="relative z-10 flex h-full min-h-0 w-full max-w-lg flex-col bg-white shadow-xl animate-slide-in"
+      >
+        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
         <div class="flex items-start justify-between gap-3 mb-6">
           <div class="flex items-center gap-4 min-w-0">
             <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
@@ -214,9 +222,10 @@ function dealStage(s: string) {
             <button type="button" class="btn-primary text-sm" @click="saveEdits">{{ t('contactDetail.saveEdits') }}</button>
           </div>
         </div>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>

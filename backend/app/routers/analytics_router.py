@@ -3,7 +3,7 @@ from collections import Counter
 from sqlalchemy.orm import Session
 from sqlalchemy import func, false
 from app.database import get_db
-from app import models, auth, crud
+from app import models, auth, crud, roles
 from app.services.ai_service import ai_service
 from app.schemas.ai_schemas import ChurnPredictInput
 
@@ -16,7 +16,10 @@ def _deal_ids_for_user(db: Session, user: models.User) -> list[str] | None:
         return None
     if not user.company_id:
         return []
-    return [r[0] for r in db.query(models.Deal.id).filter(models.Deal.companyId == user.company_id).all()]
+    q = db.query(models.Deal.id).filter(models.Deal.companyId == user.company_id)
+    if roles.sees_own_deals_only(user.role):
+        q = q.filter(models.Deal.userId == user.id)
+    return [r[0] for r in q.all()]
 
 
 def _contact_ids_for_user(db: Session, user: models.User) -> list[str] | None:
