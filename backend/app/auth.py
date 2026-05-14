@@ -3,7 +3,6 @@ import os
 from typing import Optional
 import bcrypt
 import jwt
-from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -41,7 +40,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
-    except InvalidTokenError:
+    except:
         raise credentials_exception
     user = db.query(models.User).filter(models.User.email == email).first()
     if user is None:

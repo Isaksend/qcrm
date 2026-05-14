@@ -7,17 +7,20 @@ const router = createRouter({
       path: '/',
       name: 'dashboard',
       component: () => import('../views/DashboardView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/contacts',
       name: 'contacts',
       component: () => import('../views/ContactsView.vue'),
+      meta: { requiresAuth: true },
     },
 
     {
       path: '/deals',
       name: 'deals',
       component: () => import('../views/DealsView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/deals/:id',

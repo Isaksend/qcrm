@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import Sidebar from './components/layout/Sidebar.vue'
 import TopBar from './components/layout/TopBar.vue'
 import AIPanel from './components/ai/AIPanel.vue'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const isAuthRoute = computed(() => {
@@ -16,6 +17,7 @@ const isAuthRoute = computed(() => {
 const isAppLoading = ref(true)
 
 onMounted(async () => {
+  await router.isReady()
   if (authStore.token) {
     await authStore.fetchCurrentUser()
   }

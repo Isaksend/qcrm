@@ -400,7 +400,7 @@ function openImage(url: string) {
       </div>
     </div>
 
-    <!-- Create Deal Modal (omitted for brevity, assume same as before but inside the relative container) -->
+    <!-- Create Deal Modal -->
     <div v-if="showNewDealModal" class="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col p-6 overflow-y-auto">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-black text-gray-900 uppercase tracking-tight">Новая сделка</h3>

@@ -9,4 +9,9 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(i18n)
 app.use(router)
-app.mount('#app')
+
+// Дождаться первой навигации (в т.ч. редиректа с `/` на `/login` без токена),
+// иначе App.vue успевает отрисовать CRM до срабатывания beforeEach.
+void router.isReady().then(() => {
+  app.mount('#app')
+})
