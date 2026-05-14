@@ -157,6 +157,12 @@ class ChatMessageSend(BaseModel):
     dealId: Optional[str] = None
     content: str
 
+
+class ChatStartByTelegramRequest(BaseModel):
+    telegram_id: str
+    message: Optional[str] = None
+
+
 class AIInsightBase(BaseModel):
     entityType: str
     entityId: Optional[str] = None
@@ -204,6 +210,16 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+
+
+class UserAdminUpdate(BaseModel):
+    """Частичное обновление пользователя (только super_admin)."""
+
+    name: Optional[str] = None
+    role: Optional[str] = None
+    company_id: Optional[str] = None
+    is_active: Optional[int] = None
+
 
 class UserResponse(UserBase):
     id: str

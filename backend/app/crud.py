@@ -325,6 +325,25 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
+
+def update_user_admin(db: Session, user_id: str, data: schemas.UserAdminUpdate) -> models.User | None:
+    db_user = get_user(db, user_id)
+    if not db_user:
+        return None
+    payload = data.model_dump(exclude_unset=True)
+    if "name" in payload and payload["name"] is not None:
+        db_user.name = payload["name"]
+    if "role" in payload and payload["role"] is not None:
+        db_user.role = payload["role"]
+    if "company_id" in payload:
+        db_user.company_id = payload["company_id"]
+    if "is_active" in payload and payload["is_active"] is not None:
+        db_user.is_active = int(payload["is_active"])
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
 def get_users(db: Session, skip: int = 0, limit: int = 100, company_id: str = None):
     query = db.query(models.User)
     if company_id:
