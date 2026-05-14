@@ -1,15 +1,47 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useDealsStore } from '../stores/deals'
 import { useContactsStore } from '../stores/contacts'
 import { useAuthStore } from '../stores/auth'
 import ChatWindow from '../components/chat/ChatWindow.vue'
+import AIPredictionCard from '../components/ai/AIPredictionCard.vue'
 import type { Deal, Note } from '../types'
+import type { AIPredictionResponse } from '../types/ai'
 import { apiUrl } from '../lib/api'
 
 const route = useRoute()
 const router = useRouter()
+const { t, locale } = useI18n()
+
+const STAGE_I18N: Record<string, string> = {
+  'New Request': 'dealStages.newRequest',
+  Qualified: 'dealStages.qualified',
+  Discovery: 'dealStages.discovery',
+  Proposal: 'dealStages.proposal',
+  Negotiation: 'dealStages.negotiation',
+  'Closed Won': 'dealStages.closedWon',
+  'Closed Lost': 'dealStages.closedLost',
+}
+
+function dealStageLabel(stage: string): string {
+  const path = STAGE_I18N[stage]
+  return path ? t(path) : stage
+}
+
+const USER_ROLE_I18N: Record<string, string> = {
+  sales_representative: 'users.roleUser',
+  manager: 'users.roleManager',
+  admin: 'users.roleAdmin',
+  super_admin: 'users.roleSuper',
+}
+
+function userRoleLabel(role: string | null | undefined): string {
+  if (!role || !String(role).trim()) return ''
+  const path = USER_ROLE_I18N[String(role).trim()]
+  return path ? t(path) : role
+}
 const dealsStore = useDealsStore()
 const contactsStore = useContactsStore()
 const authStore = useAuthStore()
@@ -21,6 +53,11 @@ const newNoteContent = ref('')
 const isLoading = ref(true)
 const isSavingNote = ref(false)
 const titleEdit = ref('')
+
+const dealAiLoading = ref(false)
+const dealAiError = ref('')
+const dealAiLead = ref<AIPredictionResponse | null>(null)
+const dealAiChurn = ref<AIPredictionResponse | null>(null)
 
 watch(
   deal,
@@ -67,7 +104,7 @@ function userDisplayName(userId: string | null | undefined): string {
   if (!id) return ''
   const u = userMap.value[id]
   if (u?.name) return u.name as string
-  return `Пользователь ${id.slice(0, 8)}…`
+  return t('dealDetail.userFallback', { id: id.slice(0, 8) })
 }
 
 function mergeAuthUserIntoList() {
@@ -99,6 +136,41 @@ async function hydrateMissingUsers(authHeaders: Record<string, string>) {
     } catch {
       /* ignore */
     }
+  }
+}
+
+async function loadDealContactAi(contactId: string, forDealId: string) {
+  dealAiLoading.value = true
+  dealAiError.value = ''
+  dealAiLead.value = null
+  dealAiChurn.value = null
+  const token = authStore.token || localStorage.getItem('token')
+  const authHeaders: Record<string, string> = {}
+  if (token) authHeaders.Authorization = `Bearer ${token}`
+  try {
+    const qs = new URLSearchParams({ deal_id: forDealId })
+    const r = await fetch(
+      apiUrl(`/api/v1/ai/analyze-contact/${encodeURIComponent(contactId)}?${qs.toString()}`),
+      { headers: authHeaders },
+    )
+    if (!r.ok) {
+      let msg = `HTTP ${r.status}`
+      try {
+        const err = await r.json()
+        if (err.detail) msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)
+      } catch {
+        /* ignore */
+      }
+      dealAiError.value = msg
+      return
+    }
+    const data = await r.json()
+    dealAiLead.value = data.analysis?.lead_conversion ?? null
+    dealAiChurn.value = data.analysis?.churn_risk ?? null
+  } catch {
+    dealAiError.value = t('dealDetail.networkError')
+  } finally {
+    dealAiLoading.value = false
   }
 }
 
@@ -137,7 +209,16 @@ async function fetchData() {
 
     // 4. Контакты для сайдбара
     if (contactsStore.contacts.length === 0) await contactsStore.fetchContacts()
-    
+
+    const cid = deal.value?.contactId
+    if (cid && String(cid).trim()) {
+      await loadDealContactAi(String(cid).trim(), dealId)
+    } else {
+      dealAiLoading.value = false
+      dealAiLead.value = null
+      dealAiChurn.value = null
+      dealAiError.value = ''
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -179,7 +260,7 @@ async function saveDealTitle() {
 }
 
 async function deleteThisDeal() {
-  if (!confirm('Delete this deal?')) return
+  if (!confirm(t('dealDetail.confirmDeleteDeal'))) return
   const ok = await dealsStore.deleteDeal(dealId)
   if (ok) router.push('/deals')
 }
@@ -198,16 +279,23 @@ const stageClass: Record<string, string> = {
   'Closed Lost': 'bg-red-100 text-red-700',
 }
 
+function intlLocaleTag(): string {
+  const loc = locale.value
+  if (loc === 'ru') return 'ru-RU'
+  if (loc === 'kk') return 'kk-KZ'
+  return 'en-US'
+}
+
 function formatCurrency(val: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val)
+  return new Intl.NumberFormat(intlLocaleTag(), { style: 'currency', currency: 'USD' }).format(val)
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return new Date(dateStr).toLocaleString(intlLocaleTag(), {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 </script>
@@ -233,18 +321,18 @@ function formatDate(dateStr: string) {
               />
               <div class="flex items-center gap-2 mt-1 flex-wrap">
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold" :class="stageClass[deal.stage]">
-                  {{ deal.stage }}
+                  {{ dealStageLabel(deal.stage) }}
                 </span>
                 <span class="text-xs text-gray-400 font-mono">ID: {{ deal.id.slice(0, 8) }}</span>
-                <button type="button" class="text-xs font-semibold text-indigo-600" @click="saveDealTitle">Save title</button>
-                <button type="button" class="text-xs font-semibold text-red-600" @click="deleteThisDeal">Delete deal</button>
+                <button type="button" class="text-xs font-semibold text-indigo-600" @click="saveDealTitle">{{ t('dealDetail.saveTitle') }}</button>
+                <button type="button" class="text-xs font-semibold text-red-600" @click="deleteThisDeal">{{ t('dealDetail.deleteDeal') }}</button>
               </div>
             </div>
           </div>
         </div>
         <div class="bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100 text-right">
           <div class="text-2xl font-black text-emerald-600">{{ formatCurrency(deal.value) }}</div>
-          <div class="text-[10px] text-emerald-600/70 font-bold uppercase tracking-widest">Deal Value</div>
+          <div class="text-[10px] text-emerald-600/70 font-bold uppercase tracking-widest">{{ t('dealDetail.dealValue') }}</div>
         </div>
       </div>
 
@@ -252,29 +340,29 @@ function formatDate(dateStr: string) {
         <!-- Main Info -->
         <div class="lg:col-span-2 space-y-6">
           <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-6 border-b border-gray-50 pb-2">Deal Context</h3>
+            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-6 border-b border-gray-50 pb-2">{{ t('dealDetail.dealContext') }}</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Status</label>
+                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">{{ t('dealDetail.statusLabel') }}</label>
                 <p class="font-bold text-gray-900 flex items-center gap-1.5">
                   <span class="w-2 h-2 rounded-full" :class="deal.closedAt ? 'bg-gray-400' : 'bg-green-500 animate-pulse'"></span>
-                  {{ deal.closedAt ? 'Archive' : 'In Pipeline' }}
+                  {{ deal.closedAt ? t('dealDetail.archive') : t('dealDetail.inPipeline') }}
                 </p>
               </div>
               <div>
-                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Ответственный</label>
+                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">{{ t('dealDetail.responsible') }}</label>
                 <div v-if="manager" class="flex flex-col">
                   <span class="font-bold text-gray-900">{{ manager.name }}</span>
-                  <span class="text-[10px] text-indigo-600 font-bold uppercase">{{ manager.role }}</span>
+                  <span class="text-[10px] text-indigo-600 font-bold uppercase">{{ userRoleLabel(manager.role) }}</span>
                 </div>
                 <div v-else-if="deal.userId && String(deal.userId).trim()" class="flex flex-col">
                   <span class="font-bold text-gray-900">{{ userDisplayName(deal.userId) }}</span>
                   <span class="text-[10px] text-gray-500 font-bold uppercase">id: {{ String(deal.userId).slice(0, 8) }}…</span>
                 </div>
-                <p v-else class="text-gray-400 italic">Не назначен</p>
+                <p v-else class="text-gray-400 italic">{{ t('dealDetail.notAssigned') }}</p>
               </div>
               <div>
-                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Кто создал</label>
+                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">{{ t('dealDetail.createdBy') }}</label>
                 <div v-if="creator" class="flex flex-col">
                   <span class="font-bold text-gray-900">{{ creator.name }}</span>
                   <span class="text-[10px] text-gray-500 font-bold uppercase">{{ creator.email }}</span>
@@ -285,25 +373,52 @@ function formatDate(dateStr: string) {
                 >
                   <span class="font-bold text-gray-900">{{ userDisplayName(deal.createdById || deal.userId) }}</span>
                 </div>
-                <p v-else class="text-gray-400 italic">Не указано</p>
+                <p v-else class="text-gray-400 italic">{{ t('dealDetail.notSpecifiedCreator') }}</p>
               </div>
               <div>
-                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">Дата закрытия</label>
-                <p class="font-bold text-gray-900">{{ deal.closedAt ? formatDate(deal.closedAt) : 'Pending' }}</p>
+                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-1">{{ t('dealDetail.closingDate') }}</label>
+                <p class="font-bold text-gray-900">{{ deal.closedAt ? formatDate(deal.closedAt) : t('dealDetail.pendingClose') }}</p>
               </div>
             </div>
             
             <div v-if="deal.notes" class="mt-8 pt-6 border-t border-gray-50">
-               <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2">Original Description</label>
+               <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2">{{ t('dealDetail.originalDescription') }}</label>
                <p class="text-sm text-gray-600 bg-gray-50 p-4 rounded-xl italic">{{ deal.notes }}</p>
             </div>
+          </div>
+
+          <template v-if="deal.contactId && String(deal.contactId).trim()">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+              <div>
+                <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest">{{ t('dealDetail.aiSectionTitle') }}</h3>
+                <p class="text-xs text-gray-500 mt-1">{{ t('dealDetail.aiSubtitle') }}</p>
+              </div>
+              <p v-if="dealAiError" class="text-sm text-red-600">{{ dealAiError }}</p>
+              <div v-else class="grid md:grid-cols-2 gap-4">
+                <AIPredictionCard
+                  kind="lead"
+                  :title="t('dealDetail.aiLeadTitle')"
+                  :prediction="dealAiLead"
+                  :loading="dealAiLoading"
+                />
+                <AIPredictionCard
+                  kind="churn"
+                  :title="t('dealDetail.aiChurnTitle')"
+                  :prediction="dealAiChurn"
+                  :loading="dealAiLoading"
+                />
+              </div>
+            </div>
+          </template>
+          <div v-else class="text-sm text-gray-500 bg-gray-50 rounded-xl p-4 border border-gray-100">
+            {{ t('dealDetail.aiNoContact') }}
           </div>
 
           <!-- Notes / Timeline -->
           <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-6 border-b border-gray-50 flex items-center justify-between">
-              <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest">Collaborative Timeline</h3>
-              <span class="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ notes.length }} NOTES</span>
+              <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest">{{ t('dealDetail.timelineTitle') }}</h3>
+              <span class="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ t('dealDetail.notesCount', { n: notes.length }) }}</span>
             </div>
             
             <!-- Add Note Input -->
@@ -313,7 +428,7 @@ function formatDate(dateStr: string) {
                   v-model="newNoteContent"
                   rows="2" 
                   class="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none transition-all shadow-inner" 
-                  placeholder="Shared a note with the team..."
+                  :placeholder="t('dealDetail.notePlaceholder')"
                 ></textarea>
                 <button 
                   @click="addNote" 
@@ -332,7 +447,7 @@ function formatDate(dateStr: string) {
                 
                 <div class="flex items-center gap-2 mb-1">
                   <span class="text-xs font-black text-gray-900">{{
-                    note.authorName || userDisplayName(noteUserId(note)) || 'Неизвестный автор'
+                    note.authorName || userDisplayName(noteUserId(note)) || t('dealDetail.unknownAuthor')
                   }}</span>
                   <span class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">{{ formatDate(note.createdAt) }}</span>
                 </div>
@@ -345,7 +460,7 @@ function formatDate(dateStr: string) {
                 <div class="text-gray-300 mb-2">
                    <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 </div>
-                <p class="text-gray-400 text-sm italic">No discussion yet. Every note helps the team win!</p>
+                <p class="text-gray-400 text-sm italic">{{ t('dealDetail.notesEmpty') }}</p>
               </div>
             </div>
           </div>
@@ -354,7 +469,7 @@ function formatDate(dateStr: string) {
         <!-- Sidebar Info -->
         <div class="space-y-6">
           <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6" v-if="contact">
-            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">Linked Contact</h3>
+            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">{{ t('dealDetail.linkedContact') }}</h3>
             <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-50">
               <div class="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-indigo-100">
                 {{ contact.avatar }}
@@ -366,14 +481,14 @@ function formatDate(dateStr: string) {
             </div>
             <div class="space-y-4">
               <div class="flex flex-col">
-                <label class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">Email</label>
+                <label class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">{{ t('dealDetail.email') }}</label>
                 <div class="flex items-center gap-2">
                    <svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                    <span class="text-sm text-gray-600 truncate font-medium">{{ contact.email }}</span>
                 </div>
               </div>
               <div class="flex flex-col">
-                <label class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">Phone</label>
+                <label class="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-1">{{ t('dealDetail.phone') }}</label>
                 <div class="flex items-center gap-2">
                    <svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                    <span class="text-sm text-gray-600 font-medium">{{ contact.phone }}</span>
@@ -381,7 +496,7 @@ function formatDate(dateStr: string) {
               </div>
             </div>
             <button @click="router.push('/contacts')" class="w-full mt-8 py-3 text-xs font-black text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-widest">
-              CONTACT DOSSIER
+              {{ t('dealDetail.contactDossier') }}
             </button>
           </div>
 

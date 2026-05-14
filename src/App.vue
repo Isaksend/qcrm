@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import Sidebar from './components/layout/Sidebar.vue'
 import TopBar from './components/layout/TopBar.vue'
-import AIPanel from './components/ai/AIPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -39,7 +38,6 @@ onMounted(async () => {
           <router-view />
         </main>
       </div>
-      <AIPanel />
     </template>
     
     <template v-else>

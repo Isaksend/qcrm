@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from app.schemas.ai_schemas import LeadScoreInput, ChurnPredictInput, LeadScoreResponse, ChurnPredictionResponse
 from app.services.ai_service import ai_service
 from app import auth, models, tenant_access
@@ -36,13 +36,18 @@ async def predict_churn(
 @router.get("/analyze-contact/{contact_id}")
 async def analyze_contact_full(
     contact_id: str,
+    deal_id: str | None = Query(None, description="ID сделки: если доступ к контакту по компании невозможен, проверяется право на эту сделку (как в чате)."),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: models.User = Depends(auth.get_current_active_user),
 ):
     """
-    Automatically collects data from DB and performs full AI analysis for a contact.
+    Автоматически собирает данные из БД и запускает ИИ-анализ по контакту.
+    При открытии с карточки сделки передайте query `deal_id`, чтобы согласовать доступ с правом на сделку.
     """
-    tenant_access.ensure_contact_access(db, current_user, contact_id)
+    if deal_id:
+        tenant_access.ensure_chat_contact_access(db, current_user, contact_id, deal_id)
+    else:
+        tenant_access.ensure_contact_access(db, current_user, contact_id)
     from app import crud
     from app.schemas.ai_schemas import LeadScoreInput, ChurnPredictInput
     

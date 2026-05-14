@@ -6,8 +6,6 @@
     "companies": "Компании",
     "analytics": "Аналитика BI",
     "messages": "Сообщения",
-    "aiInsights": "ИИ-инсайты",
-    "aiLab": "ИИ-лаборатория",
     "activities": "Активности",
     "team": "Команда"
   },
@@ -87,8 +85,7 @@
       "role": "Роль",
       "status": "Статус",
       "revenue": "Выручка",
-      "lastContact": "Последний контакт",
-      "ai": "ИИ"
+      "lastContact": "Последний контакт"
     }
   },
   "contactStatus": {
@@ -127,7 +124,6 @@
     "tags": "Теги",
     "relatedDeals": "Связанные сделки",
     "noDeals": "Нет связанных сделок.",
-    "analyzeAi": "Анализ с ИИ",
     "edit": "Изменить",
     "delete": "Удалить",
     "confirmDelete": "Удалить контакт? Сделки останутся, связь будет снята.",
@@ -146,6 +142,68 @@
     "dealsCount": "{n} сделок",
     "monthlyRevenue": "Выручка по месяцам"
   },
+  "dealDetail": {
+    "aiSectionTitle": "ИИ-анализ по данным контакта",
+    "aiSubtitle": "Параметры подставляются из базы автоматически, без ввода с вашей стороны.",
+    "aiLeadTitle": "Готовность к закрытию",
+    "aiChurnTitle": "Риск ухода клиента",
+    "aiLoading": "Расчёт…",
+    "aiNoContact": "Нет привязанного контакта — анализ недоступен.",
+    "saveTitle": "Сохранить название",
+    "deleteDeal": "Удалить сделку",
+    "confirmDeleteDeal": "Удалить эту сделку?",
+    "dealValue": "Сумма сделки",
+    "dealContext": "Контекст сделки",
+    "statusLabel": "Статус",
+    "inPipeline": "В работе",
+    "archive": "Архив",
+    "responsible": "Ответственный",
+    "createdBy": "Кто создал",
+    "closingDate": "Дата закрытия",
+    "pendingClose": "Не закрыта",
+    "originalDescription": "Исходное описание",
+    "notAssigned": "Не назначен",
+    "notSpecifiedCreator": "Не указано",
+    "timelineTitle": "Совместная лента",
+    "notesCount": "Заметок: {n}",
+    "notePlaceholder": "Поделитесь заметкой с командой…",
+    "notesEmpty": "Пока нет обсуждений. Каждая заметка помогает команде!",
+    "linkedContact": "Связанный контакт",
+    "email": "Email",
+    "phone": "Телефон",
+    "contactDossier": "Карточка контакта",
+    "unknownAuthor": "Неизвестный автор",
+    "networkError": "Ошибка сети",
+    "userFallback": "Пользователь {id}…"
+  },
+  "aiPrediction": {
+    "confidenceScore": "Уверенность модели",
+    "keyFactors": "Ключевые факторы",
+    "leadKeyFactors": "Что двигает интерес к сделке",
+    "leadProbabilityLabel": "Вероятность конверсии",
+    "churnProbabilityLabel": "Вероятность оттока",
+    "impactPositive": "Положительное влияние на оценку",
+    "impactNegative": "Отрицательное влияние на оценку",
+    "leadImpactPositive": "Тянет к сделке",
+    "leadImpactNegative": "Охлаждает интерес",
+    "emptyState": "Готово к ИИ-анализу",
+    "riskBadge": {
+      "Low": "Низкий риск оттока",
+      "Medium": "Средний риск",
+      "High": "Высокий риск оттока"
+    },
+    "leadTier": {
+      "Low": "Холодный лид",
+      "Medium": "Тёплый лид",
+      "High": "Горячий лид"
+    },
+    "features": {
+      "activity_count_30d": "Активностей за 30 дней",
+      "days_since_last_contact": "Дней с последнего контакта",
+      "total_deal_value": "Сумма сделок",
+      "interaction_score": "Оценка взаимодействий"
+    }
+  },
   "dealForm": {
     "title": "Новая сделка и контакт",
     "dealInfo": "Сделка",
@@ -161,12 +219,14 @@
     "name": "Имя *",
     "email": "Email",
     "company": "Компания",
+    "superCompanyLabel": "Компания сделки (обязательно для супер-админа)",
     "createDeal": "Создать сделку",
     "errors": {
       "phone": "Введите полный номер (код страны + номер, не менее 7 цифр в номере)",
       "name": "Укажите имя контакта",
       "contactFailed": "Не удалось связать контакт",
-      "dealFailed": "Не удалось создать сделку"
+      "dealFailed": "Не удалось создать сделку",
+      "superCompany": "Выберите компанию для сделки (супер-админ)"
     }
   },
   "dealStages": {
@@ -291,41 +351,14 @@
     "roleSuper": "Суперадмин (вся система)",
     "createAccount": "Создать",
     "confirmDelete": "Удалить этого пользователя?",
-    "errorPrefix": "Ошибка:"
-  },
-  "ai": {
-    "title": "ИИ-инсайты",
-    "subtitle": "Анализ и рекомендации по CRM.",
-    "insightsCount": "Инсайтов: {n}",
-    "filters": {
-      "all": "Все",
-      "contact": "Контакты",
-      "lead": "Лиды",
-      "deal": "Сделки",
-      "general": "Общее"
-    },
-    "empty": "Нет инсайтов для выбранного фильтра."
-  },
-  "aiLab": {
-    "title": "ИИ-лаборатория",
-    "subtitle": "Скоринг лидов и отток: ручной ввод или данные из CRM.",
-    "automatedTitle": "Автоанализ",
-    "automatedHint": "Введите ID контакта для загрузки данных из CRM.",
-    "fetchAnalyze": "Загрузить и анализировать",
-    "manualTitle": "Ручной ввод",
-    "activities": "Активности (30 дней)",
-    "daysSince": "Дней с последнего контакта",
-    "dealValue": "Сумма сделки ($)",
-    "interactionScore": "Оценка взаимодействия (0–1)",
-    "analyzing": "Анализ…",
-    "runAnalysis": "Запустить ИИ",
-    "contactIdRequired": "Введите ID контакта",
-    "errors": {
-      "aiService": "Не удалось подключиться к ИИ.",
-      "contactAi": "Контакт не найден или ошибка ИИ."
-    },
-    "leadCard": "Конверсия лида",
-    "churnCard": "Риск оттока"
+    "errorPrefix": "Ошибка:",
+    "companyLabel": "Компания",
+    "companyPlaceholder": "Выберите компанию",
+    "edit": "Изменить",
+    "editTitle": "Пользователь",
+    "editHint": "Изменение роли, компании и статуса (только супер-админ).",
+    "inactive": "Неактивен",
+    "saveChanges": "Сохранить"
   },
   "globalSearch": {
     "title": "Поиск",

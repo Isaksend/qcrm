@@ -2,12 +2,10 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useContactsStore } from '../../stores/contacts'
-import { useAI } from '../../composables/useAI'
 import ContactCard from './ContactCard.vue'
 
 const { t, locale } = useI18n()
 const store = useContactsStore()
-const { analyze } = useAI()
 
 const statusValues = ['All', 'Active', 'Inactive', 'Prospect'] as const
 
@@ -19,12 +17,6 @@ const statusFilters = computed(() => {
   }))
 })
 
-function handleAnalyze(contactId: string) {
-  const contact = store.getContact(contactId)
-  if (contact) {
-    analyze('contact', contactId, { ...contact })
-  }
-}
 </script>
 
 <template>
@@ -64,7 +56,6 @@ function handleAnalyze(contactId: string) {
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ t('contacts.table.status') }}</th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ t('contacts.table.revenue') }}</th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ t('contacts.table.lastContact') }}</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">{{ t('contacts.table.ai') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
@@ -73,7 +64,6 @@ function handleAnalyze(contactId: string) {
             :key="contact.id"
             :contact="contact"
             @select="store.selectedContactId = $event"
-            @analyze="handleAnalyze"
           />
         </tbody>
       </table>

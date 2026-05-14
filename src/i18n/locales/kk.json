@@ -6,8 +6,6 @@
     "companies": "Компаниялар",
     "analytics": "BI талдау",
     "messages": "Хабарламалар",
-    "aiInsights": "ЖИ түйіндері",
-    "aiLab": "ЖИ зертханасы",
     "activities": "Әрекеттер",
     "team": "Команда"
   },
@@ -87,8 +85,7 @@
       "role": "Рөлі",
       "status": "Күйі",
       "revenue": "Табыс",
-      "lastContact": "Соңғы байланыс",
-      "ai": "ЖИ"
+      "lastContact": "Соңғы байланыс"
     }
   },
   "contactStatus": {
@@ -127,7 +124,6 @@
     "tags": "Тегтер",
     "relatedDeals": "Байланысты мәмілелер",
     "noDeals": "Мәмілелер жоқ.",
-    "analyzeAi": "ЖИ талдауы",
     "edit": "Өзгерту",
     "delete": "Жою",
     "confirmDelete": "Байланысты жою керек пе?",
@@ -146,6 +142,68 @@
     "dealsCount": "{n} мәміле",
     "monthlyRevenue": "Айлық табыс"
   },
+  "dealDetail": {
+    "aiSectionTitle": "ЖИ талдауы (байланыс деректері)",
+    "aiSubtitle": "Параметрлер базадан автоматты түрде алынады.",
+    "aiLeadTitle": "Жабуға дайындық",
+    "aiChurnTitle": "Клиентті жоғалту қаупі",
+    "aiLoading": "Есептеу…",
+    "aiNoContact": "Байланыс жоқ — талдау мүмкін емес.",
+    "saveTitle": "Атауды сақтау",
+    "deleteDeal": "Мәмілені жою",
+    "confirmDeleteDeal": "Осы мәмілені жою керек пе?",
+    "dealValue": "Мәміле сомасы",
+    "dealContext": "Мәміле контексті",
+    "statusLabel": "Күйі",
+    "inPipeline": "Жұмыста",
+    "archive": "Мұрағат",
+    "responsible": "Жауапты",
+    "createdBy": "Жасаған",
+    "closingDate": "Жабылу күні",
+    "pendingClose": "Ашық",
+    "originalDescription": "Бастапқы сипаттама",
+    "notAssigned": "Тағайындалмаған",
+    "notSpecifiedCreator": "Көрсетілмеген",
+    "timelineTitle": "Бірлескен уақыт шкаласы",
+    "notesCount": "{n} ескертпе",
+    "notePlaceholder": "Командамен ескертпемен бөлісіңіз…",
+    "notesEmpty": "Талқылау әлі жоқ. Әр ескертпе командаға көмектеседі!",
+    "linkedContact": "Байланыстырылған контакт",
+    "email": "Email",
+    "phone": "Телефон",
+    "contactDossier": "Байланыс карточкасы",
+    "unknownAuthor": "Белгісіз автор",
+    "networkError": "Желі қатесі",
+    "userFallback": "Пайдаланушы {id}…"
+  },
+  "aiPrediction": {
+    "confidenceScore": "Сенім деңгейі",
+    "keyFactors": "Негізгі факторлар",
+    "leadKeyFactors": "Мәміле қызығушылығын не ықтырады",
+    "leadProbabilityLabel": "Конверсия ықтималдығы",
+    "churnProbabilityLabel": "Ағу ықтималдығы",
+    "impactPositive": "Бағаға оң әсер",
+    "impactNegative": "Бағаға теріс әсер",
+    "leadImpactPositive": "Мәміле жақына тартады",
+    "leadImpactNegative": "Қызығушылықты төмендетеді",
+    "emptyState": "ЖИ талдауына дайын",
+    "riskBadge": {
+      "Low": "Ағу қаупі төмен",
+      "Medium": "Ағу қаупі орташа",
+      "High": "Ағу қаупі жоғары"
+    },
+    "leadTier": {
+      "Low": "Суық лид",
+      "Medium": "Жылы лид",
+      "High": "Ыстық лид"
+    },
+    "features": {
+      "activity_count_30d": "30 күн ішіндегі белсенділік",
+      "days_since_last_contact": "Соңғы байланыстан бері күн",
+      "total_deal_value": "Мәмілелер сомасы",
+      "interaction_score": "Әрекет бағасы"
+    }
+  },
   "dealForm": {
     "title": "Жаңа мәміле және байланыс",
     "dealInfo": "Мәміле",
@@ -161,12 +219,14 @@
     "name": "Аты *",
     "email": "Email",
     "company": "Компания",
+    "superCompanyLabel": "Мәміле компаниясы (суперәкімші үшін міндетті)",
     "createDeal": "Мәміле жасау",
     "errors": {
       "phone": "Толық нөмірді енгізіңіз (ел коды + нөмір, нөмірде кемінде 7 цифр)",
       "name": "Байланыс атын енгізіңіз",
       "contactFailed": "Байланысты байлау сәтсіз",
-      "dealFailed": "Мәміле жасалмады"
+      "dealFailed": "Мәміле жасалмады",
+      "superCompany": "Мәміле үшін компанияны таңдаңыз (суперәкімші)"
     }
   },
   "dealStages": {
@@ -291,41 +351,14 @@
     "roleSuper": "Суперәкімші (бүкіл жүйе)",
     "createAccount": "Жасау",
     "confirmDelete": "Осы пайдаланушыны жоясыз ба?",
-    "errorPrefix": "Қате:"
-  },
-  "ai": {
-    "title": "ЖИ түйіндері",
-    "subtitle": "CRM бойынша ЖИ талдауы және ұсыныстар.",
-    "insightsCount": "Түйіндер: {n}",
-    "filters": {
-      "all": "Барлығы",
-      "contact": "Байланыстар",
-      "lead": "Лидтер",
-      "deal": "Мәмілелер",
-      "general": "Жалпы"
-    },
-    "empty": "Таңдалған сүзгі бойынша түйін жоқ."
-  },
-  "aiLab": {
-    "title": "ЖИ болжам зертханасы",
-    "subtitle": "Лид скорингі және кету болжамы: қолмен немесе CRM дерегі.",
-    "automatedTitle": "Авто талдау",
-    "automatedHint": "CRM дерегін жүктеу үшін байланыс ID енгізіңіз.",
-    "fetchAnalyze": "Жүктеп талдау",
-    "manualTitle": "Қолмен енгізу",
-    "activities": "Белсенділік (30 күн)",
-    "daysSince": "Соңғы байланыстан бері күн",
-    "dealValue": "Мәміле сомасы ($)",
-    "interactionScore": "Әрекет бағасы (0–1)",
-    "analyzing": "Талдауда…",
-    "runAnalysis": "ЖИ іске қосу",
-    "contactIdRequired": "Байланыс ID енгізіңіз",
-    "errors": {
-      "aiService": "ЖИ қызметіне қосылу сәтсіз.",
-      "contactAi": "Байланыс табылмады немесе ЖИ қатесі."
-    },
-    "leadCard": "Лид конверсиясы",
-    "churnCard": "Кету қаупі"
+    "errorPrefix": "Қате:",
+    "companyLabel": "Компания",
+    "companyPlaceholder": "Компанияны таңдаңыз",
+    "edit": "Өзгерту",
+    "editTitle": "Пайдаланушы",
+    "editHint": "Рөл, компания және белсенділік (тек суперәкімші).",
+    "inactive": "Белсенді емес",
+    "saveChanges": "Сақтау"
   },
   "globalSearch": {
     "title": "Іздеу",

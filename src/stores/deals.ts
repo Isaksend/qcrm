@@ -79,9 +79,11 @@ export const useDealsStore = defineStore('deals', () => {
   }
 
   async function addDeal(
-    data: Omit<Deal, 'id'>
+    data: Omit<Deal, 'id'> & { companyId?: string | null }
   ): Promise<{ ok: true; deal: Deal } | { ok: false; error: string }> {
     try {
+      const isSuper = authStore.userRole === 'super_admin'
+      const resolvedCompanyId = isSuper ? (data.companyId ?? null) : (authStore.user?.company_id ?? null)
       const response = await fetch(apiUrl('/api/deals'), {
         method: 'POST',
         headers: {
@@ -92,7 +94,7 @@ export const useDealsStore = defineStore('deals', () => {
           ...data,
           leadId: data.leadId?.trim() ? data.leadId : null,
           contactId: data.contactId?.trim() ? data.contactId : null,
-          companyId: authStore.user?.company_id ?? null,
+          companyId: resolvedCompanyId,
           userId: data.userId?.trim() ? data.userId : authStore.user?.id ?? null,
         }),
       })

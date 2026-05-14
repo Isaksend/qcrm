@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useContactsStore } from '../../stores/contacts'
 import { useDealsStore } from '../../stores/deals'
-import { useAI } from '../../composables/useAI'
 import { getCountryByIso2 } from '../../lib/countries'
 import { dealStageLabel } from '../../i18n/stages'
 import type { Contact } from '../../types'
@@ -11,7 +10,6 @@ import type { Contact } from '../../types'
 const { t, locale } = useI18n()
 const contactsStore = useContactsStore()
 const dealsStore = useDealsStore()
-const { analyze } = useAI()
 
 const editOpen = ref(false)
 const editForm = ref({
@@ -87,12 +85,6 @@ const stageClass: Record<string, string> = {
 
 function formatCurrency(val: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val)
-}
-
-function handleAnalyze() {
-  if (contact.value) {
-    analyze('contact', contact.value.id, { ...contact.value })
-  }
 }
 
 function contactStatusLabel(status: string) {
@@ -222,13 +214,6 @@ function dealStage(s: string) {
             <button type="button" class="btn-primary text-sm" @click="saveEdits">{{ t('contactDetail.saveEdits') }}</button>
           </div>
         </div>
-
-        <button @click="handleAnalyze" class="btn-primary w-full justify-center">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-          </svg>
-          {{ t('contactDetail.analyzeAi') }}
-        </button>
       </div>
     </div>
   </div>

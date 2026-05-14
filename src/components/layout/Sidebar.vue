@@ -21,8 +21,6 @@ const navItems = computed(() => {
   items.push(
     { to: '/analytics', key: 'nav.analytics', icon: 'chart-bar' },
     { to: '/messages', key: 'nav.messages', icon: 'chat' },
-    { to: '/ai', key: 'nav.aiInsights', icon: 'sparkles' },
-    { to: '/ai-lab', key: 'nav.aiLab', icon: 'sparkles' },
     { to: '/activities', key: 'nav.activities', icon: 'sparkles' },
   )
   if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin' || authStore.userRole === 'manager') {

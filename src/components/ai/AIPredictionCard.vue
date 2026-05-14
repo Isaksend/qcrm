@@ -1,34 +1,86 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { AIPredictionResponse } from '../../types/ai';
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import type { AIPredictionResponse } from '../../types/ai'
 
-const props = defineProps<{
-  title: string;
-  prediction: AIPredictionResponse | null;
-  loading: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    title: string
+    prediction: AIPredictionResponse | null
+    loading: boolean
+    /** lead: «температура» лида и цвета «хорошо=горячо»; churn: риск оттока */
+    kind?: 'lead' | 'churn'
+  }>(),
+  { kind: 'churn' },
+)
 
-const riskColor = computed(() => {
-  if (!props.prediction) return 'bg-gray-400';
-  switch (props.prediction.risk_category) {
-    case 'High': return 'bg-red-500';
-    case 'Medium': return 'bg-yellow-500';
-    case 'Low': return 'bg-green-500';
-    default: return 'bg-blue-500';
+const { t, te } = useI18n()
+
+const tierColor = computed(() => {
+  if (!props.prediction) return 'bg-gray-400'
+  const cat = props.prediction.risk_category
+  if (props.kind === 'lead') {
+    switch (cat) {
+      case 'High':
+        return 'bg-emerald-500'
+      case 'Medium':
+        return 'bg-amber-500'
+      case 'Low':
+        return 'bg-slate-400'
+      default:
+        return 'bg-blue-500'
+    }
   }
-});
+  switch (cat) {
+    case 'High':
+      return 'bg-red-500'
+    case 'Medium':
+      return 'bg-yellow-500'
+    case 'Low':
+      return 'bg-green-500'
+    default:
+      return 'bg-blue-500'
+  }
+})
 
-const formatFeatureName = (name: string) => {
-  return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-};
+function tierBadgeText(cat: string): string {
+  const base = props.kind === 'lead' ? 'aiPrediction.leadTier' : 'aiPrediction.riskBadge'
+  const path = `${base}.${cat}`
+  if (te(path)) return t(path)
+  return cat
+}
+
+function probabilityRowLabel(): string {
+  return props.kind === 'lead' ? t('aiPrediction.leadProbabilityLabel') : t('aiPrediction.churnProbabilityLabel')
+}
+
+function impactHint(positive: boolean): string {
+  if (props.kind === 'lead') {
+    return positive ? t('aiPrediction.leadImpactPositive') : t('aiPrediction.leadImpactNegative')
+  }
+  return positive ? t('aiPrediction.impactPositive') : t('aiPrediction.impactNegative')
+}
+
+function keyFactorsHeading(): string {
+  return props.kind === 'lead' ? t('aiPrediction.leadKeyFactors') : t('aiPrediction.keyFactors')
+}
+
+function featureLabel(name: string): string {
+  const path = `aiPrediction.features.${name}`
+  if (te(path)) return t(path)
+  return name
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 </script>
 
 <template>
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 transition-all hover:shadow-md">
     <div class="flex items-center justify-between mb-6">
       <h3 class="text-lg font-semibold text-gray-800">{{ title }}</h3>
-      <div v-if="prediction" :class="[riskColor, 'px-3 py-1 rounded-full text-white text-xs font-bold uppercase tracking-wider']">
-        {{ prediction.risk_category }} RISK
+      <div v-if="prediction" :class="[tierColor, 'px-3 py-1 rounded-full text-white text-xs font-bold tracking-wider']">
+        {{ tierBadgeText(prediction.risk_category) }}
       </div>
     </div>
 
@@ -41,13 +93,13 @@ const formatFeatureName = (name: string) => {
       <!-- Probability Gauge -->
       <div>
         <div class="flex justify-between mb-2">
-          <span class="text-sm font-medium text-gray-600">Confidence Score</span>
+          <span class="text-sm font-medium text-gray-600">{{ probabilityRowLabel() }}</span>
           <span class="text-sm font-bold text-gray-900">{{ prediction.probability }}%</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
           <div 
             class="h-full transition-all duration-1000 ease-out"
-            :class="riskColor"
+            :class="tierColor"
             :style="{ width: `${prediction.probability}%` }"
           ></div>
         </div>
@@ -55,7 +107,7 @@ const formatFeatureName = (name: string) => {
 
       <!-- SHAP Factors (Explainable AI) -->
       <div>
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Key Influence Factors</h4>
+        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">{{ keyFactorsHeading() }}</h4>
         <div class="space-y-3">
           <div 
             v-for="factor in prediction.top_factors" 
@@ -68,10 +120,10 @@ const formatFeatureName = (name: string) => {
             ></div>
             <div class="flex-1">
               <div class="text-sm font-medium text-gray-700">
-                {{ formatFeatureName(factor.feature) }}
+                {{ featureLabel(factor.feature) }}
               </div>
               <div class="text-xs text-gray-500">
-                {{ factor.impact > 0 ? 'Positive' : 'Negative' }} impact on score
+                {{ impactHint(factor.impact > 0) }}
               </div>
             </div>
             <div class="text-xs font-mono font-bold" :class="factor.impact > 0 ? 'text-indigo-600' : 'text-orange-600'">
@@ -88,7 +140,7 @@ const formatFeatureName = (name: string) => {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       </div>
-      <p class="text-sm text-gray-400 font-medium">Ready for AI Analysis</p>
+      <p class="text-sm text-gray-400 font-medium">{{ t('aiPrediction.emptyState') }}</p>
     </div>
   </div>
 </template>

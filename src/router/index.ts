@@ -54,18 +54,6 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/ai',
-      name: 'ai',
-      component: () => import('../views/AIView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/ai-lab',
-      name: 'ai-lab',
-      component: () => import('../views/AILab.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
       path: '/analytics',
       name: 'analytics',
       component: () => import('../views/AnalyticsView.vue'),

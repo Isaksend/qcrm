@@ -18,6 +18,7 @@ const contactsStore = useContactsStore()
 const authStore = useAuthStore()
 
 const teamMembers = ref<any[]>([])
+const companies = ref<{ id: string; name: string }[]>([])
 const contactFound = ref(false)
 const submitError = ref('')
 
@@ -34,6 +35,7 @@ const form = reactive({
   userId: '',
   contactId: '',
   notes: '',
+  dealCompanyId: '',
   contactName: '',
   contactEmail: '',
   contactCompany: '',
@@ -42,6 +44,24 @@ const form = reactive({
 const contactFullPhone = computed(() =>
   buildE164FromDialAndNational(dialForIso2(contactGeo.countryIso2), contactGeo.nationalNumber)
 )
+
+async function fetchCompanies() {
+  if (authStore.userRole !== 'super_admin') return
+  try {
+    const res = await fetch(apiUrl('/api/companies'), {
+      headers: { Authorization: `Bearer ${authStore.token}` },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      companies.value = data.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }))
+      if (!form.dealCompanyId && companies.value.length) {
+        form.dealCompanyId = companies.value[0].id
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
 
 async function fetchTeamMembers() {
   if (authStore.userRole === 'admin' || authStore.userRole === 'super_admin') {
@@ -96,6 +116,11 @@ async function submit() {
     return
   }
 
+  if (authStore.userRole === 'super_admin' && !form.dealCompanyId.trim()) {
+    submitError.value = t('dealForm.errors.superCompany')
+    return
+  }
+
   const { contact, error } = await contactsStore.findOrCreateContactForDeal({
     phone: contactFullPhone.value,
     name: form.contactName,
@@ -121,7 +146,7 @@ async function submit() {
         ? new Date().toISOString().slice(0, 10)
         : null,
     userId: form.userId || authStore.user?.id || '',
-    companyId: authStore.user?.company_id || null,
+    companyId: authStore.userRole === 'super_admin' ? form.dealCompanyId || null : authStore.user?.company_id || null,
     notes: form.notes,
   })
   if (!dealResult.ok) {
@@ -133,6 +158,7 @@ async function submit() {
 
 onMounted(() => {
   fetchTeamMembers()
+  fetchCompanies()
 })
 </script>
 
@@ -183,6 +209,16 @@ onMounted(() => {
                   >
                     <option value="">{{ t('dealForm.meDefault') }}</option>
                     <option v-for="m in teamMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
+                  </select>
+                </div>
+                <div v-if="authStore.userRole === 'super_admin'" class="col-span-2">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">{{ t('dealForm.superCompanyLabel') }}</label>
+                  <select
+                    v-model="form.dealCompanyId"
+                    required
+                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+                  >
+                    <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
                   </select>
                 </div>
                 <div class="col-span-2">

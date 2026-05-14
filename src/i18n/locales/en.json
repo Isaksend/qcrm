@@ -6,8 +6,6 @@
     "companies": "Companies",
     "analytics": "BI Analytics",
     "messages": "Messages",
-    "aiInsights": "AI Insights",
-    "aiLab": "AI Lab",
     "activities": "Activities",
     "team": "Team"
   },
@@ -87,8 +85,7 @@
       "role": "Role",
       "status": "Status",
       "revenue": "Revenue",
-      "lastContact": "Last Contact",
-      "ai": "AI"
+      "lastContact": "Last Contact"
     }
   },
   "contactStatus": {
@@ -127,7 +124,6 @@
     "tags": "Tags",
     "relatedDeals": "Related Deals",
     "noDeals": "No related deals.",
-    "analyzeAi": "Analyze with AI",
     "edit": "Edit",
     "delete": "Delete",
     "confirmDelete": "Delete this contact? Related deals will be kept but unlinked.",
@@ -146,6 +142,68 @@
     "dealsCount": "{n} deals",
     "monthlyRevenue": "Monthly Revenue"
   },
+  "dealDetail": {
+    "aiSectionTitle": "AI analysis from CRM data",
+    "aiSubtitle": "Features are loaded from the database automatically — no manual parameters.",
+    "aiLeadTitle": "Readiness to close",
+    "aiChurnTitle": "Risk of losing the customer",
+    "aiLoading": "Computing…",
+    "aiNoContact": "No linked contact — analysis is unavailable.",
+    "saveTitle": "Save title",
+    "deleteDeal": "Delete deal",
+    "confirmDeleteDeal": "Delete this deal?",
+    "dealValue": "Deal value",
+    "dealContext": "Deal context",
+    "statusLabel": "Status",
+    "inPipeline": "In pipeline",
+    "archive": "Archived",
+    "responsible": "Owner",
+    "createdBy": "Created by",
+    "closingDate": "Closing date",
+    "pendingClose": "Pending",
+    "originalDescription": "Original description",
+    "notAssigned": "Unassigned",
+    "notSpecifiedCreator": "Not specified",
+    "timelineTitle": "Collaborative timeline",
+    "notesCount": "Notes: {n}",
+    "notePlaceholder": "Share a note with the team…",
+    "notesEmpty": "No discussion yet. Every note helps the team win!",
+    "linkedContact": "Linked contact",
+    "email": "Email",
+    "phone": "Phone",
+    "contactDossier": "Contact dossier",
+    "unknownAuthor": "Unknown author",
+    "networkError": "Network error",
+    "userFallback": "User {id}…"
+  },
+  "aiPrediction": {
+    "confidenceScore": "Confidence score",
+    "keyFactors": "Key influence factors",
+    "leadKeyFactors": "What moves the deal forward",
+    "leadProbabilityLabel": "Conversion probability",
+    "churnProbabilityLabel": "Churn probability",
+    "impactPositive": "Positive impact on score",
+    "impactNegative": "Negative impact on score",
+    "leadImpactPositive": "Pulls toward close",
+    "leadImpactNegative": "Cools interest",
+    "emptyState": "Ready for AI analysis",
+    "riskBadge": {
+      "Low": "Low churn risk",
+      "Medium": "Medium churn risk",
+      "High": "High churn risk"
+    },
+    "leadTier": {
+      "Low": "Cold lead",
+      "Medium": "Warm lead",
+      "High": "Hot lead"
+    },
+    "features": {
+      "activity_count_30d": "Activity count (30d)",
+      "days_since_last_contact": "Days since last contact",
+      "total_deal_value": "Total deal value",
+      "interaction_score": "Interaction score"
+    }
+  },
   "dealForm": {
     "title": "New Deal & Contact",
     "dealInfo": "Deal Information",
@@ -161,12 +219,14 @@
     "name": "Name *",
     "email": "Email",
     "company": "Company",
+    "superCompanyLabel": "Deal company (required for super admin)",
     "createDeal": "Create Deal",
     "errors": {
       "phone": "Enter a full number (country code + number, at least 7 digits in the number)",
       "name": "Enter contact name",
       "contactFailed": "Could not link contact",
-      "dealFailed": "Could not create deal"
+      "dealFailed": "Could not create deal",
+      "superCompany": "Select a company for the deal (super admin)"
     }
   },
   "dealStages": {
@@ -291,41 +351,14 @@
     "roleSuper": "Super admin (global system admin)",
     "createAccount": "Create account",
     "confirmDelete": "Are you sure you want to delete this user?",
-    "errorPrefix": "Error:"
-  },
-  "ai": {
-    "title": "AI Insights",
-    "subtitle": "AI-generated analysis and recommendations across your CRM.",
-    "insightsCount": "{n} insights",
-    "filters": {
-      "all": "All",
-      "contact": "Contacts",
-      "lead": "Leads",
-      "deal": "Deals",
-      "general": "General"
-    },
-    "empty": "No insights found for the selected filter."
-  },
-  "aiLab": {
-    "title": "AI Prediction Lab",
-    "subtitle": "Test lead scoring and churn models with manual or automated data.",
-    "automatedTitle": "Automated analysis",
-    "automatedHint": "Enter a Contact ID to load real data from the CRM.",
-    "fetchAnalyze": "Fetch & analyze",
-    "manualTitle": "Manual overrides",
-    "activities": "Activities (30 days)",
-    "daysSince": "Days since contact",
-    "dealValue": "Deal value ($)",
-    "interactionScore": "Interaction score (0–1)",
-    "analyzing": "Analyzing…",
-    "runAnalysis": "Run AI analysis",
-    "contactIdRequired": "Please enter a contact ID",
-    "errors": {
-      "aiService": "Failed to connect to AI service.",
-      "contactAi": "Contact not found or AI failed."
-    },
-    "leadCard": "Lead conversion",
-    "churnCard": "Churn risk"
+    "errorPrefix": "Error:",
+    "companyLabel": "Company",
+    "companyPlaceholder": "Select company",
+    "edit": "Edit",
+    "editTitle": "User",
+    "editHint": "Change role, company, and active status (super admin only).",
+    "inactive": "Inactive",
+    "saveChanges": "Save"
   },
   "globalSearch": {
     "title": "Search",
