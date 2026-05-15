@@ -44,6 +44,7 @@
     "errors": {
       "fillAll": "Please fill in all fields",
       "invalidCredentials": "Invalid email or password",
+      "profileLoadFailed": "Signed in but profile could not load. Ensure the SPA and API use the same backend (VITE_API_BASE_URL). Or clear site data and try again.",
       "registrationFailed": "Registration failed. Email might be taken."
     }
   },

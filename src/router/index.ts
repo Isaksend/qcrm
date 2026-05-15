@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { normalizeStoredToken } from '../lib/authToken'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -90,7 +91,7 @@ const router = createRouter({
 const PUBLIC_PATHS = new Set(['/login', '/register'])
 
 router.beforeEach((to, _from, next) => {
-  const token = localStorage.getItem('token')
+  const token = normalizeStoredToken(localStorage.getItem('token'))
   const isPublic =
     PUBLIC_PATHS.has(to.path) || to.matched.some((r) => r.meta.guest === true)
 

@@ -24,7 +24,7 @@ class AuthService:
         return auth.create_token_pair(user.email)
 
     def refresh(self, db: Session, body: schemas.RefreshTokenRequest) -> dict:
-        payload = auth.decode_token(body.refresh_token, expected_type=auth.TOKEN_TYPE_REFRESH)
+        payload = auth.decode_refresh_token_payload(body.refresh_token)
         user = crud.get_user_by_email(db, email=payload["sub"])
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail="Invalid refresh token")

@@ -45,7 +45,8 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     return jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)
 
 
-def decode_token(token: str, *, expected_type: str) -> dict:
+def decode_access_token_payload(token: str) -> dict:
+    """Validate Bearer token for API access. Legacy tokens without ``typ`` are accepted."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -55,11 +56,36 @@ def decode_token(token: str, *, expected_type: str) -> dict:
         payload = jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
     except jwt.PyJWTError:
         raise credentials_exception from None
-    if payload.get("typ") != expected_type:
+    typ = payload.get("typ")
+    if typ is not None and typ != TOKEN_TYPE_ACCESS:
         raise credentials_exception
     if not payload.get("sub"):
         raise credentials_exception
     return payload
+
+
+def decode_refresh_token_payload(token: str) -> dict:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
+    except jwt.PyJWTError:
+        raise credentials_exception from None
+    if payload.get("typ") != TOKEN_TYPE_REFRESH:
+        raise credentials_exception
+    if not payload.get("sub"):
+        raise credentials_exception
+    return payload
+
+
+def decode_token(token: str, *, expected_type: str) -> dict:
+    """Backward-compatible alias used by refresh handler."""
+    if expected_type == TOKEN_TYPE_REFRESH:
+        return decode_refresh_token_payload(token)
+    return decode_access_token_payload(token)
 
 
 def create_token_pair(email: str) -> dict:
@@ -85,7 +111,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = decode_token(token, expected_type=TOKEN_TYPE_ACCESS)
+        payload = decode_access_token_payload(token)
         email: str = payload.get("sub")
     except HTTPException:
         raise credentials_exception from None

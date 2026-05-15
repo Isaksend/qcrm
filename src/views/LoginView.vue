@@ -19,9 +19,11 @@ async function handleSubmit() {
     error.value = t('auth.errors.fillAll')
     return
   }
-  const success = await authStore.login(email.value, password.value)
-  if (success) {
+  const result = await authStore.login(email.value, password.value)
+  if (result === 'ok') {
     router.push('/')
+  } else if (result === 'profile_failed') {
+    error.value = t('auth.errors.profileLoadFailed')
   } else {
     error.value = t('auth.errors.invalidCredentials')
   }
