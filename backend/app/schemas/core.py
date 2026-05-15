@@ -170,6 +170,14 @@ class Activity(ActivityBase):
         from_attributes = True
 
 
+class ActivityOut(Activity):
+    """Activity with display metadata for timeline UI."""
+
+    entityLabel: Optional[str] = None
+    entityLink: Optional[str] = None
+    isSystem: bool = False
+
+
 class ActivityUpdate(BaseModel):
     type: Optional[str] = None
     entityType: Optional[str] = None

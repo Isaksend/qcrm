@@ -76,6 +76,55 @@ def list_deal_change_history(db: Session, deal_id: str, limit: int = 200):
     )
 
 
+def _activity_timestamp(dt: datetime.datetime | None = None) -> str:
+    ts = (dt or datetime.datetime.utcnow()).replace(microsecond=0)
+    return ts.isoformat() + "Z"
+
+
+def record_system_activity(
+    db: Session,
+    *,
+    activity_type: str,
+    entity_type: str,
+    entity_id: str,
+    description: str,
+    timestamp: str | None = None,
+) -> models.Activity:
+    """Append a CRM-generated activity row (caller commits)."""
+    db_act = models.Activity(
+        type=activity_type,
+        entityType=entity_type,
+        entityId=entity_id,
+        description=description,
+        timestamp=timestamp or _activity_timestamp(),
+    )
+    db.add(db_act)
+    return db_act
+
+
+def _record_deal_stage_activity(
+    db: Session, deal_id: str, old_stage: str, new_stage: str, deal_title: str | None = None
+) -> None:
+    deal = get_deal(db, deal_id)
+    title = deal_title or (deal.title if deal else "Deal")
+    if new_stage == "Closed Won":
+        activity_type = "deal_won"
+        description = f"{title} marked as Closed Won"
+    elif new_stage == "Closed Lost":
+        activity_type = "deal_lost"
+        description = f"{title} marked as Closed Lost"
+    else:
+        activity_type = "stage_changed"
+        description = f"{title}: {old_stage} → {new_stage}"
+    record_system_activity(
+        db,
+        activity_type=activity_type,
+        entity_type="deal",
+        entity_id=deal_id,
+        description=description,
+    )
+
+
 def create_deal(db: Session, deal: schemas.DealCreate, *, history_actor_id: str | None = None):
     # В SQLAlchemy-модели Deal нет полей currency / createdAt из Pydantic-схемы — иначе TypeError и 500.
     data = deal.model_dump(exclude={"currency", "createdAt"})
@@ -84,6 +133,13 @@ def create_deal(db: Session, deal: schemas.DealCreate, *, history_actor_id: str 
     db.flush()
     actor = history_actor_id or db_deal.createdById or db_deal.userId
     append_deal_change(db, db_deal.id, "deal_created", None, db_deal.title, actor)
+    record_system_activity(
+        db,
+        activity_type="deal_created",
+        entity_type="deal",
+        entity_id=db_deal.id,
+        description=f"Deal created: {db_deal.title}",
+    )
     db.commit()
     db.refresh(db_deal)
     return db_deal
@@ -109,6 +165,7 @@ def update_deal_stage(db: Session, deal_id: str, stage: str, user_id: str = None
             )
             db.add(history)
             append_deal_change(db, deal_id, "stage", old_stage, stage, user_id)
+            _record_deal_stage_activity(db, deal_id, old_stage, stage)
 
             db.commit()
             db.refresh(db_deal)
@@ -132,6 +189,7 @@ def update_deal_combined(db: Session, deal_id: str, upd: schemas.DealUpdate, use
         )
         db.add(history)
         append_deal_change(db, deal_id, "stage", old_stage, new_stage, user_id)
+        _record_deal_stage_activity(db, deal_id, old_stage, new_stage)
         data.pop("stage", None)
     for field in ("title", "value", "notes", "contactId", "leadId", "userId"):
         if field not in data or data[field] is None:
@@ -297,27 +355,82 @@ def delete_activity(db: Session, activity_id: str):
     return act
 
 
-def get_activities_for_user(db: Session, user: models.User, skip: int = 0, limit: int = 100):
-    q = db.query(models.Activity)
+def _deal_ids_scope(db: Session, user: models.User, *, my_only: bool) -> list[str] | None:
+    """None = all deals (super_admin). Empty = no deals."""
+    from app import roles
+
     if user.role == "super_admin":
-        return q.offset(skip).limit(limit).all()
-    company_id = user.company_id
-    if not company_id:
+        if my_only:
+            return [r[0] for r in db.query(models.Deal.id).filter(models.Deal.userId == user.id).all()]
+        return None
+    if not user.company_id:
         return []
-    contact_ids = [
-        r[0] for r in db.query(models.Contact.id).filter(models.Contact.companyId == company_id).all()
-    ]
-    deal_ids = [r[0] for r in db.query(models.Deal.id).filter(models.Deal.companyId == company_id).all()]
-    parts = []
-    if contact_ids:
-        parts.append(
-            and_(models.Activity.entityType == "contact", models.Activity.entityId.in_(contact_ids))
+    q = db.query(models.Deal.id).filter(models.Deal.companyId == user.company_id)
+    if my_only:
+        q = q.filter(models.Deal.userId == user.id)
+    return [r[0] for r in q.all()]
+
+
+def _contact_ids_scope(db: Session, user: models.User, deal_ids: list[str], *, my_only: bool) -> list[str]:
+    if user.role == "super_admin" and not my_only:
+        return [r[0] for r in db.query(models.Contact.id).all()]
+    if not user.company_id:
+        return []
+    if my_only and deal_ids:
+        rows = (
+            db.query(models.Deal.contactId)
+            .filter(models.Deal.id.in_(deal_ids), models.Deal.contactId.isnot(None))
+            .distinct()
+            .all()
         )
-    if deal_ids:
-        parts.append(and_(models.Activity.entityType == "deal", models.Activity.entityId.in_(deal_ids)))
-    if not parts:
-        return []
-    return q.filter(or_(*parts)).offset(skip).limit(limit).all()
+        return [r[0] for r in rows if r[0]]
+    return [
+        r[0]
+        for r in db.query(models.Contact.id).filter(models.Contact.companyId == user.company_id).all()
+    ]
+
+
+def get_activities_for_user(
+    db: Session,
+    user: models.User,
+    *,
+    skip: int = 0,
+    limit: int = 100,
+    activity_type: str | None = None,
+    entity_type: str | None = None,
+    entity_id: str | None = None,
+    days: int | None = None,
+    my_only: bool = False,
+):
+    q = db.query(models.Activity)
+    deal_ids = _deal_ids_scope(db, user, my_only=my_only)
+    contact_ids = _contact_ids_scope(db, user, deal_ids or [], my_only=my_only)
+
+    if deal_ids is not None:
+        parts = []
+        if contact_ids:
+            parts.append(
+                and_(models.Activity.entityType == "contact", models.Activity.entityId.in_(contact_ids))
+            )
+        if deal_ids:
+            parts.append(and_(models.Activity.entityType == "deal", models.Activity.entityId.in_(deal_ids)))
+        if not parts:
+            return []
+        q = q.filter(or_(*parts))
+
+    if activity_type:
+        q = q.filter(models.Activity.type == activity_type)
+    if entity_type:
+        q = q.filter(models.Activity.entityType == entity_type)
+    if entity_id:
+        q = q.filter(models.Activity.entityId == entity_id)
+    if days is not None and days > 0:
+        cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+        cutoff_s = _activity_timestamp(cutoff)
+        q = q.filter(models.Activity.timestamp >= cutoff_s)
+
+    rows = q.order_by(models.Activity.timestamp.desc()).offset(skip).limit(limit).all()
+    return rows
 
 
 # Notes

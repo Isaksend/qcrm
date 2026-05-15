@@ -48,6 +48,34 @@ def test_create_list_patch_delete_activity(client: TestClient, sales_auth: dict)
     assert r5.status_code == 200
 
 
+def test_deal_stage_change_creates_system_activity(client: TestClient, sales_auth: dict):
+    h = sales_auth["headers"]
+    deal = client.post(
+        "/api/deals",
+        json={"title": "Stage Act Deal", "stage": "Discovery", "value": 1000},
+        headers=h,
+    )
+    assert deal.status_code == 200, deal.text
+    deal_id = deal.json()["id"]
+
+    r2 = client.patch(f"/api/deals/{deal_id}/stage", params={"stage": "Proposal"}, headers=h)
+    assert r2.status_code == 200, r2.text
+
+    acts = client.get("/api/activities", params={"entityType": "deal", "entityId": deal_id}, headers=h)
+    assert acts.status_code == 200, acts.text
+    types = {a["type"] for a in acts.json()}
+    assert "deal_created" in types
+    assert "stage_changed" in types
+    assert any(a.get("isSystem") for a in acts.json())
+
+
+def test_list_activities_filters_days(client: TestClient, sales_auth: dict):
+    h = sales_auth["headers"]
+    r = client.get("/api/activities", params={"days": 30, "limit": 5}, headers=h)
+    assert r.status_code == 200, r.text
+    assert isinstance(r.json(), list)
+
+
 def test_insights_list_and_create_for_contact(client: TestClient, sales_auth: dict):
     h = sales_auth["headers"]
     r = client.post(

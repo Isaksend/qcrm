@@ -48,11 +48,17 @@ export interface Deal {
 
 export interface Activity {
   id: string
-  type: 'call' | 'email' | 'meeting' | 'deal_won' | 'deal_lost' | 'lead_created' | 'note'
-  entityType: 'contact' | 'lead' | 'deal' | 'user'
+  type: string
+  entityType: 'contact' | 'lead' | 'deal' | 'user' | string
   entityId: string
   description: string
   timestamp: string
+}
+
+export interface ActivityItem extends Activity {
+  entityLabel?: string | null
+  entityLink?: string | null
+  isSystem?: boolean
 }
 
 export interface Note {
