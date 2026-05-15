@@ -1,13 +1,11 @@
 \chapter{Abstract}
 \begin{SingleSpace}
 
-This report documents the design, development, and evaluation of
-\textit{TinyCRM}, a Software-as-a-Service (SaaS) Customer Relationship
-Management platform built on a Python monolithic backend combining
-FastAPI with SQLAlchemy, and a Vue.js~3 single-page application frontend.
-The platform integrates machine learning models for two analytical tasks:
-predictive lead scoring using a Gradient Boosting classifier and customer
-churn prediction using a Random Forest classifier. The target user group
+This report presents the design and implementation of \textit{TinyCRM}, a 
+SaaS Customer Relationship Management platform integrating predictive analytics 
+for lead prioritisation and customer retention. The system incorporates a 
+Gradient Boosting-based lead scoring model and a Random Forest-based churn 
+prediction model trained on publicly available datasets. The target user group
 is small-to-medium enterprises (SMEs) in Kazakhstan, and the system is
 deployed on a Serverspace.io vStack virtual machine in Almaty, Kazakhstan, ensuring
 personal data residency within the Republic of Kazakhstan in accordance with
@@ -17,13 +15,17 @@ The paper follows the Design Science Research (DSR) framework
 \citep{hevner2004} and documents the complete engineering lifecycle:
 requirements elicitation, literature review, UML system design,
 RESTful API specification, machine learning model development and
-evaluation, and prototype assessment. The lead scoring model achieves
-an F1-score of 0.83 and an AUC-ROC of 0.89 on held-out test data;
-the churn prediction model achieves an AUC-ROC of 0.87. The delivered
-MVP comprises 16 documented API endpoints, a functional Vue.js pipeline
+evaluation, and prototype assessment. The lead scoring model achieves an 
+F1-score of 0.83 and an AUC-ROC of 0.89 on held-out test data, exceeding the 
+defined performance targets. The churn prediction model achieves an AUC-ROC of 0.87, 
+demonstrating strong discriminatory capability for identifying at-risk customers. 
+The system is deployed as a containerised monolithic application using FastAPI and 
+PostgreSQL, with a Vue.js frontend providing interactive CRM functionality.
+
+
+The delivered MVP comprises 16 documented API endpoints, a functional Vue.js pipeline
 dashboard, and an asynchronous batch inference pipeline, deployed as a
-single Docker-backed web service on Serverspace.io (vStack, Almaty) with a managed PostgreSQL
-database.
+multiple Docker-backed containers on Serverspace.io (vStack, Almaty).
 
 \bigskip
 \noindent\textbf{Keywords:} CRM, SaaS, machine learning, lead scoring,

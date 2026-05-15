@@ -12,9 +12,8 @@ metrics for all candidate models.
 
 \begin{table}[H]
   \centering
-  \caption{Lead scoring model comparison on held-out test set}
+  \caption{Lead scoring model comparison on test set}
   \label{tab:lead_results}
-%  \setstretch{1.1}
   \begin{tabularx}{\textwidth}{@{}L{3.8cm} C{1.5cm} C{1.5cm} C{1.5cm}
     C{1.5cm} C{1.6cm} C{1.6cm}@{}}
     \toprule
@@ -22,26 +21,37 @@ metrics for all candidate models.
     \thead{F1} & \thead{AUC-ROC} & \thead{PR-AUC} \\
     \midrule
     Logistic Regression (baseline) &
-      0.774 & 0.701 & 0.698 & 0.699 & 0.801 & 0.712 \\
+      0.941 & 0.917 & 0.931 & 0.924 & 0.979 & 0.966 \\
     Random Forest &
-      0.801 & 0.742 & 0.756 & 0.749 & 0.851 & 0.779 \\
-    \textbf{Gradient Boosting} (selected) &
-      \textbf{0.823} & \textbf{0.798} & \textbf{0.863} &
-      \textbf{0.829} & \textbf{0.891} & \textbf{0.841} \\
+      0.938 & 0.916 & 0.923 & 0.920 & 0.978 & 0.969 \\
+    \textbf{HistGradientBoosting} (selected) &
+      \textbf{0.949} & \textbf{0.935} & \textbf{0.933} &
+      \textbf{0.934} & \textbf{0.983} & \textbf{0.974} \\
     XGBoost &
-      0.819 & 0.791 & 0.855 & 0.822 & 0.887 & 0.836 \\
+      0.948 & 0.929 & 0.935 & 0.932 & 0.982 & 0.969 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-The Gradient Boosting model was selected as the production lead scoring
-model, achieving F1 = 0.829 and AUC-ROC = 0.891, both exceeding the
-project objectives of F1 $\geq$ 0.78 and AUC-ROC $\geq$ 0.80. The five
-highest-importance features by mean absolute SHAP value were:
-\texttt{days\_since\_last\_contact}, \texttt{activity\_count\_30d},
-\texttt{email\_open\_rate}, \texttt{deal\_stage\_max}, and
-\texttt{call\_count\_90d}. The dominance of behavioural engagement
-features is consistent with the findings of \citet{tsai2010}.
+The HistGradientBoosting model was selected as the production lead
+scoring model, achieving an F1-score of 0.934 and an AUC-ROC of 0.983
+on the held-out test set, substantially exceeding the project
+objectives of F1 $\geq$ 0.78 and AUC-ROC $\geq$ 0.80. The model also
+achieved the highest PR-AUC (0.974), indicating strong performance on
+the positive lead conversion class.
+
+The lead conversion dataset contained behavioural, demographic, and
+traffic-source attributes after removing identifier columns
+(\texttt{Prospect ID} and \texttt{Lead Number}). Features used for
+training included variables such as lead origin, lead source, time spent
+on website, page visit frequency, activity history, occupation,
+specialisation, and communication engagement indicators. Behavioural and
+engagement-oriented variables are widely recognised as important
+predictors of sales conversion and customer acquisition success
+\citep{jolson1997,tsai2010}. The strong predictive performance of the
+selected model therefore aligns with prior CRM and lead management
+research showing that customer interaction behaviour provides valuable
+signals for conversion likelihood.
 
 \subsection{Churn Prediction Model Performance}
 
@@ -49,7 +59,6 @@ features is consistent with the findings of \citet{tsai2010}.
   \centering
   \caption{Churn prediction model comparison on held-out test set}
   \label{tab:churn_results}
-%  \setstretch{1.1}
   \begin{tabularx}{\textwidth}{@{}L{3.8cm} C{1.5cm} C{1.5cm} C{1.5cm}
     C{1.5cm} C{1.6cm} C{1.6cm}@{}}
     \toprule
@@ -57,69 +66,37 @@ features is consistent with the findings of \citet{tsai2010}.
     \thead{F1} & \thead{AUC-ROC} & \thead{PR-AUC} \\
     \midrule
     Logistic Regression (baseline) &
-      0.793 & 0.651 & 0.712 & 0.680 & 0.834 & 0.721 \\
-    \textbf{Random Forest} (selected) &
-      \textbf{0.820} & \textbf{0.689} & \textbf{0.741} &
-      \textbf{0.714} & \textbf{0.872} & \textbf{0.768} \\
-    Gradient Boosting &
-      0.816 & 0.682 & 0.748 & 0.714 & 0.868 & 0.762 \\
+      0.754 & 0.525 & 0.765 & 0.622 & 0.841 & 0.632 \\
+    Random Forest &
+      0.722 & 0.486 & 0.837 & 0.615 & 0.821 & 0.616 \\
+    \textbf{HistGradientBoosting (selected)} &
+      \textbf{0.766} & \textbf{0.543} & \textbf{0.741} &
+      \textbf{0.627} & \textbf{0.835} & \textbf{0.644} \\
+    XGBoost &
+      0.731 & 0.496 & 0.749 & 0.596 & 0.819 & 0.621 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-The Random Forest classifier was selected as the production churn model
-with AUC-ROC = 0.872, exceeding the project objective of AUC-ROC $\geq$
-0.80. The most important SHAP features for churn prediction were
-\texttt{tenure\_months}, \texttt{monthly\_revenue},
-\texttt{days\_since\_last\_contact}, \texttt{support\_tickets\_30d}, and
-\texttt{call\_count\_90d}. The primacy of \texttt{tenure\_months} aligns
-with the customer lifetime value literature \citep{reichheld2001}.
+The HistGradientBoosting classifier was selected as the production churn
+prediction model based on its superior balance between discrimination
+and classification performance on the held-out test set. The model
+achieved an AUC-ROC of 0.835 and the highest PR-AUC of 0.644, while
+also obtaining the best overall F1-score of 0.627. Compared with
+Logistic Regression, Random Forest, and XGBoost,
+HistGradientBoosting provided a more balanced trade-off between
+precision (0.543) and recall (0.741), making it better suited for
+identifying churn-prone customers while limiting false positives.
 
-Customer churn risk was classified into three tiers for dashboard
-presentation: Low Risk (churn probability below 0.30), Medium Risk
-(0.30--0.60), and High Risk (above 0.60), enabling sales managers to
-prioritise retention outreach.
-
-\subsection{SHAP Feature Importance Visualisation}
-
-\Cref{fig:shap_lead} presents a schematic representation of the SHAP
-beeswarm summary plot for the lead scoring model. High values of
-\texttt{activity\_count\_30d} and low values of
-\texttt{days\_since\_last\_contact} are the strongest positive predictors
-of lead conversion, consistent with the engagement-centricity finding of
-\citet{tsai2010}.
-
-\begin{figure}[H]
-  \centering
-  \begin{tikzpicture}[
-    bar/.style={fill=accentblue!70, draw=primaryblue, minimum height=0.4cm},
-    label/.style={font=\footnotesize\ttfamily, anchor=east},
-    value/.style={font=\footnotesize, anchor=west}
-  ]
-    \def\scale{30}  % 1 unit = 30pt, so 0.30 fills 9pt total scale
-    % Feature bars: (value, label, y-position)
-    \foreach \val/\feat/\yi in {
-      0.214/days\_since\_last\_contact/5,
-      0.187/activity\_count\_30d/4,
-      0.142/email\_open\_rate/3,
-      0.118/deal\_stage\_max/2,
-      0.093/call\_count\_90d/1
-    }{
-      \pgfmathsetmacro{\barw}{\val*\scale*10}
-      \node[label] at (-0.1, \yi*0.6) {\feat};
-      \fill[bar] (0, \yi*0.6-0.15) rectangle (\barw pt, \yi*0.6+0.15);
-      \node[value] at (\barw pt + 2pt, \yi*0.6) {\val};
-    }
-    \draw[->] (0,0.2) -- (0,3.4) node[above, font=\tiny] {};
-    \draw[->] (0,0.2) -- (70pt,0.2) node[right, font=\footnotesize]
-      {Mean $|\text{SHAP}|$};
-    % x-axis ticks
-    \foreach \x/\lbl in {0/0.00, 21pt/0.07, 42pt/0.14, 63pt/0.21}{
-      \draw (\x, 0.2) -- (\x, 0.12);
-      \node[font=\tiny, anchor=north] at (\x, 0.12) {\lbl};
-    }
-  \end{tikzpicture}
-  \caption{Mean absolute SHAP values for the lead scoring model (top 5 features)}
-  \label{fig:shap_lead}
-\end{figure}
-
+The churn prediction dataset consisted of customer demographic,
+subscription, billing, and service usage attributes after removing the
+unique identifier column (\texttt{customerID}). Features used for model
+training included customer tenure, monthly and total charges, contract
+type, payment method, internet service, technical support usage, online
+security services, streaming services, and communication preferences.
+Prior studies have consistently identified tenure, billing behaviour,
+service quality, and contract structure as strong predictors of customer
+retention and churn in telecommunications environments
+\citep{huang2012,reichheld2001}. The selected model's ability to capture
+non-linear interactions among these variables likely contributed to its
+improved predictive performance over the baseline approaches.

@@ -29,7 +29,6 @@ each with clearly defined inputs, outputs, and completion criteria.
   \centering
   \caption{Project phase plan and delivery status}
   \label{tab:phases}
-%  \setstretch{1.1}
   \begin{tabularx}{\textwidth}{@{}L{3.0cm} C{1.6cm} X C{1.8cm}@{}}
     \toprule
     \thead{Phase} & \thead{Weeks} & \thead{Primary Deliverables} &
@@ -102,9 +101,8 @@ Requirements were prioritised using the MoSCoW method.
   concurrent users.
   \item[\textbf{NFR-2}] \textbf{Availability:} 99.5\% uptime target on
   production infrastructure.
-  \item[\textbf{NFR-3}] \textbf{Security:} Passwords hashed using bcrypt
-  at a minimum cost factor of 12; HTTPS enforced on all endpoints; JWT
-  tokens expire after 24~hours.
+  \item[\textbf{NFR-3}] \textbf{Security:} Passwords hashed using bcrypt;
+  HTTPS enforced on all endpoints; JWT tokens expire after 24~hours.
   \item[\textbf{NFR-4}] \textbf{Deployability:} The system shall be
   deployable on a Serverspace.io vStack VPS (Almaty) via Docker Compose
   with a documented step-by-step procedure requiring no prior DevOps

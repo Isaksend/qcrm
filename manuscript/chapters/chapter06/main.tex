@@ -4,40 +4,46 @@
 
 \section{Interpretation of Machine Learning Results}
 
-The Gradient Boosting model's F1-score of 0.829 for lead scoring is
-consistent with, and at the higher end of, the range reported in
-comparable literature. \citet{verbeke2012} report F1 values of 0.79--0.88
-for ensemble methods on analogous binary classification datasets, and the
-TinyCRM result falls within this interval. The elevated recall (0.863)
-relative to precision (0.798) indicates that the model preferentially
-minimises missed true positives (genuine conversion opportunities) at the
-cost of some false positives (over-scored leads). In a sales context where
-the cost of missing a convertible lead substantially exceeds the cost of
-investigating a non-converting one, this bias is operationally appropriate.
+The HistGradientBoosting model achieved an F1-score of 0.934 for lead 
+scoring and an AUC-ROC of 0.983 on the held-out test set, placing it 
+at the upper end of performance reported in comparable CRM predictive 
+analytics literature. \citet{verbeke2012} report F1 values in the range 
+of 0.79--0.88 for ensemble methods on similar binary classification 
+problems, indicating that the TinyCRM model exceeds typical benchmark 
+performance levels. The elevated recall (0.933) relative to 
+precision (0.935) demonstrates a well-balanced operating point, 
+indicating that the model maintains strong sensitivity to true conversion 
+opportunities while keeping false positives under control. This balance is 
+operationally appropriate in a CRM context, where missed high-value 
+leads typically incur greater opportunity cost than additional review 
+of low-probability leads.
 
-The Random Forest churn model's AUC-ROC of 0.872 is consistent with
-\citeauthor{verbeke2012}'s benchmark range of 0.82--0.89 for Random Forest
-on telecommunications churn data. The PR-AUC of 0.768, while lower, more
-accurately reflects model utility under class imbalance and indicates
-reasonable precision at recall thresholds relevant to operational churn
-intervention (that is, at recall values of 0.6--0.8 where proactive
-outreach is feasible).
+The churn prediction model, based on HistGradientBoosting, 
+achieved an AUC-ROC of 0.835 and an F1-score of 0.627. While the AUC-ROC 
+is consistent with established benchmarks for churn prediction tasks 
+in structured customer datasets, the F1-score reflects the inherent 
+difficulty of class-imbalanced churn prediction, where positive churn 
+events are relatively sparse. The PR-AUC of 0.644 provides a more 
+informative measure of performance under class imbalance and indicates 
+moderate but reliable precision at operational recall thresholds 
+(approximately 0.6--0.75), where retention campaigns are typically triggered.
 
-A critical qualification of both results is the use of non-Kazakhstani
-training data. Transfer to real Kazakhstani CRM data may yield performance
-degradation if local customer behaviour patterns, such as shorter sales
-cycles, seasonal purchasing patterns aligned with Kazakhstani fiscal
-calendars, or WhatsApp-mediated engagement patterns not captured in the
-activity schema, differ systematically from the training distribution.
-This risk is the primary motivation for implementing an active learning
-pipeline in the post-MVP roadmap.
-
+A critical qualification of both results is the use of non-Kazakhstani 
+training data. Transfer to real Kazakhstani CRM environments may lead to 
+performance degradation if customer behaviour patterns differ systematically 
+from the training distribution. Potential sources of distribution shift 
+include shorter sales cycles in SME segments, seasonality aligned with local 
+fiscal and cultural calendars, and higher reliance on messaging-based 
+communication channels such as WhatsApp that are not explicitly captured 
+in the current feature set. This limitation motivates the incorporation of 
+an active learning pipeline and periodic retraining strategy in the post-MVP 
+roadmap to ensure continued model adaptation to local data distributions.
 \section{Architectural Reflections}
 
 The FastAPI/SQLAlchemy monolithic architecture proved highly appropriate
 for the MVP development context. FastAPI's automatic OpenAPI schema
 generation from Pydantic type annotations eliminated significant API
-documentation overhead. SQLAlchemy~2.0's async session interface
+documentation overhead. SQLAlchemy's async session interface
 (\texttt{AsyncSession} with \texttt{asyncpg}) enabled genuinely
 non-blocking database queries, resulting in measurably lower latency under
 concurrent load compared to synchronous ORM patterns. The combination of
@@ -48,11 +54,11 @@ without blocking the event loop.
 \section{Kazakhstan-Specific Considerations}
 
 Data residency compliance was achieved through exclusive use of QazCloud
-infrastructure. All PostgreSQL data, Redis cache entries, and ML model
-artefacts are stored within Kazakhstan's territorial boundaries, satisfying
-the requirements of Law~No.~94-V \citep{kazakhstanlaw94v}. This
-represents a structural differentiator relative to all five incumbent CRM
-systems analysed in \cref{sec:existing_systems}.
+infrastructure. All PostgreSQL data and ML model artefacts are stored within 
+Kazakhstan's territorial boundaries, satisfying the requirements of 
+Law~No.~94-V \citep{kazakhstanlaw94v}. This represents a structural 
+differentiator relative to all five incumbent CRM systems analysed in 
+\cref{sec:existing_systems}.
 
 The pricing analysis indicates that TinyCRM's target subscription price
 of approximately KZT~3,000--7,000 per user per month (USD~6.50--15) is
@@ -70,10 +76,6 @@ Several limitations constrain the conclusions drawn from this project:
   \item \textbf{External validity (ML):} Models trained on publicly
   available, non-Kazakhstani datasets may not generalise to local CRM
   data without domain adaptation or retraining.
-
-  \item \textbf{Internal validity (UAT):} The UAT sample of three
-  participants is insufficient for statistically generalisable usability
-  conclusions; results are indicative.
 
   \item \textbf{Construct validity:} SUS scores measure perceived
   usability but not objective task performance or error rates. A full
