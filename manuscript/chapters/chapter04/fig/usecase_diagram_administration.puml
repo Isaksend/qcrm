@@ -1,0 +1,73 @@
+@startuml usecase_diagram_administration.png
+
+scale 0.95
+left to right direction
+
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+  Padding 4
+  FontSize 12
+}
+
+title Administration & Tenant Management
+
+actor "Super Admin" as super
+actor "Company Admin" as admin
+actor Manager as manager
+
+package "Authentication" #EEF2FF {
+  usecase "Login" as UC_LOGIN
+}
+
+package "Team Management" #FEE2E2 {
+  usecase "List users" as UC_USERS_LIST
+  usecase "Create/deactivate users" as UC_USERS_MANAGE
+  usecase "Assign task to user" as UC_TASKS_ASSIGN
+  usecase "Assign deal owner" as UC_DEALS_OWNER
+}
+
+package "Tenant Management" #FECACA {
+  usecase "View companies" as UC_COMP_LIST
+  usecase "Create/edit company" as UC_COMP_CRUD
+  usecase "Set company timezone" as UC_COMP_TZ
+}
+
+manager --> UC_LOGIN
+manager --> UC_USERS_LIST
+manager --> UC_COMP_LIST
+
+admin --> UC_USERS_MANAGE
+admin --> UC_TASKS_ASSIGN
+admin --> UC_DEALS_OWNER
+admin --> UC_COMP_TZ
+
+super --> UC_COMP_CRUD
+
+manager <|- admin
+admin <|- super
+
+note left of manager
+Read-oriented access
+end note
+
+note left of admin
+Company-wide administration
+end note
+
+note left of super
+Platform-wide tenant control
+end note
+
+legend bottom
+|= Role |= Responsibility |
+| Manager | Team visibility |
+| Company Admin | Company administration |
+| Super Admin | Multi-tenant platform control |
+endlegend
+
+@enduml

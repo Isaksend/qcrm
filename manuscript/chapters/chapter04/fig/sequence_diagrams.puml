@@ -1,0 +1,220 @@
+@startuml seq-05
+title Login flow
+
+actor "Sales user" as user
+participant "LoginView\n(Vue)" as ui
+participant "AuthStore\n(Pinia)" as store
+participant "FastAPI\nauth_router" as api
+participant "AuthService" as svc
+participant "CRUD / DB" as db
+participant "users_router\nGET /me" as users
+
+user -> ui : Enter email + password
+ui -> store : login(username, password)
+
+store -> api : POST /api/auth/login\n(form-urlencoded)
+api -> svc : login(db, form_data)
+svc -> db : get_user_by_email(email)
+db --> svc : User row
+svc -> svc : verify_password()\ncheck is_active
+svc -> svc : create_token_pair(email)
+svc --> api : { access_token, refresh_token }
+api --> store : 200 + tokens
+
+store -> store : persistTokens()\nlocalStorage
+
+store -> users : GET /api/users/me\nAuthorization: Bearer
+users -> db : load user profile
+db --> users : UserResponse
+users --> store : profile JSON
+store --> ui : ok
+ui --> user : Redirect to dashboard
+
+@enduml
+
+@startuml seq-02
+title Change deal stage (Kanban)
+
+actor Manager as user
+participant "DealsKanban\n(Vue)" as kanban
+participant "DealsStore\n(Pinia)" as store
+participant "deals_router" as api
+participant "DealService" as svc
+participant "tenant_access" as tenant
+participant "CRUD" as crud
+database "PostgreSQL" as pg
+
+user -> kanban : Drag card to column\n(e.g. Proposal → Negotiation)
+kanban -> store : updateDealStage(dealId, newStage)
+
+store -> store : Optimistic UI:\ndeal.stage = newStage
+
+store -> api : PATCH /api/deals/{id}/stage?stage=...
+api -> api : get_current_active_user()\n(JWT → User)
+api -> svc : update_stage(db, user, dealId, stage)
+
+svc -> tenant : ensure_deal_access()
+tenant -> pg : verify company / ownership
+pg --> tenant : ok
+
+svc -> crud : update_deal_stage(dealId, stage, userId)
+
+alt stage changed
+  crud -> pg : UPDATE deals\nSET stage, closedAt?
+  crud -> pg : INSERT deal_stage_history
+  crud -> pg : INSERT deal_change_history
+  crud -> pg : INSERT activities\n(deal stage event)
+  crud -> pg : COMMIT
+end
+
+crud --> svc : Deal
+svc --> api : Deal JSON
+api --> store : 200 OK
+store --> kanban : sync state
+
+alt HTTP error
+  api --> store : 4xx / 5xx
+  store -> store : Revert deal.stage\nto oldStage
+  store --> kanban : show error
+end
+
+@enduml
+
+@startuml seq-03
+title Outbound chat (CRM → Telegram)
+
+actor Manager as user
+participant "ChatWindow\n(Vue)" as ui
+participant "ChatStore\n(Pinia)" as store
+participant "chat_router" as api
+participant "ChatService" as svc
+participant "tenant_access" as tenant
+participant "telegram_bot" as tg
+participant "Telegram API" as tgapi
+database "PostgreSQL" as pg
+
+user -> ui : Type message + Send
+ui -> store : sendMessage(contactId, text, dealId?)
+
+store -> api : POST /api/chat/send\n{ contactId, content, dealId }
+api -> api : JWT auth
+api -> svc : send_message(db, user, msg)
+
+svc -> pg : SELECT contact BY id
+pg --> svc : Contact (telegram_id)
+
+svc -> tenant : ensure_chat_contact_access()
+tenant --> svc : ok
+
+alt no telegram_id
+  svc --> api : 400 Contact has no Telegram
+  api --> store : error
+  store --> ui : show error
+else linked
+  svc -> tg : send_telegram_message(telegram_id, text)
+  tg -> tgapi : POST sendMessage
+  tgapi --> tg : 200 OK
+  tg --> svc : success
+
+  svc -> pg : INSERT chat_messages\n(senderRole=manager)
+  pg --> svc : ChatMessage
+  svc --> api : ChatMessageOut
+  api --> store : 200
+  store -> store : messages.push(saved)
+  store --> ui : render bubble
+end
+
+note over ui, pg
+  UI polls GET /api/chat/{contactId}
+  every ~3s for new client replies
+end note
+
+@enduml
+
+@startuml seq-04
+title Inbound chat (Telegram → CRM)
+
+actor "Client\n(Telegram app)" as client
+participant "Telegram API" as tgapi
+participant "telegram_bot\n(polling loop)" as bot
+participant "CRUD" as crud
+database "PostgreSQL" as pg
+participant "chat_router" as chatapi
+participant "ChatStore\n(polling)" as store
+participant "ChatWindow\n(Vue)" as ui
+actor Manager as mgr
+
+== Background polling ==
+loop every update
+  bot -> tgapi : GET getUpdates\n(offset, timeout=30)
+  tgapi --> bot : message update
+  bot -> bot : _process_update()
+end
+
+== Client text message ==
+client -> tgapi : Send text
+tgapi --> bot : update (message)
+
+bot -> crud : get_contact_by_telegram_id()
+crud -> pg : SELECT contacts
+pg --> crud : Contact | null
+
+alt not registered
+  bot -> bot : _handle_registration()\n(/start flow)
+  bot -> tgapi : sendMessage (Q&A)
+  tgapi --> client : registration prompts
+else registered
+  bot -> crud : create_chat_message(\nsenderRole=client)
+  crud -> pg : INSERT chat_messages
+  pg --> crud : ok
+end
+
+== Manager sees message in CRM ==
+mgr -> ui : Open Messages
+ui -> store : fetchMessages()\nstartPolling(3s)
+
+loop poll every ~3s
+  store -> chatapi : GET /api/chat/{contactId}\nBearer JWT
+  chatapi -> crud : get_chat_messages()
+  crud -> pg : SELECT chat_messages
+  pg --> crud : rows
+  crud --> chatapi : ChatMessageOut[]
+  chatapi --> store : JSON
+  store --> ui : refresh bubbles
+end
+
+@enduml
+
+@startuml seq-01
+title ML contact analysis (deal card)
+
+actor Manager as user
+participant "DealDetailView\n(Vue)" as ui
+participant "ai_router" as api
+participant "tenant_access" as tenant
+participant "CRUD" as crud
+participant "AIPredictionService" as ml
+database "PostgreSQL" as pg
+
+user -> ui : Open deal → AI tab\n(contact linked)
+ui -> api : GET /api/ai/analyze-contact/{contactId}\n?deal_id={dealId}\nBearer JWT
+
+api -> tenant : ensure_chat_contact_access(\ncontactId, dealId)
+tenant -> pg : verify deal + contact scope
+pg --> tenant : ok
+
+api -> crud : get_contact_ai_features(contactId)
+crud -> pg : aggregate activities,\ndeals, communications
+pg --> crud : feature dict
+
+api -> ml : score_lead(features)
+ml --> api : LeadScoreResponse\n+ SHAP factors
+
+api -> ml : predict_churn(features)
+ml --> api : ChurnPredictionResponse
+
+api --> ui : { features, analysis:\n  lead_conversion,\n  churn_risk }
+
+ui --> user : Show scores &\nexplainability
+
+@enduml

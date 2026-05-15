@@ -1,0 +1,114 @@
+@startuml usecase_diagram_operations.png
+
+scale 0.85
+left to right direction
+
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam defaultFontSize 10
+
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+  Padding 2
+  FontSize 10
+}
+
+skinparam package {
+  Padding 3
+}
+
+title CRM Operations
+
+actor Admin as admin
+actor Manager as manager
+actor Sales as sales
+
+' ===== TOP ROW =====
+
+package "Auth" #EEF2FF {
+  usecase "Login" as UC_LOGIN
+  usecase "View / edit profile" as UC_PROFILE
+}
+
+package "Contacts" #F0FDF4 {
+  usecase "List & search contacts" as UC_CONTACTS
+  usecase "Search contact by phone" as UC_CONTACTS_PHONE
+}
+
+package "Deals" #FFF7ED {
+  usecase "Create / edit / delete deal" as UC_DEALS
+  usecase "Change deal stage" as UC_DEALS_STAGE
+  usecase "Manage deal notes" as UC_DEALS_NOTES
+  usecase "View deal change history" as UC_DEALS_HIST
+  usecase "Global search (deals, contacts)" as UC_SEARCH
+}
+
+package "Tasks" #FEFCE8 {
+  usecase "Create / complete deal tasks" as UC_TASKS
+  usecase "View my assigned tasks" as UC_TASKS_MY
+}
+
+package "Admin Ops" #FEE2E2 {
+    usecase "Assign deal owner" as UC_DEALS_OWNER
+    usecase "Assign task to user" as UC_TASKS_ASSIGN
+}
+
+package "Analytics" #FAF5FF {
+    usecase "View KPI dashboard" as UC_DASH
+    usecase "View revenue by month" as UC_REVENUE
+    usecase "Sales velocity" as UC_AN_VEL
+    usecase "Funnel conversions" as UC_AN_FUNNEL
+}
+
+package "Communication" #F1F5F9 {
+    usecase "Chat with contact" as UC_CHAT
+    usecase "View activity timeline" as UC_ACT
+}
+
+package "ML" #E0E7FF {
+    usecase "Score lead conversion" as UC_AI_LEAD
+    usecase "Predict churn risk" as UC_AI_CHURN
+}
+
+admin -u-> UC_DEALS_OWNER
+admin -u-> UC_TASKS_ASSIGN
+
+sales -u-> UC_LOGIN
+sales -u-> UC_PROFILE
+
+sales -u-> UC_CONTACTS
+sales -u-> UC_CONTACTS_PHONE
+
+sales --> UC_DEALS
+sales --> UC_DEALS_STAGE
+sales --> UC_DEALS_NOTES
+sales --> UC_DEALS_HIST
+sales --> UC_SEARCH
+
+sales -u-> UC_TASKS
+sales -u-> UC_TASKS_MY
+
+sales --> UC_DASH
+sales --> UC_REVENUE
+sales --> UC_AN_VEL
+sales --> UC_AN_FUNNEL
+
+sales -u-> UC_CHAT
+sales -u-> UC_ACT
+
+sales --> UC_AI_LEAD
+sales --> UC_AI_CHURN
+
+sales <|-r- manager
+manager <|-r- admin
+
+legend bottom
+|= Role |= Access |
+| Sales | CRM workflow |
+| Manager | Daily team management |
+| Admin | Assignment control |
+endlegend
+
+@enduml

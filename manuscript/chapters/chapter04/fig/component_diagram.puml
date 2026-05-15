@@ -1,55 +1,71 @@
 @startuml component_diagram
-!theme blueprint
-skinparam componentStyle rectangle
+
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+}
+skinparam packageStyle rectangle
 
 package "Client Tier" {
-  [Vue.js 3 SPA] as VUE
-  [Vuetify 3 UI] as UI
+  [Vue.js SPA] as VUE
+  [Vuetify UI] as UI
   VUE -- UI
 }
 
 package "Application Tier (FastAPI Monolith)" {
-  [Nginx 1.25\n(Reverse Proxy + TLS)] as NGINX
+  [Nginx \n(Reverse Proxy + TLS)] as NGINX
   [Uvicorn (ASGI)] as UVICORN
   package "FastAPI Routers" {
     [/auth]       as AUTH
+    [/users]      as USERS
     [/contacts]   as CONTACTS
     [/companies]  as COMPANIES
     [/deals]      as DEALS
     [/activities] as ACTIVITIES
-    [/ml]         as ML
+    [/chat]       as CHAT
+    [/ai]         as AI
+    [/analytics]  as ANALYTICS
     [/reports]    as REPORTS
   }
-  [SQLAlchemy 2.0\n(Async ORM)] as ORM
-  [Pydantic v2\n(Schemas)]      as SCHEMAS
+  together {
+  [SQLAlchemy \n(Async ORM)] as ORM
+  [Alembic \n(Database migrations)] as MIGR	
+  }
   NGINX   --> UVICORN
   UVICORN --> AUTH
+  UVICORN --> USERS
   UVICORN --> CONTACTS
+  UVICORN --> COMPANIES
   UVICORN --> DEALS
   UVICORN --> ACTIVITIES
-  UVICORN --> ML
+  UVICORN --> CHAT
+  UVICORN --> AI
+  UVICORN --> ANALYTICS
   UVICORN --> REPORTS
   AUTH       --> ORM
   CONTACTS   --> ORM
   DEALS      --> ORM
   ACTIVITIES --> ORM
-  ML         --> ORM
   REPORTS    --> ORM
 }
 
+together {
 package "ML Artefacts (disk)" {
-  [lead_scorer_v2.pkl]  as LS
-  [churn_model_v1.pkl]  as CM
-  [preprocessor.pkl]    as PP
+  [lead_scoring_model.pkl]  as LS
+  [churn_prediction_model.pkl]  as CM
 }
 
 package "Data Tier" {
-  database "PostgreSQL 15\n(Serverspace.io Managed)" as PG
+  database "PostgreSQL" as PG
 }
 
+}
 VUE  --> NGINX : HTTPS/REST JSON
 ORM  --> PG
-ML   --> LS
-ML   --> CM
-ML   --> PP
+MIGR --> PG
+AI   --> LS
+AI   --> CM
 @enduml
+

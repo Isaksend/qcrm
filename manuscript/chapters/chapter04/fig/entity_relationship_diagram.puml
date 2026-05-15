@@ -1,78 +1,196 @@
-@startuml entity_relationship_diagram
-!theme blueprint
-entity User {
-* id : UUID <<PK>>
---
-email : VARCHAR(255) UNIQUE NOT NULL
-password_hash : VARCHAR(255) NOT NULL
-role : ENUM(admin,manager,sales_rep)
-full_name : VARCHAR(200)
-is_active : BOOLEAN DEFAULT TRUE
-created_at : TIMESTAMPTZ
+@startuml entity_relationship_diagram.png
+
+skinparam linetype ortho
+skinparam roundcorner 8
+skinparam shadowing false
+skinparam entity {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
 }
-entity Company {
-* id : UUID <<PK>>
---
-name : VARCHAR(200) NOT NULL
-industry : VARCHAR(100)
-size : ENUM(1-10,11-50,51-200,200+)
-country : VARCHAR(100)
-website : VARCHAR(255)
-created_at : TIMESTAMPTZ
+skinparam note {
+  BackgroundColor #EEF2FF
+  BorderColor #6366F1
 }
-entity Contact {
-* id : UUID <<PK>>
---
-first_name : VARCHAR(100)
-last_name : VARCHAR(100)
-email : VARCHAR(255) UNIQUE
-phone : VARCHAR(50)
-company_id : UUID <<FK>>
-owner_id : UUID <<FK>>
-lead_score : FLOAT
-churn_risk : FLOAT
-created_at : TIMESTAMPTZ
+
+title Entity Relationship Diagram
+
+together {
+
+entity "companies" as companies {
+  * **id** : VARCHAR <<PK>>
+  --
+  name : VARCHAR
+  created_at : VARCHAR
+  timezone : VARCHAR(64)
 }
-entity Deal {
-* id : UUID <<PK>>
---
-title : VARCHAR(255)
-value : NUMERIC(15,2)
-currency : CHAR(3) DEFAULT ’KZT’
-stage : ENUM(lead,qualified,proposal,
-negotiation,won,lost)
-contact_id : UUID <<FK>>
-owner_id : UUID <<FK>>
-close_date : DATE
-created_at : TIMESTAMPTZ
+
+entity "users" as users {
+  * **id** : VARCHAR <<PK>>
+  --
+  name : VARCHAR
+  * email : VARCHAR <<UK>>
+  hashed_password : VARCHAR
+  role : VARCHAR
+  company_id : VARCHAR
+  is_active : INTEGER
 }
-entity Activity {
-* id : UUID <<PK>>
---
-type : ENUM(call,email,meeting,note)
-subject : VARCHAR(255)
-description : TEXT
-contact_id : UUID <<FK>>
-deal_id : UUID <<FK>>
-performed_by : UUID <<FK>>
-performed_at : TIMESTAMPTZ
+
+entity "contacts" as contacts {
+  * **id** : VARCHAR <<PK>>
+  --
+  name : VARCHAR
+  * email : VARCHAR <<UK>>
+  phone : VARCHAR
+  company : VARCHAR
+  role : VARCHAR
+  status : VARCHAR
+  avatar : VARCHAR
+  revenue : FLOAT
+  lastContact : VARCHAR
+  tags : JSON
+  companyId : VARCHAR
+  telegram_id : VARCHAR <<UK>>
+  country_iso2 : VARCHAR(2)
+  city : VARCHAR(128)
 }
-entity MLPrediction {
-* id : UUID <<PK>>
---
-contact_id : UUID <<FK>>
-model_type : ENUM(lead_score,churn)
-score : FLOAT NOT NULL
-shap_values : JSONB
-risk_tier : VARCHAR(10)
-model_version : VARCHAR(50)
-predicted_at : TIMESTAMPTZ
+
+entity "chat_messages" as chat_messages {
+  * **id** : VARCHAR <<PK>>
+  --
+  contactId : VARCHAR
+  dealId : VARCHAR
+  senderRole : VARCHAR
+  senderId : VARCHAR
+  senderName : VARCHAR
+  content : VARCHAR
+  messageType : VARCHAR
+  timestamp : DATETIME
 }
-Company ||--o{ Contact : "employs"
-User ||--o{ Contact : "owns"
-User ||--o{ Deal : "owns"
-Contact ||--o{ Deal : "has"
-Contact ||--o{ Activity : "has"
-Deal ||--o{ Activity : "has"
-Contact ||--o{ MLPrediction : "has"
+}
+
+together {
+entity "deals" as deals {
+  * **id** : VARCHAR <<PK>>
+  --
+  leadId : VARCHAR
+  contactId : VARCHAR
+  title : VARCHAR
+  value : FLOAT
+  stage : VARCHAR
+  createdAt : DATETIME
+  closedAt : DATETIME
+  userId : VARCHAR
+  createdById : VARCHAR
+  companyId : VARCHAR
+  notes : VARCHAR
+}
+
+entity "deal_stage_history" as deal_stage_history {
+  * **id** : VARCHAR <<PK>>
+  --
+  * deal_id : VARCHAR <<FK>>
+  old_stage : VARCHAR
+  new_stage : VARCHAR
+  changed_at : DATETIME
+  changed_by : VARCHAR <<FK>>
+}
+
+entity "deal_change_history" as deal_change_history {
+  * **id** : VARCHAR <<PK>>
+  --
+  * deal_id : VARCHAR <<FK>>
+  field : VARCHAR(64)
+  old_value : TEXT
+  new_value : TEXT
+  changed_at : DATETIME
+  changed_by : VARCHAR <<FK>>
+}
+
+entity "deal_tasks" as deal_tasks {
+  * **id** : VARCHAR <<PK>>
+  --
+  * dealId : VARCHAR <<FK>>
+  title : VARCHAR(512)
+  dueAt : DATETIME
+  isDone : INTEGER
+  createdBy : VARCHAR <<FK>>
+  createdAt : DATETIME
+  assignedUserId : VARCHAR <<FK>>
+}
+
+entity "notes" as notes {
+  * **id** : VARCHAR <<PK>>
+  --
+  dealId : VARCHAR
+  userId : VARCHAR
+  content : VARCHAR
+  createdAt : DATETIME
+}
+}
+
+entity "communication_logs" as communication_logs {
+  * **id** : VARCHAR <<PK>>
+  --
+  type : VARCHAR
+  direction : VARCHAR
+  * contact_id : VARCHAR <<FK>>
+  user_id : VARCHAR <<FK>>
+  duration : INTEGER
+  status : VARCHAR
+  timestamp : DATETIME
+  metadata_json : JSON
+}
+
+
+entity "activities" as activities {
+  * **id** : VARCHAR <<PK>>
+  --
+  type : VARCHAR
+  entityType : VARCHAR
+  entityId : VARCHAR
+  description : VARCHAR
+  timestamp : VARCHAR
+}
+
+entity "ai_insights" as ai_insights {
+  * **id** : VARCHAR <<PK>>
+  --
+  entityType : VARCHAR
+  entityId : VARCHAR
+  category : VARCHAR
+  title : VARCHAR
+  content : VARCHAR
+  confidence : INTEGER
+  suggestions : JSON
+}
+
+deals ||--o{ deal_stage_history : "deal_id"
+deals ||--o{ deal_change_history : "deal_id"
+deals ||--o{ deal_tasks : "dealId"
+users ||--o{ deal_stage_history : "changed_by"
+users ||--o{ deal_change_history : "changed_by"
+users ||--o{ deal_tasks : "createdBy"
+users ||--o{ deal_tasks : "assignedUserId"
+
+companies ||--o{ users : "company_id"
+companies ||--o{ contacts : "companyId"
+companies ||--o{ deals : "companyId"
+
+contacts ||--o{ deals : "contactId"
+users ||--o{ deals : "userId / createdById"
+deals ||--o{ notes : "dealId"
+users ||--o{ notes : "userId"
+
+contacts ||--o{ chat_messages : "contactId"
+deals ||--o{ chat_messages : "dealId (opt.)"
+
+contacts ||--o{ communication_logs : "contact_id"
+users ||--o{ communication_logs : "user_id"
+
+activities .. deals : «references»
+activities .. contacts : «references»
+activities .. users : «references»
+ai_insights .. deals : «references»
+ai_insights .. contacts : «references»
+
 @enduml
