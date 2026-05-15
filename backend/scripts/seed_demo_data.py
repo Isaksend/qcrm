@@ -55,6 +55,47 @@ def _now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
+def _utc_now() -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc)
+
+
+def _days_ago(days: int) -> dt.datetime:
+    return _utc_now() - dt.timedelta(days=days)
+
+
+def _month_shift(year: int, month: int, delta: int) -> tuple[int, int]:
+    m = month + delta
+    y = year
+    while m < 1:
+        m += 12
+        y -= 1
+    while m > 12:
+        m -= 12
+        y += 1
+    return y, m
+
+
+def _last_day_of_month(year: int, month: int) -> int:
+    y, m = _month_shift(year, month, 1)
+    return (dt.datetime(y, m, 1, tzinfo=dt.timezone.utc) - dt.timedelta(days=1)).day
+
+
+def _at_month_day(year: int, month: int, day: int, hour: int = 12) -> dt.datetime:
+    day = max(1, min(day, _last_day_of_month(year, month)))
+    return dt.datetime(year, month, day, hour, 0, 0, tzinfo=dt.timezone.utc)
+
+
+def _current_month_day(day: int, hour: int = 12) -> dt.datetime:
+    now = _utc_now()
+    return _at_month_day(now.year, now.month, day, hour)
+
+
+def _previous_month_day(day: int, hour: int = 12) -> dt.datetime:
+    now = _utc_now()
+    py, pm = _month_shift(now.year, now.month, -1)
+    return _at_month_day(py, pm, day, hour)
+
+
 def _clear_demo_bundle(db: Session) -> None:
     comp = db.query(models.Company).filter(models.Company.name == DEMO_COMPANY_NAME).first()
     if not comp:
@@ -78,6 +119,10 @@ def _clear_demo_bundle(db: Session) -> None:
             models.AIInsight.entityType == "contact", models.AIInsight.entityId.in_(contact_ids)
         ).delete(synchronize_session=False)
     if deal_ids:
+        db.query(models.DealChangeHistory).filter(models.DealChangeHistory.deal_id.in_(deal_ids)).delete(
+            synchronize_session=False
+        )
+        db.query(models.DealTask).filter(models.DealTask.dealId.in_(deal_ids)).delete(synchronize_session=False)
         db.query(models.DealStageHistory).filter(models.DealStageHistory.deal_id.in_(deal_ids)).delete(
             synchronize_session=False
         )
@@ -251,6 +296,62 @@ def seed_demo_data(db: Session, *, force: bool) -> None:
             "country_iso2": "KZ",
             "city": "Шымкент",
         },
+        {
+            "name": "ТОО «Qazaq Pharma»",
+            "email": "demo.contact.pharma@example.com",
+            "phone": "+7 727 300 4400",
+            "company": "Qazaq Pharma",
+            "role": "Закупки",
+            "status": "Active",
+            "avatar": "QP",
+            "revenue": 5_600_000.0,
+            "tags": ["фарма", "B2B"],
+            "telegram_id": "1000009003",
+            "country_iso2": "KZ",
+            "city": "Алматы",
+        },
+        {
+            "name": "Nurlan Beketov",
+            "email": "demo.contact.fintech@example.com",
+            "phone": "+7 708 111 2233",
+            "company": "SteppePay",
+            "role": "Product Lead",
+            "status": "Prospect",
+            "avatar": "NB",
+            "revenue": 0.0,
+            "tags": ["fintech", "стартап"],
+            "telegram_id": None,
+            "country_iso2": "KZ",
+            "city": "Астана",
+        },
+        {
+            "name": "ГУ «Цифровизация»",
+            "email": "demo.contact.gov@example.com",
+            "phone": "+7 7172 900 1122",
+            "company": "Госзакупки KZ",
+            "role": "Специалист",
+            "status": "Prospect",
+            "avatar": "ГЦ",
+            "revenue": 0.0,
+            "tags": ["гос", "тендер"],
+            "telegram_id": None,
+            "country_iso2": "KZ",
+            "city": "Астана",
+        },
+        {
+            "name": "Maria Costa",
+            "email": "demo.contact.costa@example.com",
+            "phone": "+351 21 555 7788",
+            "company": "Luso Retail",
+            "role": "Operations",
+            "status": "Active",
+            "avatar": "MC",
+            "revenue": 210_000.0,
+            "tags": ["EU", "розница"],
+            "telegram_id": None,
+            "country_iso2": "PT",
+            "city": "Lisbon",
+        },
     ]
 
     contact_rows: list[models.Contact] = []
@@ -276,106 +377,221 @@ def seed_demo_data(db: Session, *, force: bool) -> None:
         contact_rows.append(c)
     db.flush()
 
-    c0, c1, c2 = contact_rows[0], contact_rows[1], contact_rows[2]
+    # Индексы контактов для читаемости
+    c = contact_rows
 
-    deals_spec = [
-        ("Поставка оборудования — Астана Логистик", c0.id, sales1.id, "Negotiation", 8_500_000.0, "Ключевой клиент, ждём подпись."),
-        ("Пилот Retail Group", c1.id, sales1.id, "Proposal", 450_000.0, "Презентация проведена."),
-        ("TechImport — лицензии Q2", c2.id, sales2.id, "Discovery", 120_000.0, None),
-        ("Berlin GmbH — продление", contact_rows[3].id, sales2.id, "Closed Won", 55_000.0, "Продление на год."),
-        ("СтройМонтаж — КП по складу", contact_rows[4].id, sales1.id, "Closed Lost", 0.0, "Выбрали другого подрядчика."),
-        ("Внутренняя сделка без контакта", None, admin.id, "Discovery", 10_000.0, "Черновик для обучения."),
+    # period: "current" | "previous" — календарный месяц для createdAt (закрытые: closedAt в том же месяце)
+    # owner None → сделка без ответственного (userId=NULL)
+    deals_spec: list[tuple] = [
+        # New Request — текущий месяц
+        ("Входящая заявка — логистика WMS", 0, None, "New Request", 2_400_000.0, "Лид с сайта, не назначен менеджер.", "current", 3),
+        ("SteppePay — пилот API", 6, sales2.id, "New Request", 180_000.0, "Первичный интерес к интеграции.", "current", 5),
+        ("Госзакупки — справочник поставщиков", 7, None, "New Request", 950_000.0, "Тендер в Q3, ответственный не назначен.", "current", 7),
+        # Qualified
+        ("Retail Group — квалификация бюджета", 1, sales1.id, "Qualified", 520_000.0, "Бюджет подтверждён на 2025.", "current", 9),
+        ("Luso Retail — омниканал", 8, None, "Qualified", 95_000.0, "Нужно назначить владельца сделки.", "current", 11),
+        ("TechImport — расширение штата", 2, sales2.id, "Qualified", 64_000.0, None, "current", 13),
+        # Discovery
+        ("TechImport — лицензии Q2", 2, sales2.id, "Discovery", 120_000.0, "Техническое демо запланировано.", "current", 6),
+        ("Qazaq Pharma — ERP-модуль", 5, sales1.id, "Discovery", 3_100_000.0, "Сбор требований у закупок.", "current", 10),
+        ("Внутренняя сделка без контакта", None, None, "Discovery", 10_000.0, "Черновик, нет контакта и ответственного.", "current", 14),
+        # Proposal
+        ("Пилот Retail Group", 1, sales1.id, "Proposal", 450_000.0, "Презентация проведена.", "current", 8),
+        ("Berlin GmbH — апгрейд тарифа", 3, sales2.id, "Proposal", 72_000.0, "КП отправлено на немецком.", "current", 12),
+        ("СтройМонтаж — складской учёт", 4, None, "Proposal", 890_000.0, "Ждём согласования сметы, без owner.", "current", 15),
+        # Negotiation
+        ("Поставка оборудования — Астана Логистик", 0, sales1.id, "Negotiation", 8_500_000.0, "Ключевой клиент, ждём подпись.", "current", 4),
+        ("Qazaq Pharma — годовой контракт", 5, sales2.id, "Negotiation", 4_800_000.0, "Юристы на финальной ревизии.", "current", 16),
+        ("Астана Логистик — сервисный пакет", 0, None, "Negotiation", 620_000.0, "Допродажа, ответственный не назначен.", "current", 18),
+        # Закрытые — прошлый месяц (демо переключения периода)
+        ("Berlin GmbH — продление", 3, sales2.id, "Closed Won", 55_000.0, "Продление на год.", "previous", 8, 22),
+        ("TechImport — onboarding", 2, sales2.id, "Closed Won", 38_000.0, None, "previous", 5, 25),
+        ("СтройМонтаж — КП по складу", 4, sales1.id, "Closed Lost", 0.0, "Выбрали другого подрядчика.", "previous", 10, 26),
+        ("SteppePay — корп. тариф", 6, None, "Closed Lost", 0.0, "Отказ по цене, без ответственного.", "previous", 12, 28),
+        # Закрытые — текущий месяц
+        ("Астана Логистик — пилот", 0, sales1.id, "Closed Won", 1_200_000.0, "Успешный пилот.", "current", 2, 20),
+        ("Luso Retail — сезонная кампания", 8, sales1.id, "Closed Won", 42_000.0, None, "current", 6, 24),
+        ("Госзакупки — пилот", 7, sales2.id, "Closed Lost", 0.0, "Тендер отменён.", "current", 17, 26),
     ]
 
     deal_rows: list[models.Deal] = []
-    for title, contact_id, owner_id, stage, value, notes in deals_spec:
+    for row in deals_spec:
+        title, cidx, owner, stage, value, notes, period, created_day = row[:8]
+        closed_day = row[8] if len(row) > 8 else None
+        contact_id = c[cidx].id if cidx is not None else None
+        creator = owner or admin.id
+        if period == "previous":
+            created_at = _previous_month_day(created_day)
+            closed_at = (
+                _previous_month_day(closed_day)
+                if closed_day is not None
+                else (_previous_month_day(created_day + 5) if stage in ("Closed Won", "Closed Lost") else None)
+            )
+        else:
+            created_at = _current_month_day(created_day)
+            closed_at = (
+                _current_month_day(closed_day)
+                if closed_day is not None
+                else (_current_month_day(created_day + 3) if stage in ("Closed Won", "Closed Lost") else None)
+            )
+
         d = models.Deal(
             id=_uid(),
             contactId=contact_id,
             title=title,
             value=value,
             stage=stage,
-            userId=owner_id,
-            createdById=owner_id,
+            userId=owner,
+            createdById=creator,
             companyId=company.id,
             notes=notes,
+            createdAt=created_at,
+            closedAt=closed_at,
         )
         db.add(d)
         deal_rows.append(d)
     db.flush()
 
-    # История стадий для первой сделки (аналитика «скорость продаж»)
-    d0 = deal_rows[0]
-    t0 = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=21)
-    t1 = t0 + dt.timedelta(days=5)
-    t2 = t1 + dt.timedelta(days=7)
-    db.add(
-        models.DealStageHistory(
-            id=_uid(),
-            deal_id=d0.id,
-            old_stage="Discovery",
-            new_stage="Proposal",
-            changed_at=t0,
-            changed_by=sales1.id,
-        )
-    )
-    db.add(
-        models.DealStageHistory(
-            id=_uid(),
-            deal_id=d0.id,
-            old_stage="Proposal",
-            new_stage="Negotiation",
-            changed_at=t2,
-            changed_by=sales1.id,
-        )
-    )
-
-    # Заметки к сделке
-    db.add(
-        models.Note(
-            id=_uid(),
-            dealId=d0.id,
-            userId=sales1.id,
-            content="Клиент запросил скидку 5% при оплате до 15 числа.",
-        )
-    )
-    db.add(
-        models.Note(
-            id=_uid(),
-            dealId=deal_rows[1].id,
-            userId=sales1.id,
-            content="Отправили коммерческое на почту.",
-        )
-    )
-
-    # Активности
-    acts = [
-        ("call", "contact", c0.id, "Исходящий звонок: согласовали встречу"),
-        ("email", "contact", c1.id, "Отправлено КП"),
-        ("meeting", "deal", d0.id, "Демо продукта для закупок"),
-        ("email", "deal", deal_rows[3].id, "Подписан договор на продление"),
-    ]
-    for typ, et, eid, desc in acts:
+    d0 = deal_rows[12]  # Поставка оборудования — Астана Логистик (Negotiation)
+    t0 = _current_month_day(2)
+    t2 = _current_month_day(6)
+    for old_s, new_s, at, by in [
+        ("Discovery", "Proposal", t0, sales1.id),
+        ("Proposal", "Negotiation", t2, sales1.id),
+    ]:
         db.add(
-            models.Activity(
+            models.DealStageHistory(
                 id=_uid(),
-                type=typ,
-                entityType=et,
-                entityId=eid,
-                description=desc,
-                timestamp=dt.datetime.now(dt.timezone.utc).isoformat(),
+                deal_id=d0.id,
+                old_stage=old_s,
+                new_stage=new_s,
+                changed_at=at,
+                changed_by=by,
+            )
+        )
+        db.add(
+            models.DealChangeHistory(
+                id=_uid(),
+                deal_id=d0.id,
+                field="stage",
+                old_value=old_s,
+                new_value=new_s,
+                changed_at=at,
+                changed_by=by,
             )
         )
 
-    # Сообщения чата (контакт с telegram_id)
+    # История стадий для ещё нескольких сделок (воронка / аналитика)
+    funnel_samples = [
+        (deal_rows[10], sales1.id, [("Qualified", "Discovery"), ("Discovery", "Proposal")]),
+        (deal_rows[4], sales2.id, [("New Request", "Qualified")]),
+        (deal_rows[19], sales1.id, [("Proposal", "Closed Won")]),
+    ]
+    for deal, actor, transitions in funnel_samples:
+        base = _current_month_day(1)
+        for i, (old_s, new_s) in enumerate(transitions):
+            at = base + dt.timedelta(days=2 * (i + 1))
+            db.add(
+                models.DealStageHistory(
+                    id=_uid(),
+                    deal_id=deal.id,
+                    old_stage=old_s,
+                    new_stage=new_s,
+                    changed_at=at,
+                    changed_by=actor,
+                )
+            )
+
+    # Заметки
+    note_specs = [
+        (d0.id, sales1.id, "Клиент запросил скидку 5% при оплате до 15 числа."),
+        (deal_rows[10].id, sales1.id, "Отправили коммерческое на почту."),
+        (deal_rows[15].id, sales2.id, "Подписан договор на продление."),
+        (deal_rows[0].id, admin.id, "Назначить ответственного после квалификации."),
+    ]
+    for deal_id, uid, content in note_specs:
+        db.add(models.Note(id=_uid(), dealId=deal_id, userId=uid, content=content))
+
+    # Задачи по сделкам (карточка сделки + «Мои задачи»)
+    def _due_in_days(days: int | None) -> dt.datetime | None:
+        if days is None:
+            return None
+        base = _utc_now().replace(hour=10, minute=0, second=0, microsecond=0)
+        return base + dt.timedelta(days=days)
+
+    # (deal_idx, title, assignee, due_days, is_done, created_by)
+    task_specs: list[tuple] = [
+        (12, "Согласовать финальную скидку с закупками", sales1.id, -1, 0, sales1.id),
+        (12, "Подготовить договор на подпись", sales1.id, 0, 0, sales1.id),
+        (12, "Контроль оплаты аванса", sales1.id, 3, 0, admin.id),
+        (0, "Назначить ответственного по лиду WMS", sales1.id, 0, 0, admin.id),
+        (0, "Первичный звонок по заявке", None, 1, 0, admin.id),
+        (10, "Отправить обновлённое КП (Berlin)", sales2.id, -2, 0, sales2.id),
+        (9, "Демо для Retail Group", sales1.id, 2, 0, sales1.id),
+        (7, "Сбор требований у Qazaq Pharma", sales1.id, 5, 0, sales1.id),
+        (13, "Юридическая ревизия SLA", sales2.id, 1, 0, sales2.id),
+        (14, "Назначить владельца допродажи", sales2.id, 0, 0, admin.id),
+        (1, "Уточнить API-документацию SteppePay", sales2.id, 4, 0, sales2.id),
+        (4, "Квалификация Luso Retail — бюджет", sales1.id, 7, 0, sales1.id),
+        (19, "Архив: передать акт выполненных работ", sales1.id, None, 1, sales1.id),
+        (15, "Архив: отправить благодарственное письмо", sales2.id, None, 1, sales2.id),
+        (11, "Напомнить СтройМонтаж о смете", None, 2, 0, admin.id),
+    ]
+    open_tasks = 0
+    for deal_idx, title, assignee, due_days, is_done, created_by in task_specs:
+        deal = deal_rows[deal_idx]
+        resolved_assignee = assignee or deal.userId or sales1.id
+        db.add(
+            models.DealTask(
+                id=_uid(),
+                dealId=deal.id,
+                title=title,
+                dueAt=_due_in_days(due_days),
+                isDone=is_done,
+                createdBy=created_by,
+                createdAt=_current_month_day(5 + (deal_idx % 10)),
+                assignedUserId=resolved_assignee,
+            )
+        )
+        if not is_done:
+            open_tasks += 1
+
+    # Активности (разнообразие для ML: activity_count_30d, interaction_score)
+    activity_types = ["call", "email", "meeting", "note", "telegram"]
+    for ci, contact in enumerate(c):
+        for j, typ in enumerate(activity_types[: 3 + (ci % 3)]):
+            db.add(
+                models.Activity(
+                    id=_uid(),
+                    type=typ,
+                    entityType="contact",
+                    entityId=contact.id,
+                    description=f"Демо-активность ({typ}) — {contact.company}",
+                    timestamp=_current_month_day(min(28, 2 + j + ci)).isoformat(),
+                )
+            )
+    deal_activity_deals = [d0, deal_rows[10], deal_rows[15], deal_rows[0]]
+    for di, deal in enumerate(deal_activity_deals):
+        db.add(
+            models.Activity(
+                id=_uid(),
+                type=["meeting", "email", "deal_won", "stage_changed"][di % 4],
+                entityType="deal",
+                entityId=deal.id,
+                description=f"Событие по сделке: {deal.title[:40]}",
+                timestamp=_current_month_day(3 + di).isoformat(),
+            )
+        )
+
+    # Сообщения чата
     db.add(
         models.ChatMessage(
             id=_uid(),
-            contactId=c0.id,
+            contactId=c[0].id,
             dealId=d0.id,
             senderRole="client",
-            senderId=c0.telegram_id,
-            senderName=c0.name,
+            senderId=c[0].telegram_id,
+            senderName=c[0].name,
             content="Добрый день! Пришлите, пожалуйста, счёт на оплату.",
             messageType="text",
         )
@@ -383,7 +599,7 @@ def seed_demo_data(db: Session, *, force: bool) -> None:
     db.add(
         models.ChatMessage(
             id=_uid(),
-            contactId=c0.id,
+            contactId=c[0].id,
             dealId=d0.id,
             senderRole="manager",
             senderId=sales1.id,
@@ -395,61 +611,87 @@ def seed_demo_data(db: Session, *, force: bool) -> None:
     db.add(
         models.ChatMessage(
             id=_uid(),
-            contactId=c1.id,
-            dealId=None,
+            contactId=c[1].id,
+            dealId=deal_rows[10].id,
             senderRole="client",
-            senderId=c1.telegram_id,
-            senderName=c1.name,
+            senderId=c[1].telegram_id,
+            senderName=c[1].name,
             content="Можем ли мы получить тестовый доступ?",
             messageType="text",
         )
     )
-
-    # AI insights
     db.add(
-        models.AIInsight(
+        models.ChatMessage(
             id=_uid(),
-            entityType="contact",
-            entityId=c1.id,
-            category="prediction",
-            title="Вероятность конверсии",
-            content="Контакт на стадии Prospect; рекомендуется назначить демо в течение недели.",
-            confidence=72,
-            suggestions=["Назначить демо", "Отправить кейс из логистики"],
-        )
-    )
-    db.add(
-        models.AIInsight(
-            id=_uid(),
-            entityType="deal",
-            entityId=d0.id,
-            category="risk",
-            title="Риск задержки оплаты",
-            content="Крупная сумма сделки — уточните процесс согласования у контрагента.",
-            confidence=61,
-            suggestions=["Запросить юр.лицо плательщика"],
+            contactId=c[5].id,
+            dealId=deal_rows[13].id,
+            senderRole="client",
+            senderId=c[5].telegram_id,
+            senderName=c[5].name,
+            content="Нужны условия по SLA для фарма-склада.",
+            messageType="text",
         )
     )
 
-    # Журнал коммуникаций (аналитика)
-    for i in range(8):
+    # AI insights (демо ML / подсказок)
+    insight_specs = [
+        ("contact", c[1].id, "prediction", "Вероятность конверсии", 72, ["Назначить демо", "Отправить кейс"]),
+        ("contact", c[5].id, "prediction", "Крупный контракт", 68, ["Подключить пресейл", "Юр. проверка"]),
+        ("contact", c[6].id, "risk", "Низкая активность", 55, ["Исходящий звонок"]),
+        ("deal", d0.id, "risk", "Риск задержки оплаты", 61, ["Запросить юр.лицо плательщика"]),
+        ("deal", deal_rows[0].id, "action", "Нет ответственного", 80, ["Назначить sales1 или sales2"]),
+    ]
+    for et, eid, cat, title, conf, sugg in insight_specs:
         db.add(
-            models.CommunicationLog(
+            models.AIInsight(
                 id=_uid(),
-                type=["call", "email", "telegram"][i % 3],
-                direction="outbound" if i % 2 == 0 else "inbound",
-                contact_id=c0.id if i % 2 == 0 else c1.id,
-                user_id=sales1.id,
-                duration=180 if i % 3 == 0 else None,
-                status=["completed", "sent", "opened"][i % 3],
-                timestamp=dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=i * 3),
-                metadata_json={"seed": True, "idx": i},
+                entityType=et,
+                entityId=eid,
+                category=cat,
+                title=title,
+                content=f"Демо-подсказка для {title}.",
+                confidence=conf,
+                suggestions=sugg,
             )
         )
+
+    # Журнал коммуникаций (аналитика / churn)
+    for ci, contact in enumerate(c):
+        for i in range(6):
+            db.add(
+                models.CommunicationLog(
+                    id=_uid(),
+                    type=["call", "email", "telegram", "meeting"][i % 4],
+                    direction="outbound" if i % 2 == 0 else "inbound",
+                    contact_id=contact.id,
+                    user_id=sales1.id if i % 2 == 0 else sales2.id,
+                    duration=120 + i * 30 if i % 4 == 0 else None,
+                    status=["completed", "sent", "opened", "read"][i % 4],
+                    timestamp=_current_month_day(min(28, 1 + i + ci)),
+                    metadata_json={"seed": True, "contact_idx": ci, "idx": i},
+                )
+            )
+
+    unassigned = sum(1 for d in deal_rows if d.userId is None)
 
     db.commit()
     print("Демо-данные успешно добавлены.")
     print()
+    now = _utc_now()
+    py, pm = _month_shift(now.year, now.month, -1)
+    prev_closed = sum(
+        1
+        for d in deal_rows
+        if d.stage in ("Closed Won", "Closed Lost")
+        and d.createdAt
+        and d.createdAt.year == py
+        and d.createdAt.month == pm
+    )
+    print(f"  Сделок: {len(deal_rows)} (без ответственного: {unassigned})")
+    print(f"  Задач по сделкам: {len(task_specs)} (открытых: {open_tasks})")
+    print(f"  Закрытых в прошлом месяце ({py}-{pm:02d}): {prev_closed}")
+    print(f"  Остальные — в текущем ({now.year}-{now.month:02d})")
+    print(f"  Контактов: {len(contact_rows)}")
     print(f"  Компания (с данными): {DEMO_COMPANY_NAME} (id={company.id})")
     print(f"  Доп. компания без сотрудников: {DEMO_ORPHAN_COMPANY_NAME}")
     print(f"  Пароль для всех демо-пользователей: {DEMO_PASSWORD}")
