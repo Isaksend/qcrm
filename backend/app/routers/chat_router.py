@@ -6,18 +6,8 @@ from sqlalchemy.orm import Session
 from app import auth, models, schemas
 from app.database import get_db
 from app.services.chat_service import chat_service
-from app.services.insight_service import insight_service
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
-
-
-@router.post("/{contact_id}/analyze", response_model=schemas.AIInsight)
-async def analyze_contact_chat(
-    contact_id: str,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user),
-):
-    return await insight_service.analyze_contact_chat(db, current_user, contact_id)
 
 
 @router.get("/{contact_id}", response_model=List[schemas.ChatMessageOut])
