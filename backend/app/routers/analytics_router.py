@@ -7,7 +7,7 @@ from app import models, auth, crud, roles
 from app.services.ai_service import ai_service
 from app.schemas.ai_schemas import ChurnPredictInput
 
-router = APIRouter(prefix="/api/v1/analytics", tags=["Analytics"])
+router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
 
 def _deal_ids_for_user(db: Session, user: models.User) -> list[str] | None:

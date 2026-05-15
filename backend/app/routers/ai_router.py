@@ -5,7 +5,7 @@ from app import auth, models, tenant_access
 from app.database import get_db
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/api/v1/ai", tags=["AI"])
+router = APIRouter(prefix="/api/ai", tags=["AI"])
 
 @router.post("/score-lead", response_model=LeadScoreResponse)
 async def score_lead(

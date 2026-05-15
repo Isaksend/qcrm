@@ -86,11 +86,11 @@ def test_admin_creates_sales_user(client: TestClient, company_admin_auth: dict):
 
 
 def test_analytics_requires_auth(client: TestClient):
-    assert client.get("/api/v1/analytics/sales-velocity").status_code == 401
+    assert client.get("/api/analytics/sales-velocity").status_code == 401
 
 
 def test_analytics_sales_velocity_ok(client: TestClient, sales_auth: dict):
-    r = client.get("/api/v1/analytics/sales-velocity", headers=sales_auth["headers"])
+    r = client.get("/api/analytics/sales-velocity", headers=sales_auth["headers"])
     assert r.status_code == 200, r.text
     body = r.json()
     assert "average_days_per_stage" in body
