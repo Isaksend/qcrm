@@ -19,12 +19,16 @@ class AuthService:
         user = crud.get_user_by_email(db, email=form_data.username)
         if not user or not auth.verify_password(form_data.password, user.hashed_password):
             raise HTTPException(status_code=400, detail="Incorrect email or password")
-        access_token_expires = auth.access_token_expires_delta()
-        access_token = auth.create_access_token(
-            data={"sub": user.email},
-            expires_delta=access_token_expires,
-        )
-        return {"access_token": access_token, "token_type": "bearer"}
+        if not user.is_active:
+            raise HTTPException(status_code=400, detail="Inactive user")
+        return auth.create_token_pair(user.email)
+
+    def refresh(self, db: Session, body: schemas.RefreshTokenRequest) -> dict:
+        payload = auth.decode_token(body.refresh_token, expected_type=auth.TOKEN_TYPE_REFRESH)
+        user = crud.get_user_by_email(db, email=payload["sub"])
+        if not user or not user.is_active:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        return auth.create_token_pair(user.email)
 
 
 auth_service = AuthService()

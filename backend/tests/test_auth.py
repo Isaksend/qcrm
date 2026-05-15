@@ -32,3 +32,42 @@ def test_register_and_login(client: TestClient):
     assert r2.status_code == 200, r2.text
     body = r2.json()
     assert "access_token" in body
+    assert "refresh_token" in body
+    assert body["token_type"] == "bearer"
+
+
+def test_refresh_token_rotation(client: TestClient):
+    client.post(
+        "/api/auth/register",
+        json={
+            "name": "Refresh User",
+            "email": "refresh@example.com",
+            "password": "secretpass",
+            "role": "user",
+            "company_id": None,
+        },
+    )
+    login = client.post(
+        "/api/auth/login",
+        data={"username": "refresh@example.com", "password": "secretpass"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login.status_code == 200, login.text
+    tokens = login.json()
+    old_refresh = tokens["refresh_token"]
+
+    r = client.post("/api/auth/refresh", json={"refresh_token": old_refresh})
+    assert r.status_code == 200, r.text
+    new_tokens = r.json()
+    assert new_tokens["refresh_token"] != old_refresh
+    assert new_tokens["access_token"]
+
+    me = client.get(
+        "/api/users/me",
+        headers={"Authorization": f"Bearer {new_tokens['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["email"] == "refresh@example.com"
+
+    bad = client.post("/api/auth/refresh", json={"refresh_token": tokens["access_token"]})
+    assert bad.status_code == 401

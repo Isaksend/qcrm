@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-import os
+import uuid
 from typing import Optional
 import bcrypt
 import jwt
@@ -19,15 +19,64 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+TOKEN_TYPE_ACCESS = "access"
+TOKEN_TYPE_REFRESH = "refresh"
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
+    now = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)
-    return encoded_jwt
+        expire = now + timedelta(minutes=15)
+    to_encode.update({"exp": expire, "iat": now, "jti": str(uuid.uuid4()), "typ": TOKEN_TYPE_ACCESS})
+    return jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)
+
+
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    now = datetime.now(timezone.utc)
+    if expires_delta:
+        expire = now + expires_delta
+    else:
+        expire = now + timedelta(days=30)
+    to_encode.update({"exp": expire, "iat": now, "jti": str(uuid.uuid4()), "typ": TOKEN_TYPE_REFRESH})
+    return jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)
+
+
+def decode_token(token: str, *, expected_type: str) -> dict:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
+    except jwt.PyJWTError:
+        raise credentials_exception from None
+    if payload.get("typ") != expected_type:
+        raise credentials_exception
+    if not payload.get("sub"):
+        raise credentials_exception
+    return payload
+
+
+def create_token_pair(email: str) -> dict:
+    access_token = create_access_token(
+        data={"sub": email},
+        expires_delta=access_token_expires_delta(),
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": email},
+        expires_delta=refresh_token_expires_delta(),
+    )
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
     credentials_exception = HTTPException(
@@ -36,12 +85,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, get_secret_key(), algorithms=[ALGORITHM])
+        payload = decode_token(token, expected_type=TOKEN_TYPE_ACCESS)
         email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except:
-        raise credentials_exception
+    except HTTPException:
+        raise credentials_exception from None
     user = db.query(models.User).filter(models.User.email == email).first()
     if user is None:
         raise credentials_exception
@@ -71,3 +118,7 @@ def get_current_super_admin(current_user: models.User = Depends(get_current_acti
 
 def access_token_expires_delta() -> timedelta:
     return timedelta(minutes=get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)
+
+
+def refresh_token_expires_delta() -> timedelta:
+    return timedelta(days=get_settings().REFRESH_TOKEN_EXPIRE_DAYS)

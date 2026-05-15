@@ -18,7 +18,8 @@ class Settings(BaseSettings):
         default="",
         description="JWT signing key; required in production (set APP_ENV=production).",
     )
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     APP_ENV: str = Field(default="development", description="development | staging | production")
 
     # HTTP / CORS (comma-separated origins, e.g. http://localhost:5173,https://app.example.com)
