@@ -56,9 +56,15 @@
     "logout": "Выйти",
     "loading": "Загрузка профиля…"
   },
+  "periodFilter": {
+    "label": "Период",
+    "prev": "Предыдущий месяц",
+    "next": "Следующий месяц"
+  },
   "dashboard": {
     "title": "Панель",
     "subtitle": "Сводка по вашей CRM.",
+    "periodHint": "Статистика и графики за период {period}.",
     "metrics": {
       "totalRevenue": "Выручка",
       "newRequests": "Новые заявки",
@@ -142,7 +148,9 @@
     "wonRevenue": "Выиграно",
     "lostRevenue": "Проиграно",
     "dealsCount": "{n} сделок",
-    "monthlyRevenue": "Выручка по месяцам"
+    "monthlyRevenue": "Выручка по месяцам",
+    "periodHint": "Канбан и метрики — сделки за {period}.",
+    "kanbanEmpty": "Нет сделок на этой стадии"
   },
   "dealDetail": {
     "aiSectionTitle": "ИИ-анализ по данным контакта",
@@ -441,8 +449,8 @@
     "title": "Воронка"
   },
   "revenueChart": {
-    "title": "Динамика выручки",
-    "subtitle": "6 месяцев"
+    "title": "Выигранная выручка",
+    "subtitle": "6 месяцев · выбран {period}"
   },
   "activity": {
     "title": "Активность",

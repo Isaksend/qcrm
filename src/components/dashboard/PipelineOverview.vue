@@ -10,7 +10,7 @@ const dealsStore = useDealsStore()
 const funnelStages = computed(() => {
   const stages = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won']
   return stages.map((stage) => {
-    const stageDeals = dealsStore.deals.filter((d) => d.stage === stage)
+    const stageDeals = dealsStore.dealsInPeriod.filter((d) => d.stage === stage)
     const value = stageDeals.reduce((sum, d) => sum + d.value, 0)
     return { stage, count: stageDeals.length, value }
   })

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database import get_db, ensure_deals_created_by_column
+from app.database import get_db, ensure_deals_created_by_column, ensure_deals_created_at_column
 from app.services.ai_service import ai_service
 from app.telegram_bot import start_polling, stop_polling
 from app.routers import (
@@ -62,6 +62,7 @@ os.makedirs("uploads/chat", exist_ok=True)
 async def lifespan(app: FastAPI):
     print("Starting up...")
     ensure_deals_created_by_column()
+    ensure_deals_created_at_column()
     try:
         ai_service.load_artifacts(get_settings().ML_MODELS_PATH)
     except Exception as exc:

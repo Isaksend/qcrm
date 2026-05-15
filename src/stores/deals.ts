@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
+import { i18n } from '../i18n'
+import { formatMonthShort } from '../i18n/dates'
+import { usePeriodFilterStore, isDealInYearMonth } from './periodFilter'
 import type { Deal } from '../types'
 import { apiUrl } from '../lib/api'
 
@@ -11,9 +14,14 @@ export const useDealsStore = defineStore('deals', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const authStore = useAuthStore()
+  const periodFilter = usePeriodFilterStore()
+
+  const dealsInPeriod = computed(() =>
+    deals.value.filter((d) => isDealInYearMonth(d, periodFilter.year, periodFilter.month)),
+  )
 
   const sortedDeals = computed(() => {
-    return [...deals.value].sort((a, b) => {
+    return [...dealsInPeriod.value].sort((a, b) => {
       const aVal = a[sortField.value]
       const bVal = b[sortField.value]
       if (aVal == null && bVal == null) return 0
@@ -24,26 +32,20 @@ export const useDealsStore = defineStore('deals', () => {
     })
   })
 
-  const totalValue = computed(() =>
-    deals.value.reduce((sum, d) => sum + d.value, 0)
-  )
+  const totalValue = computed(() => dealsInPeriod.value.reduce((sum, d) => sum + d.value, 0))
 
   const wonValue = computed(() =>
-    deals.value
-      .filter((d) => d.stage === 'Closed Won')
-      .reduce((sum, d) => sum + d.value, 0)
+    dealsInPeriod.value.filter((d) => d.stage === 'Closed Won').reduce((sum, d) => sum + d.value, 0),
   )
 
   const lostValue = computed(() =>
-    deals.value
-      .filter((d) => d.stage === 'Closed Lost')
-      .reduce((sum, d) => sum + d.value, 0)
+    dealsInPeriod.value.filter((d) => d.stage === 'Closed Lost').reduce((sum, d) => sum + d.value, 0),
   )
 
   const byStage = computed(() => {
     const stages = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
     return stages.map((stage) => {
-      const stageDeals = deals.value.filter((d) => d.stage === stage)
+      const stageDeals = dealsInPeriod.value.filter((d) => d.stage === stage)
       return {
         stage,
         count: stageDeals.length,
@@ -52,17 +54,50 @@ export const useDealsStore = defineStore('deals', () => {
     })
   })
 
+  /** Won revenue grouped by calendar month (last 6 months ending at selected period). */
+  const monthlyWonRevenue = computed(() => {
+    const loc = i18n.global.locale.value
+    const { year, month } = periodFilter
+    const anchor = new Date(year, month - 1, 1)
+    const buckets: { key: string; label: string; value: number; isSelected: boolean }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1)
+      const y = d.getFullYear()
+      const m = d.getMonth() + 1
+      const key = `${y}-${String(m).padStart(2, '0')}`
+      const label = formatMonthShort(d, loc)
+      const value = deals.value
+        .filter(
+          (deal) =>
+            deal.stage === 'Closed Won' &&
+            isDealInYearMonth(deal, y, m),
+        )
+        .reduce((sum, deal) => sum + deal.value, 0)
+      buckets.push({
+        key,
+        label,
+        value,
+        isSelected: y === year && m === month,
+      })
+    }
+    return buckets
+  })
+
   async function fetchDeals() {
     isLoading.value = true
     error.value = null
     try {
       const response = await fetch(apiUrl('/api/deals'), {
-        headers: { Authorization: `Bearer ${authStore.token}` }
+        headers: { Authorization: `Bearer ${authStore.token}` },
       })
       if (!response.ok) throw new Error('Failed to fetch deals')
-      deals.value = await response.json()
-    } catch (e: any) {
-      error.value = e.message
+      const rows = (await response.json()) as Deal[]
+      deals.value = rows.map((d) => ({
+        ...d,
+        createdAt: d.createdAt ?? d.closedAt ?? undefined,
+      }))
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to fetch deals'
       console.error(error.value)
     } finally {
       isLoading.value = false
@@ -79,7 +114,7 @@ export const useDealsStore = defineStore('deals', () => {
   }
 
   async function addDeal(
-    data: Omit<Deal, 'id'> & { companyId?: string | null }
+    data: Omit<Deal, 'id'> & { companyId?: string | null },
   ): Promise<{ ok: true; deal: Deal } | { ok: false; error: string }> {
     try {
       const isSuper = authStore.userRole === 'super_admin'
@@ -95,7 +130,7 @@ export const useDealsStore = defineStore('deals', () => {
           leadId: data.leadId?.trim() ? data.leadId : null,
           contactId: data.contactId?.trim() ? data.contactId : null,
           companyId: resolvedCompanyId,
-          userId: data.userId?.trim() ? data.userId : authStore.user?.id ?? null,
+          userId: data.userId?.trim() ? data.userId : null,
         }),
       })
       if (!response.ok) {
@@ -109,16 +144,18 @@ export const useDealsStore = defineStore('deals', () => {
         return { ok: false, error: detail }
       }
       const newDeal = (await response.json()) as Deal
+      if (!newDeal.createdAt) {
+        newDeal.createdAt = new Date().toISOString()
+      }
       deals.value.push(newDeal)
       return { ok: true, deal: newDeal }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error adding deal:', e)
-      return { ok: false, error: e?.message || 'Ошибка сети при создании сделки' }
+      return { ok: false, error: e instanceof Error ? e.message : 'Ошибка сети при создании сделки' }
     }
   }
 
   async function updateDealStage(id: string, stage: Deal['stage']) {
-    // Optimistic UI update
     const deal = deals.value.find((d) => d.id === id)
     const oldStage = deal?.stage
     if (deal) deal.stage = stage
@@ -126,14 +163,16 @@ export const useDealsStore = defineStore('deals', () => {
     try {
       const response = await fetch(apiUrl(`/api/deals/${id}/stage?stage=${encodeURIComponent(stage)}`), {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${authStore.token}` }
+        headers: { Authorization: `Bearer ${authStore.token}` },
       })
       if (!response.ok) {
         throw new Error('Failed to update stage on server')
       }
-    } catch (e: any) {
+      const updated = (await response.json()) as Deal
+      const i = deals.value.findIndex((d) => d.id === id)
+      if (i >= 0) deals.value[i] = { ...deals.value[i], ...updated }
+    } catch (e: unknown) {
       console.error(e)
-      // Rollback optimistic update
       if (deal && oldStage) {
         deal.stage = oldStage
       }
@@ -156,8 +195,8 @@ export const useDealsStore = defineStore('deals', () => {
       const i = deals.value.findIndex((d) => d.id === id)
       if (i >= 0) deals.value[i] = updated
       return updated
-    } catch (e: any) {
-      error.value = e.message
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to update deal'
       console.error(e)
       return null
     }
@@ -173,8 +212,8 @@ export const useDealsStore = defineStore('deals', () => {
       if (!response.ok) throw new Error('Failed to delete deal')
       deals.value = deals.value.filter((d) => d.id !== id)
       return true
-    } catch (e: any) {
-      error.value = e.message
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to delete deal'
       console.error(e)
       return false
     }
@@ -182,6 +221,7 @@ export const useDealsStore = defineStore('deals', () => {
 
   return {
     deals,
+    dealsInPeriod,
     sortField,
     sortDirection,
     isLoading,
@@ -191,6 +231,7 @@ export const useDealsStore = defineStore('deals', () => {
     wonValue,
     lostValue,
     byStage,
+    monthlyWonRevenue,
     fetchDeals,
     setSort,
     addDeal,

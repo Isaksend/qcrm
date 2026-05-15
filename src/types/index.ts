@@ -36,6 +36,7 @@ export interface Deal {
   title: string
   value: number
   stage: 'New Request' | 'Qualified' | 'Discovery' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost'
+  createdAt?: string | null
   closedAt: string | null
   userId: string | null
   /** Кто создал сделку (аудит); может совпадать с userId. */

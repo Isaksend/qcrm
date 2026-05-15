@@ -56,9 +56,15 @@
     "logout": "Log out",
     "loading": "Loading profile data…"
   },
+  "periodFilter": {
+    "label": "Period",
+    "prev": "Previous month",
+    "next": "Next month"
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Welcome back. Here's what's happening with your CRM.",
+    "periodHint": "Statistics and charts show deals for {period}.",
     "metrics": {
       "totalRevenue": "Total Revenue",
       "newRequests": "New Requests",
@@ -142,7 +148,9 @@
     "wonRevenue": "Won Revenue",
     "lostRevenue": "Lost Revenue",
     "dealsCount": "{n} deals",
-    "monthlyRevenue": "Monthly Revenue"
+    "monthlyRevenue": "Monthly Revenue",
+    "periodHint": "Kanban and stats show deals created or closed in {period}.",
+    "kanbanEmpty": "No deals in this stage"
   },
   "dealDetail": {
     "aiSectionTitle": "AI analysis from CRM data",
@@ -441,8 +449,8 @@
     "title": "Pipeline funnel"
   },
   "revenueChart": {
-    "title": "Revenue trend",
-    "subtitle": "Last 6 months"
+    "title": "Won revenue",
+    "subtitle": "Last 6 months · selected {period}"
   },
   "activity": {
     "title": "Recent activity",

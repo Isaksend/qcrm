@@ -3,6 +3,8 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useContactsStore } from '../stores/contacts'
 import { useDealsStore } from '../stores/deals'
+import { usePeriodFilterStore } from '../stores/periodFilter'
+import PeriodMonthFilter from '../components/deals/PeriodMonthFilter.vue'
 import MetricCard from '../components/dashboard/MetricCard.vue'
 import RevenueChart from '../components/dashboard/RevenueChart.vue'
 import ActivityFeed from '../components/dashboard/ActivityFeed.vue'
@@ -13,6 +15,7 @@ import { analyticsService } from '../services/analytics.service'
 const { t, locale } = useI18n()
 const contactsStore = useContactsStore()
 const dealsStore = useDealsStore()
+const periodFilter = usePeriodFilterStore()
 
 const funnelEdges = ref<{ from_stage: string; to_stage: string; count: number; conversion_rate: number }[]>([])
 const funnelEvents = ref(0)
@@ -27,7 +30,7 @@ function formatCurrency(val: number): string {
 }
 
 const conversionRate = computed(() => {
-  const closed = dealsStore.deals.filter((d) => d.stage === 'Closed Won' || d.stage === 'Closed Lost')
+  const closed = dealsStore.dealsInPeriod.filter((d) => d.stage === 'Closed Won' || d.stage === 'Closed Lost')
   if (closed.length === 0) return 0
   const won = closed.filter((d) => d.stage === 'Closed Won').length
   return Math.round((won / closed.length) * 100)
@@ -63,7 +66,7 @@ const metrics = computed(() => {
     },
     {
       title: t('dashboard.metrics.newRequests'),
-      value: String(dealsStore.deals.filter((d) => d.stage === 'New Request').length),
+      value: String(dealsStore.dealsInPeriod.filter((d) => d.stage === 'New Request').length),
       trend: t('dashboard.metrics.needsAction'),
       trendUp: true,
       icon: 'leads',
@@ -90,7 +93,7 @@ function stageTitle(stage: string) {
 }
 
 function stageBarWidth(count: number): string {
-  const total = dealsStore.deals.length
+  const total = dealsStore.dealsInPeriod.length
   if (!total) return '0%'
   return `${(count / total) * 100}%`
 }
@@ -98,10 +101,16 @@ function stageBarWidth(count: number): string {
 
 <template>
   <div>
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">{{ t('dashboard.title') }}</h1>
-      <p class="text-sm text-gray-500 mt-1">{{ t('dashboard.subtitle') }}</p>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t('dashboard.title') }}</h1>
+        <p class="text-sm text-gray-500 mt-1">{{ t('dashboard.subtitle') }}</p>
+      </div>
+      <PeriodMonthFilter />
     </div>
+    <p class="text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 mb-4">
+      {{ t('dashboard.periodHint', { period: periodFilter.displayLabel }) }}
+    </p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <MetricCard v-for="metric in metrics" :key="metric.title" v-bind="metric" />

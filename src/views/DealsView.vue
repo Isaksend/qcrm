@@ -3,14 +3,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useContactsStore } from '../stores/contacts'
 import { useDealsStore } from '../stores/deals'
+import { usePeriodFilterStore } from '../stores/periodFilter'
 import DealsTable from '../components/deals/DealsTable.vue'
 import DealsKanban from '../components/deals/DealsKanban.vue'
 import DealForm from '../components/deals/DealForm.vue'
-import { monthlyRevenue } from '../data/mock'
+import PeriodMonthFilter from '../components/deals/PeriodMonthFilter.vue'
 
 const { t } = useI18n()
 const dealsStore = useDealsStore()
 const contactsStore = useContactsStore()
+const periodFilter = usePeriodFilterStore()
 const showForm = ref(false)
 const viewMode = ref<'kanban' | 'table'>('kanban')
 
@@ -20,7 +22,9 @@ function formatCurrency(val: number): string {
   return `$${val}`
 }
 
-const maxMonthly = computed(() => Math.max(1, ...monthlyRevenue.map((m) => m.value)))
+const maxMonthly = computed(() =>
+  Math.max(1, ...dealsStore.monthlyWonRevenue.map((m) => m.value)),
+)
 
 onMounted(() => {
   dealsStore.fetchDeals()
@@ -30,12 +34,13 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">{{ t('deals.title') }}</h1>
         <p class="text-sm text-gray-500 mt-1">{{ t('deals.subtitle') }}</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <PeriodMonthFilter />
         <div class="bg-gray-100 p-1 rounded-lg flex items-center">
           <button
             @click="viewMode = 'kanban'"
@@ -61,24 +66,38 @@ onMounted(() => {
       </div>
     </div>
 
+    <p class="text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 mb-4">
+      {{ t('deals.periodHint', { period: periodFilter.displayLabel }) }}
+    </p>
+
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
       <div class="card">
         <div class="text-xs text-gray-500 mb-1">{{ t('deals.totalPipeline') }}</div>
         <div class="text-xl font-bold text-gray-900">{{ formatCurrency(dealsStore.totalValue) }}</div>
-        <div class="text-xs text-gray-400 mt-1">{{ t('deals.dealsCount', { n: dealsStore.deals.length }) }}</div>
+        <div class="text-xs text-gray-400 mt-1">
+          {{ t('deals.dealsCount', { n: dealsStore.dealsInPeriod.length }) }}
+        </div>
       </div>
       <div class="card">
         <div class="text-xs text-gray-500 mb-1">{{ t('deals.wonRevenue') }}</div>
         <div class="text-xl font-bold text-green-600">{{ formatCurrency(dealsStore.wonValue) }}</div>
         <div class="text-xs text-gray-400 mt-1">
-          {{ t('deals.dealsCount', { n: dealsStore.deals.filter((d) => d.stage === 'Closed Won').length }) }}
+          {{
+            t('deals.dealsCount', {
+              n: dealsStore.dealsInPeriod.filter((d) => d.stage === 'Closed Won').length,
+            })
+          }}
         </div>
       </div>
       <div class="card">
         <div class="text-xs text-gray-500 mb-1">{{ t('deals.lostRevenue') }}</div>
         <div class="text-xl font-bold text-red-500">{{ formatCurrency(dealsStore.lostValue) }}</div>
         <div class="text-xs text-gray-400 mt-1">
-          {{ t('deals.dealsCount', { n: dealsStore.deals.filter((d) => d.stage === 'Closed Lost').length }) }}
+          {{
+            t('deals.dealsCount', {
+              n: dealsStore.dealsInPeriod.filter((d) => d.stage === 'Closed Lost').length,
+            })
+          }}
         </div>
       </div>
     </div>
@@ -86,14 +105,21 @@ onMounted(() => {
     <div class="card mb-6">
       <h3 class="text-sm font-semibold text-gray-800 mb-3">{{ t('deals.monthlyRevenue') }}</h3>
       <div class="flex items-end gap-2 h-20">
-        <div v-for="month in monthlyRevenue" :key="month.month" class="flex-1 flex flex-col items-center gap-1">
+        <div
+          v-for="month in dealsStore.monthlyWonRevenue"
+          :key="month.key"
+          class="flex-1 flex flex-col items-center gap-1"
+        >
           <div class="w-full bg-gray-100 rounded-t flex-1 flex items-end">
             <div
-              class="w-full bg-indigo-400 rounded-t transition-all hover:bg-indigo-500"
+              class="w-full rounded-t transition-all"
+              :class="month.isSelected ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-indigo-400 hover:bg-indigo-500'"
               :style="{ height: `${(month.value / maxMonthly) * 100}%` }"
             ></div>
           </div>
-          <span class="text-[10px] text-gray-400">{{ month.month }}</span>
+          <span class="text-[10px]" :class="month.isSelected ? 'text-indigo-700 font-semibold' : 'text-gray-400'">
+            {{ month.label }}
+          </span>
         </div>
       </div>
     </div>

@@ -127,7 +127,9 @@ def _record_deal_stage_activity(
 
 def create_deal(db: Session, deal: schemas.DealCreate, *, history_actor_id: str | None = None):
     # В SQLAlchemy-модели Deal нет полей currency / createdAt из Pydantic-схемы — иначе TypeError и 500.
-    data = deal.model_dump(exclude={"currency", "createdAt"})
+    data = deal.model_dump(exclude={"currency"})
+    if not data.get("createdAt"):
+        data["createdAt"] = datetime.datetime.utcnow()
     db_deal = models.Deal(**data)
     db.add(db_deal)
     db.flush()
@@ -155,6 +157,8 @@ def update_deal_stage(db: Session, deal_id: str, stage: str, user_id: str = None
         if old_stage != stage:
             # 1. Update the deal
             db_deal.stage = stage
+            if stage in ("Closed Won", "Closed Lost") and not db_deal.closedAt:
+                db_deal.closedAt = datetime.datetime.utcnow()
 
             # 2. Record the history
             history = models.DealStageHistory(
@@ -181,6 +185,8 @@ def update_deal_combined(db: Session, deal_id: str, upd: schemas.DealUpdate, use
         old_stage = db_deal.stage
         new_stage = data["stage"]
         db_deal.stage = new_stage
+        if new_stage in ("Closed Won", "Closed Lost") and not db_deal.closedAt:
+            db_deal.closedAt = datetime.datetime.utcnow()
         history = models.DealStageHistory(
             deal_id=deal_id,
             old_stage=old_stage,

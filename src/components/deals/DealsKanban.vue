@@ -11,6 +11,7 @@ import { dealStageLabel } from '../../i18n/stages'
 const router = useRouter()
 const { t, locale } = useI18n()
 const dealsStore = useDealsStore()
+const periodDeals = computed(() => dealsStore.dealsInPeriod)
 const contactsStore = useContactsStore()
 const stages: Deal['stage'][] = ['New Request', 'Qualified', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost']
 
@@ -90,11 +91,11 @@ function getStageColor(stage: string): string {
         <div class="flex items-center justify-between mb-1">
           <h3 class="font-semibold text-gray-800 text-sm">{{ stageTitle(stage) }}</h3>
           <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="getStageColor(stage)">
-            {{ dealsStore.deals.filter((d: Deal) => d.stage === stage).length }}
+            {{ periodDeals.filter((d: Deal) => d.stage === stage).length }}
           </span>
         </div>
         <div class="text-xs text-gray-500 font-medium tracking-wide">
-          {{ formatCurrency(dealsStore.deals.filter((d: Deal) => d.stage === stage).reduce((sum: number, d: Deal) => sum + d.value, 0)) }}
+          {{ formatCurrency(periodDeals.filter((d: Deal) => d.stage === stage).reduce((sum: number, d: Deal) => sum + d.value, 0)) }}
         </div>
       </div>
 
@@ -102,7 +103,7 @@ function getStageColor(stage: string): string {
       <div class="flex-1 overflow-y-auto p-3 space-y-3">
         <!-- Draggable Card -->
         <div
-          v-for="deal in dealsStore.deals.filter((d: Deal) => d.stage === stage)"
+          v-for="deal in periodDeals.filter((d: Deal) => d.stage === stage)"
           :key="deal.id"
           class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-indigo-300 transition-all active:scale-[0.98] group relative"
           draggable="true"
@@ -140,8 +141,11 @@ function getStageColor(stage: string): string {
         </div>
 
         <!-- Empty state placeholder -->
-        <div v-if="dealsStore.deals.filter((d: Deal) => d.stage === stage).length === 0" class="h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-xs justify-center text-gray-400 font-medium">
-          Drop deals right here
+        <div
+          v-if="periodDeals.filter((d: Deal) => d.stage === stage).length === 0"
+          class="h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-400 font-medium"
+        >
+          {{ t('deals.kanbanEmpty') }}
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ class Deal(Base):
     title = Column(String, index=True)
     value = Column(Float, default=0.0)
     stage = Column(String, index=True) # Discovery, Proposal, Negotiation, Closed Won, Closed Lost
+    createdAt = Column(DateTime, default=datetime.datetime.utcnow, index=True)
     closedAt = Column(DateTime, nullable=True)
     userId = Column(String, nullable=True)
     createdById = Column(String, nullable=True)

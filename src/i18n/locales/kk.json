@@ -56,9 +56,15 @@
     "logout": "Шығу",
     "loading": "Профиль жүктелуде…"
   },
+  "periodFilter": {
+    "label": "Кезең",
+    "prev": "Алдыңғы ай",
+    "next": "Келесі ай"
+  },
   "dashboard": {
     "title": "Бақылау тақтасы",
     "subtitle": "CRM бойынша қысқаша ақпарат.",
+    "periodHint": "Статистика мен графиктер {period} кезеңі үшін.",
     "metrics": {
       "totalRevenue": "Табыс",
       "newRequests": "Жаңа сұраныстар",
@@ -142,7 +148,9 @@
     "wonRevenue": "Жеңіспен алынған табыс",
     "lostRevenue": "Жоғалған мәмілелер сомасы",
     "dealsCount": "{n} мәміле",
-    "monthlyRevenue": "Айлық табыс"
+    "monthlyRevenue": "Айлық табыс",
+    "periodHint": "Kanban және көрсеткіштер {period} кезеңі үшін.",
+    "kanbanEmpty": "Бұл сатыда мәміле жоқ"
   },
   "dealDetail": {
     "aiSectionTitle": "ЖИ талдауы (байланыс деректері)",
@@ -441,8 +449,8 @@
     "title": "Құбылыс"
   },
   "revenueChart": {
-    "title": "Табыс динамикасы",
-    "subtitle": "Соңғы 6 ай"
+    "title": "Жеңілген табыс",
+    "subtitle": "Соңғы 6 ай · таңдалған {period}"
   },
   "activity": {
     "title": "Соңғы белсенділік",
