@@ -150,7 +150,8 @@
     "dealsCount": "{n} сделок",
     "monthlyRevenue": "Выручка по месяцам",
     "periodHint": "Канбан и метрики — сделки за {period}.",
-    "kanbanEmpty": "Нет сделок на этой стадии"
+    "kanbanEmpty": "Нет сделок на этой стадии",
+    "openDetail": "Открыть сделку"
   },
   "dealDetail": {
     "aiSectionTitle": "ИИ-анализ по данным контакта",

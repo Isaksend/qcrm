@@ -35,6 +35,19 @@ export function isDealInYearMonth(
   return d.getFullYear() === year && d.getMonth() + 1 === month
 }
 
+/** Для выручки по закрытым сделкам — месяц закрытия (fallback: создание). */
+export function isWonDealInYearMonth(
+  deal: { createdAt?: string | null; closedAt?: string | null },
+  year: number,
+  month: number,
+): boolean {
+  const raw = deal.closedAt || deal.createdAt
+  if (!raw) return false
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return false
+  return d.getFullYear() === year && d.getMonth() + 1 === month
+}
+
 export const usePeriodFilterStore = defineStore('periodFilter', () => {
   const yearMonth = ref(localStorage.getItem(STORAGE_KEY) || currentYearMonth())
 

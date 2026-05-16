@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { apiUrl } from '../lib/api';
 
-const analyticsBase = () => `${apiUrl('/api/v1')}/analytics`;
+const analyticsBase = () => apiUrl('/api/analytics');
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');

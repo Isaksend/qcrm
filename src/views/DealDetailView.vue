@@ -170,6 +170,15 @@ const contact = computed(() => {
   return contactsStore.getContact(deal.value.contactId)
 })
 
+function openLinkedContact() {
+  const id = contact.value?.id
+  if (!id) return
+  contactsStore.selectedContactId = id
+  contactsStore.statusFilter = 'All'
+  contactsStore.searchQuery = ''
+  router.push({ path: '/contacts', query: { contactId: id } })
+}
+
 const userMap = computed(() => {
   const map: Record<string, any> = {}
   users.value.forEach((u) => (map[u.id] = u))
@@ -252,7 +261,7 @@ async function loadDealContactAi(contactId: string, forDealId: string) {
   try {
     const qs = new URLSearchParams({ deal_id: forDealId })
     const r = await fetch(
-      apiUrl(`/api/v1/ai/analyze-contact/${encodeURIComponent(contactId)}?${qs.toString()}`),
+      apiUrl(`/api/ai/analyze-contact/${encodeURIComponent(contactId)}?${qs.toString()}`),
       { headers: authHeaders },
     )
     if (!r.ok) {
@@ -903,7 +912,14 @@ function historyCellText(field: string, val: string | null): string {
 
         <!-- Sidebar Info -->
         <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6" v-if="contact">
+          <div
+            v-if="contact"
+            class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:border-indigo-200 transition-colors"
+            role="button"
+            tabindex="0"
+            @click="openLinkedContact"
+            @keydown.enter="openLinkedContact"
+          >
             <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">{{ t('dealDetail.linkedContact') }}</h3>
             <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-50">
               <div class="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-indigo-100">
@@ -930,7 +946,11 @@ function historyCellText(field: string, val: string | null): string {
                 </div>
               </div>
             </div>
-            <button @click="router.push('/contacts')" class="w-full mt-8 py-3 text-xs font-black text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-widest">
+            <button
+              type="button"
+              class="w-full mt-8 py-3 text-xs font-black text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 uppercase tracking-widest"
+              @click.stop="openLinkedContact"
+            >
               {{ t('dealDetail.contactDossier') }}
             </button>
           </div>

@@ -27,12 +27,7 @@ export function apiUrl(path: string): string {
   return joinApiPath(getBackendOrigin(), path)
 }
 
-/** Prefix for legacy `/api/*` routes. */
+/** Prefix for `/api/*` routes. */
 export function apiPrefix(): string {
   return apiUrl('/api')
-}
-
-/** Base for versioned API (`/api/v1/...`). */
-export function apiV1Base(): string {
-  return apiUrl('/api/v1')
 }

@@ -77,7 +77,6 @@ function getStageColor(stage: string): string {
 
 <template>
   <div class="flex gap-4 overflow-x-auto pb-4 h-[600px] w-full snap-x">
-    <!-- Stage Column -->
     <div
       v-for="stage in stages"
       :key="stage"
@@ -86,7 +85,6 @@ function getStageColor(stage: string): string {
       @dragenter.prevent
       @drop="onDrop($event, stage)"
     >
-      <!-- Column Header -->
       <div class="p-4 border-b border-gray-200 bg-white rounded-t-xl shrink-0 sticky top-0 z-10">
         <div class="flex items-center justify-between mb-1">
           <h3 class="font-semibold text-gray-800 text-sm">{{ stageTitle(stage) }}</h3>
@@ -99,35 +97,40 @@ function getStageColor(stage: string): string {
         </div>
       </div>
 
-      <!-- Scrollable Cards Container -->
       <div class="flex-1 overflow-y-auto p-3 space-y-3">
-        <!-- Draggable Card -->
         <div
           v-for="deal in periodDeals.filter((d: Deal) => d.stage === stage)"
           :key="deal.id"
-          class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-indigo-300 transition-all active:scale-[0.98] group relative"
+          class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-indigo-300 transition-all active:scale-[0.98]"
           draggable="true"
           @dragstart="onDragStart($event, deal)"
         >
-          <div class="flex justify-between items-start mb-2">
-            <div class="font-medium text-gray-900 text-sm leading-tight pr-6">{{ deal.title }}</div>
-            <button 
-              @click="router.push(`/deals/${deal.id}`)"
-              class="absolute top-3 right-3 p-1 text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
-              title="View Details"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-            </button>
-            <div 
-               class="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 rounded-full border border-indigo-100 shrink-0 ml-2"
-               :title="'Assigned to: ' + (deal.userId && userMap[deal.userId] ? userMap[deal.userId] : 'Unknown')"
-            >
-              <div class="w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[8px] text-white font-bold">
-                {{ deal.userId && userMap[deal.userId] ? userMap[deal.userId].charAt(0) : 'U' }}
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="font-medium text-gray-900 text-sm leading-tight flex-1 min-w-0 line-clamp-2">
+              {{ deal.title }}
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <div
+                class="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 rounded-full border border-indigo-100 max-w-[88px]"
+                :title="'Assigned to: ' + (deal.userId && userMap[deal.userId] ? userMap[deal.userId] : 'Unassigned')"
+              >
+                <div class="w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[8px] text-white font-bold shrink-0">
+                  {{ deal.userId && userMap[deal.userId] ? userMap[deal.userId].charAt(0) : 'U' }}
+                </div>
+                <span class="text-[10px] font-bold text-indigo-700 truncate">
+                  {{ (deal.userId && userMap[deal.userId]) || '—' }}
+                </span>
               </div>
-              <span class="text-[10px] font-bold text-indigo-700 truncate max-w-[60px]">
-                {{ (deal.userId && userMap[deal.userId]) || '—' }}
-              </span>
+              <button
+                type="button"
+                class="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                :title="t('deals.openDetail')"
+                @click.stop="router.push(`/deals/${deal.id}`)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </button>
             </div>
           </div>
           <div class="text-xs text-indigo-600 font-bold mb-3 flex items-center gap-1.5 bg-indigo-50/50 py-1 px-2 rounded-lg border border-dashed border-indigo-100 italic">
@@ -140,7 +143,6 @@ function getStageColor(stage: string): string {
           </div>
         </div>
 
-        <!-- Empty state placeholder -->
         <div
           v-if="periodDeals.filter((d: Deal) => d.stage === stage).length === 0"
           class="h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-400 font-medium"

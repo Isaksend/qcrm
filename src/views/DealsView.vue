@@ -26,6 +26,11 @@ const maxMonthly = computed(() =>
   Math.max(1, ...dealsStore.monthlyWonRevenue.map((m) => m.value)),
 )
 
+function monthlyBarHeight(value: number): string {
+  const pct = (value / maxMonthly.value) * 100
+  return value > 0 ? `${Math.max(pct, 6)}%` : '0%'
+}
+
 onMounted(() => {
   dealsStore.fetchDeals()
   contactsStore.fetchContacts()
@@ -104,20 +109,21 @@ onMounted(() => {
 
     <div class="card mb-6">
       <h3 class="text-sm font-semibold text-gray-800 mb-3">{{ t('deals.monthlyRevenue') }}</h3>
-      <div class="flex items-end gap-2 h-20">
+      <div class="flex items-end gap-3 h-40">
         <div
           v-for="month in dealsStore.monthlyWonRevenue"
           :key="month.key"
-          class="flex-1 flex flex-col items-center gap-1"
+          class="flex-1 flex flex-col items-center gap-2 min-w-0"
         >
-          <div class="w-full bg-gray-100 rounded-t flex-1 flex items-end">
+          <span class="text-xs font-medium text-gray-600">{{ formatCurrency(month.value) }}</span>
+          <div class="w-full h-28 bg-gray-100 rounded-t-md flex items-end">
             <div
-              class="w-full rounded-t transition-all"
+              class="w-full rounded-t-md transition-all duration-500"
               :class="month.isSelected ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-indigo-400 hover:bg-indigo-500'"
-              :style="{ height: `${(month.value / maxMonthly) * 100}%` }"
+              :style="{ height: monthlyBarHeight(month.value) }"
             ></div>
           </div>
-          <span class="text-[10px]" :class="month.isSelected ? 'text-indigo-700 font-semibold' : 'text-gray-400'">
+          <span class="text-[10px]" :class="month.isSelected ? 'text-indigo-700 font-semibold' : 'text-gray-500'">
             {{ month.label }}
           </span>
         </div>

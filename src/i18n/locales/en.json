@@ -150,7 +150,8 @@
     "dealsCount": "{n} deals",
     "monthlyRevenue": "Monthly Revenue",
     "periodHint": "Kanban and stats show deals created or closed in {period}.",
-    "kanbanEmpty": "No deals in this stage"
+    "kanbanEmpty": "No deals in this stage",
+    "openDetail": "Open deal"
   },
   "dealDetail": {
     "aiSectionTitle": "AI analysis from CRM data",

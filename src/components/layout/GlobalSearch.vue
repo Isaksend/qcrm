@@ -58,7 +58,7 @@ const results = computed(() => {
         typeKey: 'deal',
         title: d.title,
         subtitle: `${d.stage} • $${d.value}`,
-        route: '/deals',
+        route: `/deals/${d.id}`,
       })
     }
   })

@@ -150,7 +150,8 @@
     "dealsCount": "{n} мәміле",
     "monthlyRevenue": "Айлық табыс",
     "periodHint": "Kanban және көрсеткіштер {period} кезеңі үшін.",
-    "kanbanEmpty": "Бұл сатыда мәміле жоқ"
+    "kanbanEmpty": "Бұл сатыда мәміле жоқ",
+    "openDetail": "Мәмілені ашу"
   },
   "dealDetail": {
     "aiSectionTitle": "ЖИ талдауы (байланыс деректері)",

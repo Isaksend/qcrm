@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useContactsStore } from '../stores/contacts'
 import ContactList from '../components/contacts/ContactList.vue'
@@ -7,12 +8,25 @@ import ContactDetail from '../components/contacts/ContactDetail.vue'
 import ContactForm from '../components/contacts/ContactForm.vue'
 
 const { t } = useI18n()
+const route = useRoute()
 const contactsStore = useContactsStore()
 const showForm = ref(false)
 
-onMounted(() => {
-  contactsStore.fetchContacts()
+function applyContactFromQuery() {
+  const raw = route.query.contactId
+  const id = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : null
+  if (!id) return
+  contactsStore.selectedContactId = id
+  contactsStore.statusFilter = 'All'
+  contactsStore.searchQuery = ''
+}
+
+onMounted(async () => {
+  await contactsStore.fetchContacts()
+  applyContactFromQuery()
 })
+
+watch(() => route.query.contactId, applyContactFromQuery)
 </script>
 
 <template>

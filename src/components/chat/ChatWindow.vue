@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useChatStore } from '../../stores/chat'
-import { useDealsStore } from '../../stores/deals'
 import { apiUrl, getBackendOrigin } from '../../lib/api'
-import type { Deal } from '../../types'
-
-type NewDealDraft = Pick<Deal, 'title' | 'value' | 'stage' | 'notes'>
 
 const props = defineProps<{
   contactId: string
@@ -15,7 +11,6 @@ const props = defineProps<{
 }>()
 
 const chatStore = useChatStore()
-const dealsStore = useDealsStore()
 
 const newMessage = ref('')
 const isSending = ref(false)
@@ -23,22 +18,6 @@ const sendError = ref('')
 const chatContainer = ref<HTMLElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
-
-// New Deal Modal State
-const showNewDealModal = ref(false)
-const isCreatingDeal = ref(false)
-const newDealError = ref('')
-const newDeal = ref<NewDealDraft>({
-  title: '',
-  value: 0,
-  stage: 'New Request',
-  notes: '',
-})
-
-// AI Analysis State
-const showAIModal = ref(false)
-const isAnalyzing = ref(false)
-const aiResult = ref<any>(null)
 
 const origin = getBackendOrigin()
 
@@ -122,74 +101,6 @@ async function handleFileUpload(event: Event) {
   }
 }
 
-function closeNewDealModal() {
-  showNewDealModal.value = false
-  newDealError.value = ''
-}
-
-function openNewDealModal() {
-  newDealError.value = ''
-  showNewDealModal.value = true
-}
-
-async function handleCreateDeal() {
-  if (!newDeal.value.title || isCreatingDeal.value) return
-  isCreatingDeal.value = true
-  newDealError.value = ''
-  try {
-    const payload: Omit<Deal, 'id'> = {
-      title: newDeal.value.title,
-      value: newDeal.value.value,
-      stage: newDeal.value.stage,
-      notes: newDeal.value.notes || '',
-      leadId: '',
-      contactId: props.contactId,
-      closedAt: null,
-      userId: '',
-      companyId: null,
-    }
-    const result = await dealsStore.addDeal(payload)
-    if (!result.ok) {
-      newDealError.value = result.error
-      return
-    }
-    showNewDealModal.value = false
-    newDeal.value = {
-      title: '',
-      value: 0,
-      stage: 'New Request',
-      notes: '',
-    }
-  } catch (e: any) {
-    newDealError.value = e?.message || 'Ошибка создания сделки'
-  } finally {
-    isCreatingDeal.value = false
-  }
-}
-
-async function runAIAnalysis() {
-  if (isAnalyzing.value) return
-  isAnalyzing.value = true
-  aiResult.value = null
-  showAIModal.value = true
-  try {
-    const res = await fetch(apiUrl(`/api/chat/${props.contactId}/analyze`), {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-    })
-    if (res.ok) {
-      aiResult.value = await res.json()
-    } else {
-      const err = await res.json()
-      alert(err.detail || 'AI Analysis failed')
-    }
-  } catch (e) {
-    alert('Network error during AI analysis')
-  } finally {
-    isAnalyzing.value = false
-  }
-}
-
 function getImageUrl(content: string) {
   if (content.startsWith('http')) return content
   return mediaUrl(content)
@@ -229,26 +140,6 @@ function openImage(url: string) {
           <span v-if="telegramLinked">Telegram подключён</span>
           <span v-else class="text-yellow-300">Telegram не привязан</span>
         </div>
-      </div>
-      <!-- Actions -->
-      <div class="flex items-center gap-2">
-        <button 
-          @click="runAIAnalysis"
-          class="bg-indigo-500/30 hover:bg-indigo-500/50 p-1.5 rounded-lg transition-colors group flex items-center gap-1.5"
-          title="AI Анализ вероятности"
-        >
-          <svg class="w-4 h-4 text-indigo-100 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-          </svg>
-          <span class="text-[9px] font-black uppercase tracking-tighter hidden sm:inline">AI Анализ</span>
-        </button>
-        <button 
-          @click="openNewDealModal"
-          class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2"
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
-          Сделка
-        </button>
       </div>
     </div>
 
@@ -351,116 +242,6 @@ function openImage(url: string) {
       </div>
     </div>
 
-    <!-- AI Analysis Modal -->
-    <div v-if="showAIModal" class="absolute inset-0 bg-indigo-950/95 backdrop-blur-md z-[60] flex flex-col p-6 text-white animate-fade-in">
-      <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-indigo-500/30 flex items-center justify-center animate-pulse">
-            <svg class="w-6 h-6 text-indigo-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
-          </div>
-          <div>
-             <h3 class="text-lg font-black uppercase tracking-tighter">AI Анализ сделки</h3>
-             <p class="text-[10px] text-indigo-300 uppercase font-bold">на базе Gemini 1.5 Flash</p>
-          </div>
-        </div>
-        <button @click="showAIModal = false" class="text-indigo-300 hover:text-white transition-colors">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-
-      <div v-if="isAnalyzing" class="flex-1 flex flex-col items-center justify-center space-y-4">
-        <div class="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
-          <div class="h-full bg-indigo-400 animate-loading-bar"></div>
-        </div>
-        <p class="text-sm font-bold text-indigo-200 animate-pulse">Анализируем историю переписки...</p>
-      </div>
-
-      <div v-else-if="aiResult" class="flex-1 overflow-y-auto space-y-6">
-        <!-- Score -->
-        <div class="flex flex-col items-center py-4">
-          <div class="relative w-32 h-32 flex items-center justify-center">
-            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8" class="text-white/5"/>
-              <circle 
-                cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8" 
-                class="text-indigo-400 transition-all duration-1000"
-                :stroke-dasharray="283"
-                :stroke-dashoffset="283 - (283 * aiResult.confidence) / 100"
-              />
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <span class="text-3xl font-black">{{ aiResult.confidence }}%</span>
-              <span class="text-[8px] uppercase font-black text-indigo-300">Вероятность</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Content -->
-        <div class="bg-white/5 rounded-2xl p-5 border border-white/10">
-          <h4 class="text-sm font-black uppercase text-indigo-200 mb-3">{{ aiResult.title }}</h4>
-          <p class="text-sm text-indigo-100 leading-relaxed font-medium">{{ aiResult.content }}</p>
-        </div>
-
-        <!-- Suggestions -->
-        <div class="space-y-3">
-          <h4 class="text-[10px] font-black uppercase text-indigo-400 tracking-widest px-1">Рекомендованные шаги</h4>
-          <div v-for="(step, i) in aiResult.suggestions" :key="i" class="flex gap-3 bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-all">
-            <span class="text-xs font-black text-indigo-400">{{ i + 1 }}.</span>
-            <p class="text-sm font-medium text-white/90">{{ step }}</p>
-          </div>
-        </div>
-
-        <button @click="showAIModal = false" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-indigo-900/40">
-          Понятно
-        </button>
-      </div>
-    </div>
-
-    <!-- Create Deal Modal -->
-    <div v-if="showNewDealModal" class="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col p-6 overflow-y-auto">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-black text-gray-900 uppercase tracking-tight">Новая сделка</h3>
-        <button @click="closeNewDealModal" class="text-gray-400 hover:text-gray-600">
-           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Название сделки</label>
-          <input v-model="newDeal.title" type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none transition-all text-sm"/>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Сумма ($)</label>
-            <input v-model="newDeal.value" type="number" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none transition-all text-sm"/>
-          </div>
-          <div>
-            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Этап</label>
-            <select v-model="newDeal.stage" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none transition-all text-sm">
-              <option>New Request</option><option>Discovery</option><option>Proposal</option><option>Negotiation</option>
-            </select>
-          </div>
-        </div>
-        <p v-if="newDealError" class="text-sm text-red-600">{{ newDealError }}</p>
-        <button @click="handleCreateDeal" :disabled="!newDeal.title || isCreatingDeal" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 disabled:bg-gray-200 transition-all shadow-lg shadow-indigo-100">
-          {{ isCreatingDeal ? 'Создание...' : 'Создать сделку' }}
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
-<style scoped>
-@keyframes fade-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-.animate-fade-in { animation: fade-in 0.3s ease-out; }
-
-@keyframes loading-bar {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
-.animate-loading-bar { animation: loading-bar 1.5s infinite linear; }
-</style>

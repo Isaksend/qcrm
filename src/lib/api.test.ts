@@ -15,6 +15,6 @@ describe('joinApiPath', () => {
   })
 
   it('strips trailing slash on origin', () => {
-    expect(joinApiPath('http://localhost:8000/', '/api/v1')).toBe('http://localhost:8000/api/v1')
+    expect(joinApiPath('http://localhost:8000/', '/api/deals')).toBe('http://localhost:8000/api/deals')
   })
 })

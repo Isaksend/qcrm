@@ -22,7 +22,6 @@ backend/tinycrm.db
 backend/pytest_tinycrm.db
 backend/audit.log
 backend/mlruns/
-backend/models/*.joblib
 !backend/models/.gitkeep
 
 # Uploads & local artifacts (keep directory if needed via .gitkeep)

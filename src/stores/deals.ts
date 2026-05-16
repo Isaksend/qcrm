@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { i18n } from '../i18n'
 import { formatMonthShort } from '../i18n/dates'
-import { usePeriodFilterStore, isDealInYearMonth } from './periodFilter'
+import { usePeriodFilterStore, isDealInYearMonth, isWonDealInYearMonth } from './periodFilter'
 import type { Deal } from '../types'
 import { apiUrl } from '../lib/api'
 
@@ -57,7 +57,10 @@ export const useDealsStore = defineStore('deals', () => {
   /** Won revenue grouped by calendar month (last 6 months ending at selected period). */
   const monthlyWonRevenue = computed(() => {
     const loc = i18n.global.locale.value
-    const { year, month } = periodFilter
+    const periodYm = periodFilter.yearMonth
+    const year = periodFilter.year
+    const month = periodFilter.month
+    void periodYm
     const anchor = new Date(year, month - 1, 1)
     const buckets: { key: string; label: string; value: number; isSelected: boolean }[] = []
     for (let i = 5; i >= 0; i--) {
@@ -70,7 +73,7 @@ export const useDealsStore = defineStore('deals', () => {
         .filter(
           (deal) =>
             deal.stage === 'Closed Won' &&
-            isDealInYearMonth(deal, y, m),
+            isWonDealInYearMonth(deal, y, m),
         )
         .reduce((sum, deal) => sum + deal.value, 0)
       buckets.push({

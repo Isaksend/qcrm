@@ -13,7 +13,8 @@ const maxValue = computed(() =>
 )
 
 function barHeight(value: number): string {
-  return `${(value / maxValue.value) * 100}%`
+  const pct = (value / maxValue.value) * 100
+  return value > 0 ? `${Math.max(pct, 6)}%` : '0%'
 }
 
 function formatValue(value: number): string {
@@ -36,7 +37,7 @@ function formatValue(value: number): string {
         class="flex-1 flex flex-col items-center gap-2"
       >
         <span class="text-xs font-medium text-gray-600">{{ formatValue(month.value) }}</span>
-        <div class="w-full bg-gray-100 rounded-t-md relative flex-1 flex items-end">
+        <div class="w-full h-28 bg-gray-100 rounded-t-md flex items-end">
           <div
             class="w-full rounded-t-md transition-all duration-500"
             :class="month.isSelected ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-indigo-500 hover:bg-indigo-600'"
