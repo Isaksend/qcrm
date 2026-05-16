@@ -55,8 +55,6 @@ logging.basicConfig(
 )
 audit_logger = logging.getLogger("audit")
 
-os.makedirs("uploads/chat", exist_ok=True)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

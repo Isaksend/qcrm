@@ -141,3 +141,5 @@ class ChatService:
 
 
 chat_service = ChatService()
+
+os.makedirs("uploads/chat", exist_ok=True)
